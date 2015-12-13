@@ -134,7 +134,7 @@ static int MPIR_Bcast_binomial(
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     MPI_Aint nbytes=0;
-    MPI_Aint recvd_size;
+    MPI_Count recvd_size;
     MPI_Status status;
     int is_contig, is_homogeneous;
     MPI_Aint type_size;
@@ -241,7 +241,7 @@ static int MPIR_Bcast_binomial(
             }
 
             /* check that we received as much as we expected */
-            MPIR_Get_count_impl(&status, MPI_BYTE, &recvd_size);
+            MPIR_Get_elements_x_impl(&status, MPI_BYTE, &recvd_size);
             /* recvd_size may not be accurate for packed heterogeneous data */
             if (is_homogeneous && recvd_size != nbytes) {
                 if (*errflag == MPIR_ERR_NONE) *errflag = MPIR_ERR_OTHER;
@@ -345,7 +345,7 @@ static int scatter_for_bcast(
     int        relative_rank, mask;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    MPI_Aint scatter_size, curr_size, recv_size = 0, send_size;
+    MPI_Count scatter_size, curr_size, recv_size = 0, send_size;
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -397,7 +397,7 @@ static int scatter_for_bcast(
                     curr_size = 0;
                 } else
                     /* query actual size of data received */
-                    MPIR_Get_count_impl(&status, MPI_BYTE, &curr_size);
+                    MPIR_Get_elements_x_impl(&status, MPI_BYTE, &curr_size);
             }
             break;
         }
@@ -487,7 +487,7 @@ static int MPIR_Bcast_scatter_doubling_allgather(
     int relative_rank, mask;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    MPI_Aint scatter_size, curr_size, recv_size = 0;
+    MPI_Count scatter_size, curr_size, recv_size = 0;
     int j, k, i, tmp_mask, is_contig, is_homogeneous;
     MPI_Aint type_size, nbytes = 0;
     int relative_dst, dst_tree_root, my_tree_root, tree_root, nprocs_completed;
@@ -615,7 +615,7 @@ static int MPIR_Bcast_scatter_doubling_allgather(
                 recv_size = 0;
 		/* --END ERROR HANDLING-- */
             } else
-                MPIR_Get_count_impl(&status, MPI_BYTE, &recv_size);
+                MPIR_Get_elements_x_impl(&status, MPI_BYTE, &recv_size);
             curr_size += recv_size;
         }
 
@@ -713,7 +713,7 @@ static int MPIR_Bcast_scatter_doubling_allgather(
                         recv_size = 0;
 			/* --END ERROR HANDLING-- */
                     } else
-                        MPIR_Get_count_impl(&status, MPI_BYTE, &recv_size);
+                        MPIR_Get_elements_x_impl(&status, MPI_BYTE, &recv_size);
                     curr_size += recv_size;
                     /* printf("Rank %d, recv from %d, offset %d, size %d\n", rank, dst, offset, recv_size);
                        fflush(stdout);*/
@@ -799,7 +799,7 @@ static int MPIR_Bcast_scatter_ring_allgather(
     int left, right, jnext;
     MPI_Aint curr_size = 0;
     void *tmp_buf;
-    MPI_Aint recvd_size;
+    MPI_Count recvd_size;
     MPI_Status status;
     MPID_Datatype *dtp;
     MPI_Aint true_extent, true_lb;
@@ -911,7 +911,7 @@ static int MPIR_Bcast_scatter_ring_allgather(
             MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
             MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
         }
-        MPIR_Get_count_impl(&status, MPI_BYTE, &recvd_size);
+        MPIR_Get_elements_x_impl(&status, MPI_BYTE, &recvd_size);
         curr_size += recvd_size;
         j     = jnext;
         jnext = (comm_size + jnext - 1) % comm_size;
@@ -1001,7 +1001,7 @@ static int MPIR_SMP_Bcast(
     int is_homogeneous;
     MPI_Aint type_size, nbytes=0;
     MPI_Status status;
-    MPI_Aint recvd_size;
+    MPI_Count recvd_size;
 
     if (!MPIR_CVAR_ENABLE_SMP_COLLECTIVES || !MPIR_CVAR_ENABLE_SMP_BCAST) {
         MPIU_Assert(0);
@@ -1058,7 +1058,7 @@ static int MPIR_SMP_Bcast(
                     MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
                 }
                 /* check that we received as much as we expected */
-                MPIR_Get_count_impl(&status, MPI_BYTE, &recvd_size);
+                MPIR_Get_elements_x_impl(&status, MPI_BYTE, &recvd_size);
                 /* recvd_size may not be accurate for packed heterogeneous data */
                 if (is_homogeneous && recvd_size != nbytes) {
                     if (*errflag == MPIR_ERR_NONE) *errflag = MPIR_ERR_OTHER;
@@ -1341,7 +1341,7 @@ fn_fail:
 /* Not PMPI_LOCAL because it is called in intercomm allgather */
 int MPIR_Bcast_inter ( 
     void *buffer, 
-    MPI_Aint count,
+    int count,
     MPI_Datatype datatype, 
     int root, 
     MPID_Comm *comm_ptr,
