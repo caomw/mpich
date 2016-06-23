@@ -28,7 +28,7 @@ int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count) _
 #define FUNCNAME MPIR_Get_count_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-void MPIR_Get_count_impl(const MPI_Status *status, MPI_Datatype datatype, int *count)
+void MPIR_Get_count_impl(const MPI_Status *status, MPI_Datatype datatype, MPI_Count *count)
 {
     MPI_Count size;
 
