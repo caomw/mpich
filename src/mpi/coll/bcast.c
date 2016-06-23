@@ -134,7 +134,7 @@ static int MPIR_Bcast_binomial(
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     MPI_Aint nbytes=0;
-    int recvd_size;
+    MPI_Aint recvd_size;
     MPI_Status status;
     int is_contig, is_homogeneous;
     MPI_Aint type_size;
@@ -334,7 +334,7 @@ static int scatter_for_bcast(
     MPI_Datatype datatype ATTRIBUTE((unused)),
     int root,
     MPIR_Comm *comm_ptr,
-    int nbytes,
+    MPI_Aint nbytes,
     void *tmp_buf,
     int is_contig,
     int is_homogeneous,
@@ -345,7 +345,7 @@ static int scatter_for_bcast(
     int        relative_rank, mask;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    int scatter_size, curr_size, recv_size = 0, send_size;
+    MPI_Aint scatter_size, curr_size, recv_size = 0, send_size;
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -490,8 +490,9 @@ static int MPIR_Bcast_scatter_doubling_allgather(
     MPI_Aint scatter_size, curr_size, recv_size = 0;
     int j, k, i, tmp_mask, is_contig, is_homogeneous;
     MPI_Aint type_size, nbytes = 0;
-    int relative_dst, dst_tree_root, my_tree_root, send_offset;
-    int recv_offset, tree_root, nprocs_completed, offset;
+    int relative_dst, dst_tree_root, my_tree_root;
+    MPI_Aint send_offset;
+    MPI_Aint recv_offset, tree_root, nprocs_completed, offset;
     MPI_Aint position;
     MPIR_CHKLMEM_DECL(1);
     MPIR_Datatype *dtp;
@@ -793,13 +794,13 @@ static int MPIR_Bcast_scatter_ring_allgather(
     int rank, comm_size;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    int scatter_size;
+    MPI_Aint scatter_size;
     int j, i, is_contig, is_homogeneous;
     MPI_Aint nbytes, type_size, position;
     int left, right, jnext;
-    int curr_size = 0;
+    MPI_Aint curr_size = 0;
     void *tmp_buf;
-    int recvd_size;
+    MPI_Aint recvd_size;
     MPI_Status status;
     MPIR_Datatype *dtp;
     MPI_Aint true_extent, true_lb;
@@ -887,7 +888,7 @@ static int MPIR_Bcast_scatter_ring_allgather(
     jnext = left;
     for (i=1; i<comm_size; i++)
     {
-        int left_count, right_count, left_disp, right_disp, rel_j, rel_jnext;
+        MPI_Aint left_count, right_count, left_disp, right_disp, rel_j, rel_jnext;
 
         rel_j     = (j     - root + comm_size) % comm_size;
         rel_jnext = (jnext - root + comm_size) % comm_size;
@@ -1001,7 +1002,7 @@ static int MPIR_SMP_Bcast(
     int is_homogeneous;
     MPI_Aint type_size, nbytes=0;
     MPI_Status status;
-    int recvd_size;
+    MPI_Aint recvd_size;
 
     if (!MPIR_CVAR_ENABLE_SMP_COLLECTIVES || !MPIR_CVAR_ENABLE_SMP_BCAST) {
         MPIR_Assert(0);
@@ -1226,7 +1227,7 @@ int MPIR_Bcast_intra (
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     int comm_size;
-    int nbytes=0;
+    MPI_Aint nbytes=0;
     int is_homogeneous;
     MPI_Aint type_size;
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_BCAST);
