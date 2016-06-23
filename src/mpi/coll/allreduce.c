@@ -193,7 +193,7 @@ int MPIR_Allreduce_intra (
     MPI_Aint type_size;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    int nbytes = 0;
+    MPI_Aint nbytes = 0;
     int mask, dst, is_commutative, pof2, newrank, rem, newdst, i,
         send_idx, recv_idx, last_idx, send_cnt, recv_cnt, *cnts, *disps; 
     MPI_Aint true_extent, true_lb, extent;
