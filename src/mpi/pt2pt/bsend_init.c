@@ -64,14 +64,14 @@ int MPI_Bsend_init(const void *buf, int count, MPI_Datatype datatype,
 {
     static const char FCNAME[] = "MPI_Bsend_init";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *request_ptr = NULL;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_BSEND_INIT);
+    MPIR_Request *request_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_BSEND_INIT);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_PT2PT_FUNC_ENTER(MPID_STATE_MPI_BSEND_INIT);
+    MPIR_FUNC_TERSE_PT2PT_ENTER(MPID_STATE_MPI_BSEND_INIT);
     
     /* Validate handle parameters needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -85,14 +85,14 @@ int MPI_Bsend_init(const void *buf, int count, MPI_Datatype datatype,
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters if error checking is enabled */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno) goto fn_fail;
 	    
 	    MPIR_ERRTEST_COUNT(count, mpi_errno);
@@ -104,10 +104,10 @@ int MPI_Bsend_init(const void *buf, int count, MPI_Datatype datatype,
 	    /* Validate datatype object */
 	    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
 	    {
-		MPID_Datatype *datatype_ptr = NULL;
+		MPIR_Datatype *datatype_ptr = NULL;
 
 		MPID_Datatype_get_ptr(datatype, datatype_ptr);
-		MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+		MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
 		if (mpi_errno) goto fn_fail;
 		MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
 		if (mpi_errno) goto fn_fail;
@@ -120,17 +120,17 @@ int MPI_Bsend_init(const void *buf, int count, MPI_Datatype datatype,
     /* ... body of routine ...  */
     
     mpi_errno = MPID_Bsend_init(buf, count, datatype, dest, tag, comm_ptr,
-				MPID_CONTEXT_INTRA_PT2PT, &request_ptr);
+				MPIR_CONTEXT_INTRA_PT2PT, &request_ptr);
     if (mpi_errno != MPI_SUCCESS) goto fn_fail;
-    MPIR_SENDQ_REMEMBER(request_ptr, dest, tag, comm_ptr->context_id);
+    MPII_SENDQ_REMEMBER(request_ptr, dest, tag, comm_ptr->context_id);
 
     /* return the handle of the request to the user */
-    MPID_OBJ_PUBLISH_HANDLE(*request, request_ptr->handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*request, request_ptr->handle);
 
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_PT2PT_FUNC_EXIT(MPID_STATE_MPI_BSEND_INIT);
+    MPIR_FUNC_TERSE_PT2PT_EXIT(MPID_STATE_MPI_BSEND_INIT);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

@@ -61,7 +61,7 @@ MPIDI_Compare_and_swap_using_pami_rmw(pami_context_t   context,
 #define FCNAME MPIU_QUOTE(FUNCNAME)
 int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
                           void *result_addr, MPI_Datatype datatype, int target_rank,
-                          MPI_Aint target_disp, MPID_Win *win)
+                          MPI_Aint target_disp, MPIR_Win *win)
 {
   int mpi_errno = MPI_SUCCESS;
   MPIDI_Win_request *req;
@@ -87,7 +87,7 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
      logical, or byte, per the classes given on page 165. */
   MPIR_ERRTEST_TYPE_RMA_ATOMIC(datatype, mpi_errno);
 
-  req = (MPIDI_Win_request *) MPIU_Calloc0(1, MPIDI_Win_request);
+  req = (MPIDI_Win_request *) MPL_calloc0(1, MPIDI_Win_request);
   req->win          = win;
   req->type         = MPIDI_WIN_REQUEST_COMPARE_AND_SWAP;
 
@@ -104,7 +104,7 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
 
   if (req->origin.dt.size == 0)
     {
-      MPIU_Free(req);
+      MPL_free(req);
       return MPI_SUCCESS;
     }
 
@@ -129,7 +129,7 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
     win->mpid.sync.total += 1; 
 
     MPI_Datatype basic_type = MPI_DATATYPE_NULL;
-    MPID_Datatype_get_basic_type(datatype, basic_type);
+    MPIDU_Datatype_get_basic_type(datatype, basic_type);
     MPID_assert(basic_type != MPI_DATATYPE_NULL);
     req->origin.datatype=basic_type;
 

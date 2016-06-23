@@ -32,7 +32,7 @@ extern int mpidi_dynamic_tasking;
  */
 struct MPIDI_VCRT
 {
-  MPIU_OBJECT_HEADER;
+  MPIR_OBJECT_HEADER;
   unsigned size;          /**< Number of entries in the table */
   MPID_VCR *vcr_table;  /**< Array of virtual connection references */
 };
@@ -67,15 +67,15 @@ int MPID_VCRT_Create(int size, MPID_VCRT *vcrt_ptr)
     struct MPIDI_VCRT * vcrt;
     int i,result;
 
-    vcrt = MPIU_Malloc(sizeof(struct MPIDI_VCRT));
-    vcrt->vcr_table = MPIU_Malloc(size*sizeof(MPID_VCR));
+    vcrt = MPL_malloc(sizeof(struct MPIDI_VCRT));
+    vcrt->vcr_table = MPL_malloc(size*sizeof(MPID_VCR));
 
     for(i = 0; i < size; i++) {
-	vcrt->vcr_table[i] = MPIU_Malloc(sizeof(struct MPID_VCR_t));
+        vcrt->vcr_table[i] = MPL_malloc(sizeof(struct MPID_VCR_t));
     }
     if (vcrt != NULL)
     {
-        MPIU_Object_set_ref(vcrt, 1);
+        MPIR_Object_set_ref(vcrt, 1);
         vcrt->size = size;
         *vcrt_ptr = vcrt;
         result = MPI_SUCCESS;
@@ -89,7 +89,7 @@ int MPID_VCRT_Create(int size, MPID_VCRT *vcrt_ptr)
 
 int MPID_VCRT_Add_ref(MPID_VCRT vcrt)
 {
-    MPIU_Object_add_ref(vcrt);
+    MPIR_Object_add_ref(vcrt);
     return MPI_SUCCESS;
 }
 
@@ -97,7 +97,7 @@ int MPID_VCRT_Release(MPID_VCRT vcrt, int isDisconnect)
 {
     int count, i;
 
-    MPIU_Object_release_ref(vcrt, &count);
+    MPIR_Object_release_ref(vcrt, &count);
 
     if (count == 0) {
 #ifdef DYNAMIC_TASKING
@@ -111,35 +111,35 @@ int MPID_VCRT_Release(MPID_VCRT vcrt, int isDisconnect)
                 vcr->pg_rank == MPIDI_Process.my_pg_rank)
               {
 	        TRACE_ERR("before MPIDI_PG_release_ref on vcr=%x pg=%x pg=%s inuse=%d\n", vcr, vcr->pg, (vcr->pg)->id, inuse);
-                inuse=MPIU_Object_get_ref(vcr->pg);
+                inuse=MPIR_Object_get_ref(vcr->pg);
                 MPIDI_PG_release_ref(vcr->pg, &inuse);
                 if (inuse == 0)
                  {
                    MPIDI_PG_Destroy(vcr->pg);
-                   MPIU_Free(vcr);
+                   MPL_free(vcr);
                  }
                  continue;
               }
-            inuse=MPIU_Object_get_ref(vcr->pg);
+            inuse=MPIR_Object_get_ref(vcr->pg);
 
             MPIDI_PG_release_ref(vcr->pg, &inuse);
             if (inuse == 0)
               MPIDI_PG_Destroy(vcr->pg);
-        if(vcr) MPIU_Free(vcr);
+        if(vcr) MPL_free(vcr);
        }
-       MPIU_Free(vcrt->vcr_table);
+       MPL_free(vcrt->vcr_table);
      } /** CHECK */
      else {
       for (i = 0; i < vcrt->size; i++)
-	MPIU_Free(vcrt->vcr_table[i]);
-      MPIU_Free(vcrt->vcr_table);vcrt->vcr_table=NULL;
+          MPL_free(vcrt->vcr_table[i]);
+      MPL_free(vcrt->vcr_table);vcrt->vcr_table=NULL;
      }
 #else
       for (i = 0; i < vcrt->size; i++)
-	MPIU_Free(vcrt->vcr_table[i]);
-      MPIU_Free(vcrt->vcr_table);vcrt->vcr_table=NULL;
+          MPL_free(vcrt->vcr_table[i]);
+      MPL_free(vcrt->vcr_table);vcrt->vcr_table=NULL;
 #endif
-     MPIU_Free(vcrt);vcrt=NULL;
+     MPL_free(vcrt);vcrt=NULL;
     }
     return MPI_SUCCESS;
 }
@@ -151,11 +151,11 @@ int MPID_VCRT_Get_ptr(MPID_VCRT vcrt, MPID_VCR **vc_pptr)
 }
 
 #ifdef DYNAMIC_TASKING
-int MPID_VCR_CommFromLpids( MPID_Comm *newcomm_ptr,
+int MPID_VCR_CommFromLpids( MPIR_Comm *newcomm_ptr,
 			    int size, const int lpids[] )
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *commworld_ptr;
+    MPIR_Comm *commworld_ptr;
     int i;
     MPIDI_PG_iterator iter;
 
@@ -306,7 +306,7 @@ int MPID_GPID_ToLpidArray( int size, int gpid[], int lpid[] )
  */
 
 /* FIXME: These routines belong in a different place */
-int MPID_GPID_GetAllInComm( MPID_Comm *comm_ptr, int local_size,
+int MPID_GPID_GetAllInComm( MPIR_Comm *comm_ptr, int local_size,
 			    int local_gpids[], int *singlePG )
 {
     int mpi_errno = MPI_SUCCESS;
@@ -315,7 +315,7 @@ int MPID_GPID_GetAllInComm( MPID_Comm *comm_ptr, int local_size,
     int lastPGID = -1, pgid;
     MPID_VCR vc;
 
-    MPIU_Assert(comm_ptr->local_size == local_size);
+    MPIR_Assert(comm_ptr->local_size == local_size);
 
     if(mpidi_dynamic_tasking) {
       *singlePG = 1;
@@ -333,7 +333,7 @@ int MPID_GPID_GetAllInComm( MPID_Comm *comm_ptr, int local_size,
 	  }
 	  *gpid++ = vc->pg_rank;
 
-          MPIU_DBG_MSG_FMT(COMM,VERBOSE, (MPIU_DBG_FDEST,
+          MPL_DBG_MSG_FMT(MPIR_DBG_COMM,VERBOSE, (MPL_DBG_FDEST,
                            "pgid=%d vc->pg_rank=%d",
                            pgid, vc->pg_rank));
       }

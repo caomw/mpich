@@ -4,6 +4,8 @@
  *      See COPYRIGHT in top-level directory.
  */
 
+#include <strings.h>
+
 #include "mpiimpl.h"
 #include "mpi_init.h"
 
@@ -44,7 +46,8 @@ cvars:
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : >-
-        Sets the default thread level to use when using MPI_INIT.
+        Sets the default thread level to use when using MPI_INIT. This variable
+        is case-insensitive.
 
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
@@ -68,7 +71,7 @@ int MPI_Init(int *argc, char ***argv) __attribute__((weak,alias("PMPI_Init")));
 #define MPI_Init PMPI_Init
 
 /* Fortran logical values. extern'd in mpiimpl.h */
-/* MPI_Fint MPIR_F_TRUE, MPIR_F_FALSE; */
+/* MPI_Fint MPII_F_TRUE, MPII_F_FALSE; */
 
 /* Any internal routines can go here.  Make them static if possible */
 
@@ -120,19 +123,19 @@ int MPI_Init( int *argc, char ***argv )
     int mpi_errno = MPI_SUCCESS;
     int rc ATTRIBUTE((unused));
     int threadLevel, provided;
-    MPID_MPI_INIT_STATE_DECL(MPID_STATE_MPI_INIT);
+    MPIR_FUNC_TERSE_INIT_STATE_DECL(MPID_STATE_MPI_INIT);
 
     rc = MPID_Wtime_init();
-#ifdef USE_DBG_LOGGING
-    MPIU_DBG_PreInit( argc, argv, rc );
+#ifdef MPL_USE_DBG_LOGGING
+    MPL_dbg_pre_init( argc, argv, rc );
 #endif
 
-    MPID_MPI_INIT_FUNC_ENTER(MPID_STATE_MPI_INIT);
+    MPIR_FUNC_TERSE_INIT_ENTER(MPID_STATE_MPI_INIT);
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            if (OPA_load_int(&MPIR_Process.mpich_state) != MPICH_PRE_INIT) {
+            if (OPA_load_int(&MPIR_Process.mpich_state) != MPICH_MPI_STATE__PRE_INIT) {
                 mpi_errno = MPIR_Err_create_code( MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER,
 						  "**inittwice", NULL );
 	    }
@@ -154,13 +157,13 @@ int MPI_Init( int *argc, char ***argv )
 
     MPIR_T_env_init();
 
-    if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_MULTIPLE"))
+    if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_MULTIPLE"))
         threadLevel = MPI_THREAD_MULTIPLE;
-    else if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SERIALIZED"))
+    else if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SERIALIZED"))
         threadLevel = MPI_THREAD_SERIALIZED;
-    else if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_FUNNELED"))
+    else if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_FUNNELED"))
         threadLevel = MPI_THREAD_FUNNELED;
-    else if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SINGLE"))
+    else if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SINGLE"))
         threadLevel = MPI_THREAD_SINGLE;
     else {
         MPL_error_printf("Unrecognized thread level %s\n", MPIR_CVAR_DEFAULT_THREAD_LEVEL);
@@ -188,7 +191,7 @@ int MPI_Init( int *argc, char ***argv )
     }
 
     /* ... end of body of routine ... */
-    MPID_MPI_INIT_FUNC_EXIT(MPID_STATE_MPI_INIT);
+    MPIR_FUNC_TERSE_INIT_EXIT(MPID_STATE_MPI_INIT);
     return mpi_errno;
 
   fn_fail:

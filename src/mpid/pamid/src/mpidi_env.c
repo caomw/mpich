@@ -113,8 +113,8 @@
  *   Possible values:
  *   - 0 - Collectives are not memory optimized.
  *   - n - Collectives are memory optimized. Levels are bitwise values :
- *        MPID_OPT_LVL_IRREG     = 1,   Do not optimize irregular communicators 
- *        MPID_OPT_LVL_NONCONTIG = 2,   Disable some non-contig collectives 
+ *        MPIR_OPT_LVL_IRREG     = 1,   Do not optimize irregular communicators
+ *        MPIR_OPT_LVL_NONCONTIG = 2,   Disable some non-contig collectives
  *
  *   PAMID_OPTIMIZED_SUBCOMMS - Use PAMI 'optimized' collectives. Defaullt is 1.
  *   - 0 - Some optimized protocols may be disabled.
@@ -547,7 +547,7 @@ MPIDI_Env_setup(int rank, int requested)
     unsigned value = (unsigned)-1;
     char* names[] = {"PAMID_THREAD_MULTIPLE", NULL};
     ENV_Unsigned(names, &value, 1, &found_deprecated_env_var, rank);
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
     /* Any mpich work function posted to a context that eventually initiates
      * other communcation transfers will hang on a lock attempt if the
      * 'context post' feature is not enabled. Until this code flow is fixed
@@ -610,7 +610,7 @@ MPIDI_Env_setup(int rank, int requested)
 
     if (value != -1)
     {
-#if (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY__POBJ)
       /* The 'global' mpich lock mode only supports a single context.
        * See discussion in mpich/src/mpid/pamid/src/mpid_init.c for more
        * information.
@@ -643,7 +643,7 @@ MPIDI_Env_setup(int rank, int requested)
     ENV_Unsigned(names, &value, 1, &found_deprecated_env_var, rank);
     if (value != -1)
     {
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
       MPIDI_Process.perobj.context_post.requested = (value > 0);
 #else
       found_deprecated_env_var++;
@@ -665,7 +665,7 @@ MPIDI_Env_setup(int rank, int requested)
     {
       if (value != ASYNC_PROGRESS_MODE_DISABLED)
       {
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
         if (value == ASYNC_PROGRESS_MODE_LOCKED &&
             MPIDI_Process.perobj.context_post.requested == 0)
         {
@@ -679,7 +679,7 @@ MPIDI_Env_setup(int rank, int requested)
             fprintf(stderr, "The environment variable \"PAMID_ASYNC_PROGRESS=1\" requires \"PAMID_CONTEXT_POST=1\".\n");
         }
 
-#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY_PER_OBJECT) */
+#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY__POBJ) */
         if (value == ASYNC_PROGRESS_MODE_LOCKED)
         {
           /* The only valid async progress mode when using the 'global' mpich
@@ -807,7 +807,7 @@ MPIDI_Env_setup(int rank, int requested)
     if (env != NULL)
       {
         size_t i, n = strlen(env);
-        char * tmp = (char *) MPIU_Malloc(n+1);
+        char * tmp = (char *) MPL_malloc(n+1);
         strncpy(tmp,env,n);
         if (n>0) tmp[n]=0;
 
@@ -831,7 +831,7 @@ MPIDI_Env_setup(int rank, int requested)
               }
           }
 
-        MPIU_Free (tmp);
+        MPL_free (tmp);
       }
   }
 
@@ -1027,8 +1027,8 @@ MPIDI_Env_setup(int rank, int requested)
       ENV_Deprecated(names, 1, &found_deprecated_env_var, rank, 0);
     }
 #if (MPIDI_STATISTICS || MPIDI_PRINTENV)
-    mpich_env=(MPIDI_printenv_t *) MPIU_Malloc(sizeof(MPIDI_printenv_t)+1);
-    mpid_statp=(MPIX_stats_t *) MPIU_Malloc(sizeof(MPIX_stats_t)+1);
+    mpich_env=(MPIDI_printenv_t *) MPL_malloc(sizeof(MPIDI_printenv_t)+1);
+    mpid_statp=(MPIX_stats_t *) MPL_malloc(sizeof(MPIX_stats_t)+1);
     memset((void *)mpich_env,0,sizeof(MPIDI_printenv_t));
     memset((void *)mpid_statp,0,sizeof(MPIX_stats_t));
     /* If MP_STATISTICS is set, each task prints statistics data at the end of an MPI jobs */
@@ -1091,7 +1091,7 @@ MPIDI_Env_setup(int rank, int requested)
         MPIDI_Process.mp_interrupts=user_interrupts;
         MPIDI_Process.perobj.context_post.requested = 0;
         MPIDI_Process.async_progress.mode    = ASYNC_PROGRESS_MODE_TRIGGER;
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
         MPIDI_Process.avail_contexts         = MPIDI_MAX_CONTEXTS;
 #else
         MPIDI_Process.avail_contexts         = 1;

@@ -28,7 +28,7 @@
 #include "pamix.h"
 #include <mpix.h>
 
-
+extern int MPIDI_PAMID_Timer_is_ready;
 
 static inline void MPIDI_coll_check_in_place(void* src, void** dst)
 {
@@ -53,7 +53,7 @@ typedef struct MPIDI_PG
        MPIU_Object system, but we do use the associated reference counting
        routines.  Therefore, handle must be present, but is not used
        except by debugging routines */
-    MPIU_OBJECT_HEADER; /* adds handle and ref_count fields */
+    MPIR_OBJECT_HEADER; /* adds handle and ref_count fields */
 
     /* Next pointer used to maintain a list of all process groups known to
        this process */
@@ -125,37 +125,37 @@ typedef struct transactionID_struct {
   BEGIN MPI PORT SECTION
   --------------------------*/
 /* These are the default functions */
-int MPIDI_Comm_connect(const char *, struct MPID_Info *, int, struct MPID_Comm *, struct MPID_Comm **);
-int MPIDI_Comm_accept(const char *, struct MPID_Info *, int, struct MPID_Comm *, struct MPID_Comm **);
+int MPIDI_Comm_connect(const char *, struct MPIR_Info *, int, struct MPIR_Comm *, struct MPIR_Comm **);
+int MPIDI_Comm_accept(const char *, struct MPIR_Info *, int, struct MPIR_Comm *, struct MPIR_Comm **);
 
-int MPIDI_Comm_spawn_multiple(int, char **, char ***, int *, struct MPID_Info **,
-                              int, struct MPID_Comm *, struct MPID_Comm **, int *);
+int MPIDI_Comm_spawn_multiple(int, char **, char ***, int *, struct MPIR_Info **,
+                              int, struct MPIR_Comm *, struct MPIR_Comm **, int *);
 
 
 typedef struct MPIDI_Port_Ops {
-    int (*OpenPort)( struct MPID_Info *, char *);
+    int (*OpenPort)( struct MPIR_Info *, char *);
     int (*ClosePort)( const char * );
-    int (*CommAccept)( const char *, struct MPID_Info *, int, struct MPID_Comm *,
-                       struct MPID_Comm ** );
-    int (*CommConnect)( const char *, struct MPID_Info *, int, struct MPID_Comm *,
-                        struct MPID_Comm ** );
+    int (*CommAccept)( const char *, struct MPIR_Info *, int, struct MPIR_Comm *,
+                       struct MPIR_Comm ** );
+    int (*CommConnect)( const char *, struct MPIR_Info *, int, struct MPIR_Comm *,
+                        struct MPIR_Comm ** );
 } MPIDI_PortFns;
 
 
 #define MPIDI_VC_add_ref( _vc )                                 \
-    do { MPIU_Object_add_ref( _vc ); } while (0)
+    do { MPIR_Object_add_ref( _vc ); } while (0)
 
 #define MPIDI_PG_add_ref(pg_)                   \
 do {                                            \
-    MPIU_Object_add_ref(pg_);                   \
+    MPIR_Object_add_ref(pg_);                   \
 } while (0)
 #define MPIDI_PG_release_ref(pg_, inuse_)       \
 do {                                            \
-    MPIU_Object_release_ref(pg_, inuse_);       \
+    MPIR_Object_release_ref(pg_, inuse_);       \
 } while (0)
 
 #define MPIDI_VC_release_ref( _vc, _inuse ) \
-    do { MPIU_Object_release_ref( _vc, _inuse ); } while (0)
+    do { MPIR_Object_release_ref( _vc, _inuse ); } while (0)
 
 
 /* Initialize a new VC */
@@ -179,8 +179,8 @@ static inline pami_endpoint_t MPIDI_Task_to_endpoint(pami_task_t task, size_t of
 }
 
 int
-MPIDI_Win_set_info(MPID_Win *win,
-	           MPID_Info *info);
+MPIDI_Win_set_info(MPIR_Win *win,
+                   MPIR_Info *info);
 
 MPI_Aint MPID_Aint_add(MPI_Aint base, MPI_Aint disp);
 MPI_Aint MPID_Aint_diff(MPI_Aint addr1, MPI_Aint addr2);

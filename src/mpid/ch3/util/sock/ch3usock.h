@@ -34,8 +34,8 @@ typedef struct MPIDI_CH3I_Connection
     MPIDI_VC_t * vc;
     MPIDU_Sock_t sock;
     MPIDI_CH3I_Conn_state state;
-    struct MPID_Request * send_active;
-    struct MPID_Request * recv_active;
+    struct MPIR_Request * send_active;
+    struct MPIR_Request * recv_active;
     MPIDI_CH3_Pkt_t pkt;
     char * pg_id;
     MPL_IOV iov[2];
@@ -61,7 +61,7 @@ void MPIDI_CH3I_Connection_free(MPIDI_CH3I_Connection_t *);
 int MPIDU_CH3U_GetSockInterfaceAddr( int, char *, int, MPIDU_Sock_ifaddr_t * );
 
 /* Return a string for the connection state */
-#ifdef USE_DBG_LOGGING
+#ifdef MPL_USE_DBG_LOGGING
 const char * MPIDI_Conn_GetStateString(int);
 const char * MPIDI_CH3_VC_GetStateString( struct MPIDI_VC * );
 #endif

@@ -1,4 +1,5 @@
 [#] start of __file__
+dnl MPICH_SUBCFG_BEFORE=src/mpid/common/shm
 dnl
 dnl _PREREQ handles the former role of mpichprereq, setup_device, etc
 AC_DEFUN([PAC_SUBCFG_PREREQ_]PAC_SUBCFG_AUTO_SUFFIX,[
@@ -24,6 +25,8 @@ else
 fi
 export nemesis_networks
 
+# the nemesis channel depends on the common shm code
+build_mpid_common_shm=yes
 ])dnl end AM_COND_IF(BUILD_CH3_NEMESIS,...)
 ])dnl
 dnl
@@ -181,10 +184,10 @@ AC_CHECK_FUNCS(rand)
 AC_CHECK_FUNCS(srand)
 
 # Check for available shared memory functions
-PAC_ARG_SHARED_MEMORY
-if test "$with_shared_memory" != "mmap" -a "$with_shared_memory" != "sysv"; then
-    AC_MSG_ERROR([cannot support shared memory:  need either sysv shared memory functions or mmap in order to support shared memory])
-fi
+#PAC_ARG_SHARED_MEMORY
+#if test "$with_shared_memory" != "mmap" -a "$with_shared_memory" != "sysv"; then
+#    AC_MSG_ERROR([cannot support shared memory:  need either sysv shared memory functions or mmap in order to support shared memory])
+#fi
 
 AC_ARG_ENABLE(nemesis-shm-collectives, [--enable-nemesis-shm-collectives - enables use of shared memory for collective comunication within a node],
     AC_DEFINE(ENABLED_SHM_COLLECTIVES, 1, [Define to enable shared-memory collectives]))

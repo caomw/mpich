@@ -60,7 +60,7 @@ MPIDI_WinUnlockAll_proc(pami_context_t              context,
                         const MPIDI_Win_control_t * info,
                         unsigned                    peer)
 {
-  MPID_Win *win = info->win;
+  MPIR_Win *win = info->win;
   --win->mpid.sync.lock.local.count;
   MPID_assert((int)win->mpid.sync.lock.local.count >= 0);
   MPIDI_WinLockAdvance(context, win);
@@ -69,7 +69,7 @@ MPIDI_WinUnlockAll_proc(pami_context_t              context,
 void
 MPIDI_WinLockAllAck_post(pami_context_t   context,
                       unsigned         peer,
-                      MPID_Win       * win)
+                      MPIR_Win       * win)
 {
   MPIDI_Win_control_t info = {
   .type       = MPIDI_WIN_MSGTYPE_LOCKALLACK,
@@ -80,7 +80,7 @@ MPIDI_WinLockAllAck_post(pami_context_t   context,
 
 int
 MPID_Win_lock_all(int      assert,
-                  MPID_Win *win)
+                  MPIR_Win *win)
 {
   int mpi_errno = MPI_SUCCESS;
   int i,size;
@@ -104,9 +104,9 @@ MPID_Win_lock_all(int      assert,
    nMask=(win->mpid.max_ctrlsends - 1);
    if (!win->mpid.work.msgQ) {
        if (size < (win->mpid.max_ctrlsends)) {
-           win->mpid.work.msgQ = (void *) MPIU_Calloc0(size, MPIDI_WinLock_info);
+           win->mpid.work.msgQ = (void *) MPL_calloc0(size, MPIDI_WinLock_info);
        }  else {
-           win->mpid.work.msgQ = (void *) MPIU_Calloc0((win->mpid.max_ctrlsends), MPIDI_WinLock_info);
+           win->mpid.work.msgQ = (void *) MPL_calloc0((win->mpid.max_ctrlsends), MPIDI_WinLock_info);
        }
        MPID_assert(win->mpid.work.msgQ != NULL);
        win->mpid.work.count=0;
@@ -147,7 +147,7 @@ MPID_Win_lock_all(int      assert,
 
 
 int
-MPID_Win_unlock_all(MPID_Win *win)
+MPID_Win_unlock_all(MPIR_Win *win)
 {
   int mpi_errno = MPI_SUCCESS;
   int i,size;

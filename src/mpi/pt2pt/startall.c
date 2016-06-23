@@ -7,8 +7,8 @@
 
 #include "mpiimpl.h"
 
-#if !defined(MPID_REQUEST_PTR_ARRAY_SIZE)
-#define MPID_REQUEST_PTR_ARRAY_SIZE 16
+#if !defined(MPIR_REQUEST_PTR_ARRAY_SIZE)
+#define MPIR_REQUEST_PTR_ARRAY_SIZE 16
 #endif
 
 /* -- Begin Profiling Symbol Block for routine MPI_Startall */
@@ -61,17 +61,17 @@ Input Parameters:
 int MPI_Startall(int count, MPI_Request array_of_requests[])
 {
     static const char FCNAME[] = "MPI_Startall";
-    MPID_Request * request_ptr_array[MPID_REQUEST_PTR_ARRAY_SIZE];
-    MPID_Request ** request_ptrs = request_ptr_array;
+    MPIR_Request * request_ptr_array[MPIR_REQUEST_PTR_ARRAY_SIZE];
+    MPIR_Request ** request_ptrs = request_ptr_array;
     int i;
     int mpi_errno = MPI_SUCCESS;
-    MPIU_CHKLMEM_DECL(1);
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_STARTALL);
+    MPIR_CHKLMEM_DECL(1);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_STARTALL);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_PT2PT_FUNC_ENTER(MPID_STATE_MPI_STARTALL);
+    MPIR_FUNC_TERSE_PT2PT_ENTER(MPID_STATE_MPI_STARTALL);
 
     /* Validate handle parameters needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -90,14 +90,14 @@ int MPI_Startall(int count, MPI_Request array_of_requests[])
 #   endif /* HAVE_ERROR_CHECKING */
     
     /* Convert MPI request handles to a request object pointers */
-    if (count > MPID_REQUEST_PTR_ARRAY_SIZE)
+    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE)
     {
-	MPIU_CHKLMEM_MALLOC_ORJUMP(request_ptrs, MPID_Request **, count * sizeof(MPID_Request *), mpi_errno, "request pointers");
+	MPIR_CHKLMEM_MALLOC_ORJUMP(request_ptrs, MPIR_Request **, count * sizeof(MPIR_Request *), mpi_errno, "request pointers");
     }
 
     for (i = 0; i < count; i++)
     {
-	MPID_Request_get_ptr(array_of_requests[i], request_ptrs[i]);
+	MPIR_Request_get_ptr(array_of_requests[i], request_ptrs[i]);
     }
     
     /* Validate object pointers if error checking is enabled */
@@ -106,7 +106,7 @@ int MPI_Startall(int count, MPI_Request array_of_requests[])
         MPID_BEGIN_ERROR_CHECKS;
         {
 	    for (i = 0; i < count; i++) {
-		MPID_Request_valid_ptr( request_ptrs[i], mpi_errno );
+		MPIR_Request_valid_ptr( request_ptrs[i], mpi_errno );
                 if (mpi_errno) goto fn_fail;
 	    }
 	    for (i = 0; i < count; i++) {
@@ -126,12 +126,12 @@ int MPI_Startall(int count, MPI_Request array_of_requests[])
     /* ... end of body of routine ... */
     
   fn_exit:
-    if (count > MPID_REQUEST_PTR_ARRAY_SIZE)
+    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE)
     {
-	MPIU_CHKLMEM_FREEALL();
+	MPIR_CHKLMEM_FREEALL();
     }
 
-    MPID_MPI_PT2PT_FUNC_EXIT(MPID_STATE_MPI_STARTALL);
+    MPIR_FUNC_TERSE_PT2PT_EXIT(MPID_STATE_MPI_STARTALL);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

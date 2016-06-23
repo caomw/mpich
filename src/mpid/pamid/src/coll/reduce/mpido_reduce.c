@@ -36,7 +36,7 @@ int MPIDO_Reduce(const void *sendbuf,
                  MPI_Datatype datatype,
                  MPI_Op op, 
                  int root, 
-                 MPID_Comm *comm_ptr, 
+                 MPIR_Comm *comm_ptr,
                  int *mpierrno)
 
 {
@@ -47,7 +47,7 @@ int MPIDO_Reduce(const void *sendbuf,
     return -1;
   }
 #endif
-   MPID_Datatype *dt_null = NULL;
+   MPIDU_Datatype*dt_null = NULL;
    MPI_Aint true_lb = 0;
    int dt_contig ATTRIBUTE((unused)), tsize;
    int mu;
@@ -99,7 +99,7 @@ int MPIDO_Reduce(const void *sendbuf,
       void *destbuf = recvbuf;
       if(rank != root) /* temp buffer for non-root destbuf */
       {
-         tbuf = destbuf = MPIU_Malloc(tsize);
+         tbuf = destbuf = MPL_malloc(tsize);
       }
       /* Switch to comm->coll_fns->fn() */
       MPIDO_Allreduce(sendbuf,
@@ -110,7 +110,7 @@ int MPIDO_Reduce(const void *sendbuf,
                       comm_ptr,
                       mpierrno);
       if(tbuf)
-         MPIU_Free(tbuf);
+         MPL_free(tbuf);
       return 0;
    }
    if(selected_type == MPID_COLL_USE_MPICH || rc != MPI_SUCCESS)
@@ -121,14 +121,14 @@ int MPIDO_Reduce(const void *sendbuf,
       if(MPIDI_Process.cuda_aware_support_on)
       {
          MPI_Aint dt_extent;
-         MPID_Datatype_get_extent_macro(datatype, dt_extent);
+         MPIDU_Datatype_get_extent_macro(datatype, dt_extent);
          char *scbuf = NULL;
          char *rcbuf = NULL;
          int is_send_dev_buf = MPIDI_cuda_is_device_buf(sendbuf);
          int is_recv_dev_buf = MPIDI_cuda_is_device_buf(recvbuf);
          if(is_send_dev_buf)
          {
-           scbuf = MPIU_Malloc(dt_extent * count);
+           scbuf = MPL_malloc(dt_extent * count);
            cudaError_t cudaerr = CudaMemcpy(scbuf, sendbuf, dt_extent * count, cudaMemcpyDeviceToHost);
            if (cudaSuccess != cudaerr) 
              fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
@@ -137,7 +137,7 @@ int MPIDO_Reduce(const void *sendbuf,
            scbuf = sendbuf;
          if(is_recv_dev_buf)
          {
-           rcbuf = MPIU_Malloc(dt_extent * count);
+           rcbuf = MPL_malloc(dt_extent * count);
            if(sendbuf == MPI_IN_PLACE)
            {
              cudaError_t cudaerr = CudaMemcpy(rcbuf, recvbuf, dt_extent * count, cudaMemcpyDeviceToHost);
@@ -150,13 +150,13 @@ int MPIDO_Reduce(const void *sendbuf,
          else
            rcbuf = recvbuf;
          int cuda_res =  MPIR_Reduce(scbuf, rcbuf, count, datatype, op, root, comm_ptr, mpierrno);
-         if(is_send_dev_buf)MPIU_Free(scbuf);
+         if(is_send_dev_buf)MPL_free(scbuf);
          if(is_recv_dev_buf)
          {
            cudaError_t cudaerr = CudaMemcpy(recvbuf, rcbuf, dt_extent * count, cudaMemcpyHostToDevice);
            if (cudaSuccess != cudaerr)
              fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
-           MPIU_Free(rcbuf);
+           MPL_free(rcbuf);
          }
          return cuda_res;
       }
@@ -212,7 +212,7 @@ int MPIDO_Reduce(const void *sendbuf,
          if(my_md->check_correct.values.rangeminmax)
          {
             MPI_Aint data_true_lb ATTRIBUTE((unused));
-            MPID_Datatype *data_ptr;
+            MPIDU_Datatype*data_ptr;
             int data_size, data_contig ATTRIBUTE((unused));
             MPIDI_Datatype_get_info(count, datatype, data_contig, data_size, data_ptr, data_true_lb); 
             if((my_md->range_lo <= data_size) &&
@@ -261,8 +261,8 @@ int MPIDO_Reduce(const void *sendbuf,
       if(unlikely(verbose))
       {
          unsigned long long int threadID;
-         MPIU_Thread_id_t tid;
-         MPIU_Thread_self(&tid);
+         MPL_thread_id_t tid;
+         MPL_thread_self(&tid);
          threadID = (unsigned long long int)tid;
          fprintf(stderr,"<%llx> Using protocol %s for reduce on %u\n", 
                  threadID,
@@ -295,7 +295,7 @@ int MPIDO_Reduce_simple(const void *sendbuf,
                  MPI_Datatype datatype,
                  MPI_Op op, 
                  int root, 
-                 MPID_Comm *comm_ptr, 
+                 MPIR_Comm *comm_ptr,
                  int *mpierrno)
 
 {
@@ -306,7 +306,7 @@ int MPIDO_Reduce_simple(const void *sendbuf,
     return -1;
   }
 #endif
-   MPID_Datatype *dt_null = NULL;
+   MPIDU_Datatype*dt_null = NULL;
    MPI_Aint true_lb = 0;
    int dt_contig, tsize;
    int mu;
@@ -398,7 +398,7 @@ MPIDO_CSWrapper_reduce(pami_xfer_t *reduce,
                        void        *comm)
 {
    int mpierrno = 0;
-   MPID_Comm   *comm_ptr = (MPID_Comm*)comm;
+   MPIR_Comm   *comm_ptr = (MPIR_Comm*)comm;
    MPI_Datatype type;
    MPI_Op op;
    void *sbuf;

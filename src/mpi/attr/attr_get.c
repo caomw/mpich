@@ -75,13 +75,13 @@ int MPI_Attr_get(MPI_Comm comm, int keyval, void *attribute_val, int *flag)
 {
     static const char FCNAME[] = "MPI_Attr_get";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_ATTR_GET);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_ATTR_GET);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_ATTR_GET);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_ATTR_GET);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -93,9 +93,9 @@ int MPI_Attr_get(MPI_Comm comm, int keyval, void *attribute_val, int *flag)
             /* A common user error is to pass the address of a 4-byte
 	       int when the address of a pointer (or an address-sized int)
 	       should have been used.  We can test for this specific
-	       case.  Note that this code assumes sizeof(MPIU_Pint) is 
+	       case.  Note that this code assumes sizeof(intptr_t) is
 	       a power of 2. */
-            MPIR_ERR_CHKANDJUMP((MPIU_Pint)attribute_val & (sizeof(MPIU_Pint)-1),
+            MPIR_ERR_CHKANDJUMP((intptr_t)attribute_val & (sizeof(intptr_t)-1),
                                 mpi_errno,MPI_ERR_ARG,"**attrnotptr");
 #           endif
         }
@@ -104,7 +104,7 @@ int MPI_Attr_get(MPI_Comm comm, int keyval, void *attribute_val, int *flag)
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -112,7 +112,7 @@ int MPI_Attr_get(MPI_Comm comm, int keyval, void *attribute_val, int *flag)
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
 	    /* If comm_ptr is not valid, it will be reset to null */
 	    MPIR_ERRTEST_ARGNULL(attribute_val, "attribute_val", mpi_errno);
 	    MPIR_ERRTEST_ARGNULL(flag, "flag", mpi_errno);
@@ -123,13 +123,13 @@ int MPI_Attr_get(MPI_Comm comm, int keyval, void *attribute_val, int *flag)
 
     /* ... body of routine ...  */
 
-    mpi_errno = MPIR_CommGetAttr( comm, keyval, attribute_val, flag, MPIR_ATTR_PTR);
+    mpi_errno = MPII_Comm_get_attr( comm, keyval, attribute_val, flag, MPIR_ATTR_PTR);
     if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_ATTR_GET);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_ATTR_GET);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

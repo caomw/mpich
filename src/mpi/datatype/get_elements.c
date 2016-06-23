@@ -60,11 +60,11 @@ int MPI_Get_elements(const MPI_Status *status, MPI_Datatype datatype, int *count
     int mpi_errno = MPI_SUCCESS;
     MPI_Count count_x;
 
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_GET_ELEMENTS);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_GET_ELEMENTS);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_GET_ELEMENTS);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_GET_ELEMENTS);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -82,7 +82,7 @@ int MPI_Get_elements(const MPI_Status *status, MPI_Datatype datatype, int *count
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Datatype *datatype_ptr = NULL;
+            MPIR_Datatype *datatype_ptr = NULL;
 
 	    MPIR_ERRTEST_ARGNULL(status, "status", mpi_errno);
 	    MPIR_ERRTEST_ARGNULL(count, "count", mpi_errno);
@@ -91,7 +91,7 @@ int MPI_Get_elements(const MPI_Status *status, MPI_Datatype datatype, int *count
             /* Validate datatype_ptr */
 	    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
 		MPID_Datatype_get_ptr(datatype, datatype_ptr);
-		MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+		MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
                 MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
@@ -113,7 +113,7 @@ int MPI_Get_elements(const MPI_Status *status, MPI_Datatype datatype, int *count
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_GET_ELEMENTS);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_GET_ELEMENTS);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

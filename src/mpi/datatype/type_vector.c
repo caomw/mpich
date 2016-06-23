@@ -34,7 +34,7 @@ int MPIR_Type_vector_impl(int count, int blocklength, int stride, MPI_Datatype o
 {
     int mpi_errno = MPI_SUCCESS;
     MPI_Datatype new_handle;
-    MPID_Datatype *new_dtp;
+    MPIR_Datatype *new_dtp;
     int ints[3];
 
     mpi_errno = MPID_Type_vector(count,
@@ -60,7 +60,7 @@ int MPIR_Type_vector_impl(int count, int blocklength, int stride, MPI_Datatype o
                                            &oldtype);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-    MPID_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
     
  fn_exit:
     return mpi_errno;
@@ -103,19 +103,19 @@ int MPI_Type_vector(int count,
 		    MPI_Datatype *newtype)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_VECTOR);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_VECTOR);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_VECTOR);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_VECTOR);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPID_Datatype *old_ptr = NULL;
+	    MPIR_Datatype *old_ptr = NULL;
 
 	    MPIR_ERRTEST_COUNT(count, mpi_errno);
 	    MPIR_ERRTEST_ARGNEG(blocklength, "blocklen", mpi_errno);
@@ -123,7 +123,7 @@ int MPI_Type_vector(int count,
 	    
 	    if (oldtype != MPI_DATATYPE_NULL && HANDLE_GET_KIND(oldtype) != HANDLE_KIND_BUILTIN) {
 		MPID_Datatype_get_ptr(oldtype, old_ptr);
-		MPID_Datatype_valid_ptr(old_ptr, mpi_errno);
+		MPIR_Datatype_valid_ptr(old_ptr, mpi_errno);
                 if (mpi_errno) goto fn_fail;
 	    }
         }
@@ -139,7 +139,7 @@ int MPI_Type_vector(int count,
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_VECTOR);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_VECTOR);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

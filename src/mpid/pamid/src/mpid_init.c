@@ -56,7 +56,7 @@ MPIDI_Process_t  MPIDI_Process = {
   .verbose               = 0,
   .statistics            = 0,
 
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
   .avail_contexts        = MPIDI_MAX_CONTEXTS,
   .async_progress = {
     .active              = 0,
@@ -335,8 +335,8 @@ static struct
 #define FUNCNAME split_type
 #undef FCNAME
 #define FCNAME MPIU_QUOTE(FUNCNAME)
-static int split_type(MPID_Comm * comm_ptr, int stype, int key,
-                      MPID_Info *info_ptr, MPID_Comm ** newcomm_ptr)
+static int split_type(MPIR_Comm * comm_ptr, int stype, int key,
+                      MPIR_Info *info_ptr, MPIR_Comm ** newcomm_ptr)
 {
     MPID_Node_id_t id;
     int nid;
@@ -358,7 +358,7 @@ static int split_type(MPID_Comm * comm_ptr, int stype, int key,
     /* --END ERROR HANDLING-- */
 }
 
-static MPID_CommOps comm_fns = {
+static MPIR_Commops comm_fns = {
     split_type
 };
 
@@ -392,7 +392,7 @@ MPIDI_PAMI_client_init(int* rank, int* size, int* mpidi_dynamic_tasking, char **
 
 #ifdef HAVE_PAMI_CLIENT_NONCONTIG
   config[0].name = PAMI_CLIENT_NONCONTIG;
-  if(MPIDI_Process.optimized.memory & MPID_OPT_LVL_NONCONTIG) 
+  if(MPIDI_Process.optimized.memory & MPIR_OPT_LVL_NONCONTIG)
     config[0].value.intval = 0; // Disable non-contig, pamid doesn't use pami for non-contig data collectives so save memory
   else
     config[0].value.intval = 1; // Enable non-contig even though pamid doesn't use pami for non-contig data collectives, 
@@ -481,13 +481,13 @@ MPIDI_PAMI_client_init(int* rank, int* size, int* mpidi_dynamic_tasking, char **
     if (env != NULL)
       {
         size_t n = strlen(env);
-        char * tmp = (char *) MPIU_Malloc(n+1);
+        char * tmp = (char *) MPL_malloc(n+1);
         strncpy(tmp,env,n);
         if (n>0) tmp[n]=0;
 
         MPIDI_atoi(tmp, &MPIDI_Process.disable_internal_eager_scale);
 
-        MPIU_Free(tmp);
+        MPL_free(tmp);
       }
 
     if (MPIDI_Process.disable_internal_eager_scale <= *size)
@@ -622,7 +622,7 @@ void MPIDI_Init_collsel_extension()
                     MPIDI_Process.optimized.auto_select_colls |= MPID_AUTO_SELECT_COLLS_NONE;
                 }
               }
-              MPIU_Free(collsel_collectives);
+              MPL_free(collsel_collectives);
             }
           }
           else
@@ -675,7 +675,7 @@ MPIDI_PAMI_context_init(int* threading, int *size)
 #endif
   int  numTasks;
 
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
   /*
    * ASYNC_PROGRESS_MODE_LOCKED requires context post because the async thread
    * will hold the context lock indefinitely; the only option for an application
@@ -694,7 +694,7 @@ MPIDI_PAMI_context_init(int* threading, int *size)
       MPIDI_Process.perobj.context_post.requested == 0)
     MPID_Abort (NULL, 0, 1, "'locking' async progress requires context post");
 
-#else /* MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY_PER_OBJECT */
+#else /* MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY__POBJ */
   /*
    * ASYNC_PROGRESS_MODE_LOCKED is not applicable in the "global lock" thread
    * mode. See discussion in src/mpid/pamid/src/mpid_progress.h for more
@@ -709,7 +709,7 @@ MPIDI_PAMI_context_init(int* threading, int *size)
   /* ----------------------------------
    *  Figure out the context situation
    * ---------------------------------- */
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
 
   /* Limit the number of requested contexts by the maximum number of contexts
    * allowed.  The default number of requested contexts depends on the mpich
@@ -744,7 +744,7 @@ MPIDI_PAMI_context_init(int* threading, int *size)
     --MPIDI_Process.avail_contexts;
   MPID_assert_always(MPIDI_Process.avail_contexts);
 
-#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY_PER_OBJECT) */
+#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY__POBJ) */
 
   /* Only a single context is supported in the 'global' mpich lock mode.
    *
@@ -764,10 +764,10 @@ MPIDI_PAMI_context_init(int* threading, int *size)
 
   MPIDI_Process.numTasks= numTasks = PAMIX_Client_query(MPIDI_Client, PAMI_CLIENT_NUM_TASKS).value.intval;
 #ifdef OUT_OF_ORDER_HANDLING
-  MPIDI_In_cntr = MPIU_Calloc0(numTasks, MPIDI_In_cntr_t);
+  MPIDI_In_cntr = MPL_calloc0(numTasks, MPIDI_In_cntr_t);
   if(MPIDI_In_cntr == NULL)
     MPID_abort();
-  MPIDI_Out_cntr = MPIU_Calloc0(numTasks, MPIDI_Out_cntr_t);
+  MPIDI_Out_cntr = MPL_calloc0(numTasks, MPIDI_Out_cntr_t);
   if(MPIDI_Out_cntr == NULL)
     MPID_abort();
   memset((void *) MPIDI_In_cntr,0, sizeof(MPIDI_In_cntr_t));
@@ -777,15 +777,15 @@ MPIDI_PAMI_context_init(int* threading, int *size)
 
 #ifdef MPIDI_TRACE
       int i;
-      MPIDI_Trace_buf = MPIU_Calloc0(numTasks, MPIDI_Trace_buf_t);
+      MPIDI_Trace_buf = MPL_calloc0(numTasks, MPIDI_Trace_buf_t);
       if(MPIDI_Trace_buf == NULL) MPID_abort();
       memset((void *) MPIDI_Trace_buf,0, sizeof(MPIDI_Trace_buf_t));
       for (i=0; i < numTasks; i++) {
-          MPIDI_Trace_buf[i].R=MPIU_Calloc0(N_MSGS, recv_status);
+          MPIDI_Trace_buf[i].R=MPL_calloc0(N_MSGS, recv_status);
           if (MPIDI_Trace_buf[i].R==NULL) MPID_abort();
-          MPIDI_Trace_buf[i].PR=MPIU_Calloc0(N_MSGS, posted_recv);
+          MPIDI_Trace_buf[i].PR=MPL_calloc0(N_MSGS, posted_recv);
           if (MPIDI_Trace_buf[i].PR ==NULL) MPID_abort();
-          MPIDI_Trace_buf[i].S=MPIU_Calloc0(N_MSGS, send_status);
+          MPIDI_Trace_buf[i].S=MPL_calloc0(N_MSGS, send_status);
           if (MPIDI_Trace_buf[i].S ==NULL) MPID_abort();
       }
 #endif
@@ -937,7 +937,7 @@ MPIDI_PAMI_dispath_init()
        #if TOKEN_FLOW_CONTROL
         int i;
         MPIDI_mm_init(MPIDI_Process.numTasks,&MPIDI_Process.pt2pt.limits.application.eager.remote,&MPIDI_Process.mp_buf_mem);
-        MPIDI_Token_cntr = MPIU_Calloc0(MPIDI_Process.numTasks, MPIDI_Token_cntr_t);
+        MPIDI_Token_cntr = MPL_calloc0(MPIDI_Process.numTasks, MPIDI_Token_cntr_t);
         memset((void *) MPIDI_Token_cntr,0, (sizeof(MPIDI_Token_cntr_t) * MPIDI_Process.numTasks));
         for (i=0; i < MPIDI_Process.numTasks; i++)
         {
@@ -1072,7 +1072,7 @@ MPIDI_PAMI_init(int* rank, int* size, int* threading)
             break;
         }
       printf("MPICH_THREAD_GRANULARITY : '%s'\n",
-             (MPICH_THREAD_GRANULARITY==MPICH_THREAD_GRANULARITY_PER_OBJECT)?"per object":"global");
+             (MPICH_THREAD_GRANULARITY==MPICH_THREAD_GRANULARITY__POBJ)?"per object":"global");
 #ifdef ASSERT_LEVEL
       printf("ASSERT_LEVEL            : %d\n", ASSERT_LEVEL);
 #else
@@ -1092,13 +1092,13 @@ MPIDI_PAMI_init(int* rank, int* size, int* threading)
     }
 #ifdef MPIDI_BANNER
   if ((*rank == 0) && (MPIDI_Process.mp_infolevel >=1)) {
-       char* buf = (char *) MPIU_Malloc(160);
+       char* buf = (char *) MPL_malloc(160);
        int   rc  = MPIDI_Banner(buf);
        if ( rc == 0 )
             fprintf(stderr, "%s\n", buf);
        else
             TRACE_ERR("mpid_banner() return code=%d task %d",rc,*rank);
-       MPIU_Free(buf);
+       MPL_free(buf);
   }
 #endif
 }
@@ -1112,7 +1112,7 @@ MPIDI_VCRT_init(int rank, int size, char *world_tasks, MPIDI_PG_t *pg)
 #endif
 {
   int i, rc;
-  MPID_Comm * comm;
+  MPIR_Comm * comm;
 #ifdef DYNAMIC_TASKING
   int p, mpi_errno=0;
   char *world_tasks_save,*cp;
@@ -1159,17 +1159,17 @@ MPIDI_VCRT_init(int rank, int size, char *world_tasks, MPIDI_PG_t *pg)
 #ifdef DYNAMIC_TASKING
   if(mpidi_dynamic_tasking) {
     i=0;
-    world_tasks_save = MPIU_Strdup(world_tasks);
+    world_tasks_save = MPL_strdup(world_tasks);
     if(world_tasks != NULL) {
       comm->vcr[0]->taskid = atoi(strtok(world_tasks, ":"));
       while( (cp=strtok(NULL, ":")) != NULL) {
         comm->vcr[++i]->taskid= atoi(cp);
       }
     }
-    MPIU_Free(world_tasks_save);
+    MPL_free(world_tasks_save);
 
         /* This memory will be freed by the PG_Destroy if there is an error */
-        pg_id = MPIU_Malloc(MAX_JOBID_LEN);
+        pg_id = MPL_malloc(MAX_JOBID_LEN);
 
         mpi_errno = PMI2_Job_GetId(pg_id, MAX_JOBID_LEN);
         TRACE_ERR("PMI2_Job_GetId - pg_id=%s\n", pg_id);
@@ -1231,7 +1231,7 @@ int MPID_Init(int * argc,
   int pg_rank=-1;
   int pg_size;
   int appnum,mpi_errno;
-  MPID_Comm * comm;
+  MPIR_Comm * comm;
   int i,j;
   pami_configuration_t config;
   int world_size;
@@ -1240,7 +1240,7 @@ int MPID_Init(int * argc,
   pami_result_t rc;
 
   /* Override split_type */
-  MPID_Comm_fns = &comm_fns;
+  MPIR_Comm_fns = &comm_fns;
 
   /* ------------------------------------------------------------------------------- */
   /*  Initialize the pami client to get the process rank; needed for env var output. */
@@ -1371,8 +1371,8 @@ int MPID_Init(int * argc,
 	}
 
 	MPIR_Process.comm_parent = comm;
-	MPIU_Assert(MPIR_Process.comm_parent != NULL);
-	MPIU_Strncpy(comm->name, "MPI_COMM_PARENT", MPI_MAX_OBJECT_NAME);
+        MPIR_Assert(MPIR_Process.comm_parent != NULL);
+	MPL_strncpy(comm->name, "MPI_COMM_PARENT", MPI_MAX_OBJECT_NAME);
 
 	/* FIXME: Check that this intercommunicator gets freed in MPI_Finalize
 	   if not already freed.  */
@@ -1382,8 +1382,7 @@ int MPID_Init(int * argc,
   /* ------------------------------- */
   /* Initialize timer data           */
   /* ------------------------------- */
-  MPID_Wtime_init();
-
+  MPIDI_PAMID_Timer_is_ready = 1;
 
   /* ------------------------------- */
   /* ???                             */
@@ -1490,7 +1489,7 @@ int MPIDI_Banner(char * bufPtr) {
 
     sprintf(msgBuf,"MPICH library was compiled on");
 
-    tmx=MPIU_Malloc(sizeof(struct tm));
+    tmx=MPL_malloc(sizeof(struct tm));
     sprintf(buf,__DATE__" "__TIME__);
 
     if ((void *) NULL == strptime(buf, "%B %d %Y %T", tmx))
@@ -1515,7 +1514,7 @@ int MPIDI_Banner(char * bufPtr) {
 
     }
 
-    MPIU_Free(tmx);
+    MPL_free(tmx);
     return MPI_SUCCESS;
 }
 #endif
@@ -1550,7 +1549,7 @@ int MPIDI_PG_Destroy_id(MPIDI_PG_t * pg)
     if (pg->id != NULL)
     {
 	TRACE_ERR("free pg id =%p pg=%p\n", pg->id, pg);
-	MPIU_Free(pg->id);
+        MPL_free(pg->id);
 	TRACE_ERR("done free pg id \n");
     }
 
@@ -1623,7 +1622,7 @@ int MPIDI_InitPG( int *argc, char ***argv,
 #ifdef USE_PMI2_API
 
         /* This memory will be freed by the PG_Destroy if there is an error */
-	pg_id = MPIU_Malloc(MAX_JOBID_LEN);
+        pg_id = MPL_malloc(MAX_JOBID_LEN);
 
         mpi_errno = PMI2_Job_GetId(pg_id, MAX_JOBID_LEN);
 	TRACE_ERR("PMI2_Job_GetId - pg_id=%s\n", pg_id);
@@ -1638,7 +1637,7 @@ int MPIDI_InitPG( int *argc, char ***argv,
 	}
 
 	/* This memory will be freed by the PG_Destroy if there is an error */
-	pg_id = MPIU_Malloc(pg_id_sz + 1);
+        pg_id = MPL_malloc(pg_id_sz + 1);
 
 	/* Note in the singleton init case, the pg_id is a dummy.
 	   We'll want to replace this value if we join an
@@ -1651,8 +1650,8 @@ int MPIDI_InitPG( int *argc, char ***argv,
     }
     else {
 	/* Create a default pg id */
-	pg_id = MPIU_Malloc(2);
-	MPIU_Strncpy( pg_id, "0", 2 );
+        pg_id = MPL_malloc(2);
+	MPL_strncpy( pg_id, "0", 2 );
     }
 
 	TRACE_ERR("pg_size=%d pg_id=%s\n", pg_size, pg_id);
@@ -1670,7 +1669,7 @@ int MPIDI_InitPG( int *argc, char ***argv,
      */
     TRACE_ERR("pg_size=%d pg_id=%p pg_id=%s\n", pg_size, pg_id, pg_id);
     mpi_errno = MPIDI_PG_Create(pg_size, pg_id, &pg);
-    MPIU_Free(pg_id);
+    MPL_free(pg_id);
     if (mpi_errno != MPI_SUCCESS) {
       TRACE_ERR("MPIDI_PG_Create returned with mpi_errno=%d\n", mpi_errno);
     }

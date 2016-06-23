@@ -24,7 +24,7 @@ int MPI_Open_port(MPI_Info info, char *port_name) __attribute__((weak,alias("PMP
 #undef MPI_Open_port
 #define MPI_Open_port PMPI_Open_port
 
-int MPIR_Open_port_impl(MPID_Info *info_ptr, char *port_name)
+int MPIR_Open_port_impl(MPIR_Info *info_ptr, char *port_name)
 {
     return MPID_Open_port(info_ptr, port_name);
 }
@@ -68,13 +68,13 @@ The maximum size string that may be supplied by the system is
 int MPI_Open_port(MPI_Info info, char *port_name)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Info *info_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_OPEN_PORT);
+    MPIR_Info *info_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_OPEN_PORT);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_OPEN_PORT);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_OPEN_PORT);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -89,7 +89,7 @@ int MPI_Open_port(MPI_Info info, char *port_name)
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Info_get_ptr( info, info_ptr );
+    MPIR_Info_get_ptr( info, info_ptr );
     
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -111,7 +111,7 @@ int MPI_Open_port(MPI_Info info, char *port_name)
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_OPEN_PORT);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_OPEN_PORT);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

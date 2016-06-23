@@ -549,7 +549,6 @@ static void ADIOI_GEN_IwriteStridedColl_free(ADIOI_NBC_Request *nbc_req,
 {
     ADIOI_GEN_IwriteStridedColl_vars *vars = nbc_req->data.wr.wsc_vars;
     ADIO_File fd = vars->fd;
-    MPI_Datatype datatype = vars->datatype;
     ADIOI_Access *others_req = vars->others_req;
     int nprocs = vars->nprocs;
     int old_error = vars->old_error;
@@ -565,8 +564,6 @@ static void ADIOI_GEN_IwriteStridedColl_free(ADIOI_NBC_Request *nbc_req,
     if ( (old_error != MPI_SUCCESS) && (old_error != MPI_ERR_IO) )
         *error_code = old_error;
 
-
-    if (!vars->buftype_is_contig) ADIOI_Delete_flattened(datatype);
 
     /* free all memory allocated for collective I/O */
     for (i = 0; i < nprocs; i++) {
@@ -663,8 +660,8 @@ static void ADIOI_Iexch_and_write(ADIOI_NBC_Request *nbc_req, int *error_code)
 
     for (i = 0; i < nprocs; i++)
         for (j = 0; j < others_req[i].count; j++) {
-            st_loc = ADIOI_MIN(st_loc, others_req[i].offsets[j]);
-            end_loc = ADIOI_MAX(end_loc, (others_req[i].offsets[j]
+            st_loc = MPL_MIN(st_loc, others_req[i].offsets[j]);
+            end_loc = MPL_MAX(end_loc, (others_req[i].offsets[j]
                         + others_req[i].lens[j] - 1));
         }
 
@@ -794,7 +791,7 @@ static void ADIOI_Iexch_and_write_l1_begin(ADIOI_NBC_Request *nbc_req,
 
     for (i = 0; i < nprocs; i++) count[i] = recv_size[i] = 0;
 
-    size = ADIOI_MIN((unsigned)vars->coll_bufsize,
+    size = MPL_MIN((unsigned)vars->coll_bufsize,
                      vars->end_loc - vars->st_loc + 1 - vars->done);
     vars->size = size;
 
@@ -820,11 +817,11 @@ static void ADIOI_Iexch_and_write_l1_begin(ADIOI_NBC_Request *nbc_req,
                 }
                 if (req_off < off + size) {
                     count[i]++;
-                    ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)write_buf)+req_off-off) == (ADIO_Offset)(MPIU_Upint)(write_buf+req_off-off));
+                    ADIOI_Assert((((ADIO_Offset)(uintptr_t)write_buf)+req_off-off) == (ADIO_Offset)(uintptr_t)(write_buf+req_off-off));
                     MPI_Address(write_buf + req_off - off,
                                 &(others_req[i].mem_ptrs[j]));
                     ADIOI_Assert((off + size - req_off) == (int)(off + size - req_off));
-                    recv_size[i] += (int)(ADIOI_MIN(off + size - req_off,
+                    recv_size[i] += (int)(MPL_MIN(off + size - req_off,
                                                     (unsigned)req_len));
 
                     if (off+size-req_off < (unsigned)req_len)

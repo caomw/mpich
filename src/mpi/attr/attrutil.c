@@ -27,37 +27,37 @@
 #endif
 
 /* Preallocated keyval objects */
-MPID_Keyval MPID_Keyval_direct[MPID_KEYVAL_PREALLOC] = { {0} };
-MPIU_Object_alloc_t MPID_Keyval_mem = { 0, 0, 0, 0, MPID_KEYVAL, 
-					    sizeof(MPID_Keyval), 
-					    MPID_Keyval_direct,
+MPII_Keyval MPII_Keyval_direct[MPID_KEYVAL_PREALLOC] = { {0} };
+MPIR_Object_alloc_t MPII_Keyval_mem = { 0, 0, 0, 0, MPIR_KEYVAL,
+					    sizeof(MPII_Keyval),
+					    MPII_Keyval_direct,
 					    MPID_KEYVAL_PREALLOC, };
 
-#ifndef MPID_ATTR_PREALLOC 
-#define MPID_ATTR_PREALLOC 32
+#ifndef MPIR_ATTR_PREALLOC
+#define MPIR_ATTR_PREALLOC 32
 #endif
 
 /* Preallocated keyval objects */
-MPID_Attribute MPID_Attr_direct[MPID_ATTR_PREALLOC] = { {0} };
-MPIU_Object_alloc_t MPID_Attr_mem = { 0, 0, 0, 0, MPID_ATTR, 
-					    sizeof(MPID_Attribute), 
+MPIR_Attribute MPID_Attr_direct[MPIR_ATTR_PREALLOC] = { {0} };
+MPIR_Object_alloc_t MPID_Attr_mem = { 0, 0, 0, 0, MPIR_ATTR,
+					    sizeof(MPIR_Attribute),
 					    MPID_Attr_direct,
-					    MPID_ATTR_PREALLOC, };
+					    MPIR_ATTR_PREALLOC, };
 
 /* Provides a way to trap all attribute allocations when debugging leaks. */
-MPID_Attribute *MPID_Attr_alloc(void)
+MPIR_Attribute *MPID_Attr_alloc(void)
 {
-    MPID_Attribute *attr = (MPID_Attribute *)MPIU_Handle_obj_alloc(&MPID_Attr_mem);
+    MPIR_Attribute *attr = (MPIR_Attribute *)MPIR_Handle_obj_alloc(&MPID_Attr_mem);
     /* attributes don't have refcount semantics, but let's keep valgrind and
      * the debug logging pacified */
-    MPIU_Assert(attr != NULL);
-    MPIU_Object_set_ref(attr, 0);
+    MPIR_Assert(attr != NULL);
+    MPIR_Object_set_ref(attr, 0);
     return attr;
 }
 
-void MPID_Attr_free(MPID_Attribute *attr_ptr)
+void MPID_Attr_free(MPIR_Attribute *attr_ptr)
 {
-    MPIU_Handle_obj_free(&MPID_Attr_mem, attr_ptr);
+    MPIR_Handle_obj_free(&MPID_Attr_mem, attr_ptr);
 }
 
 #undef FUNCNAME
@@ -77,11 +77,11 @@ void MPID_Attr_free(MPID_Attribute *attr_ptr)
   Note that this simply invokes the attribute delete function.  It does not
   remove the attribute from the list of attributes.
 */
-int MPIR_Call_attr_delete( int handle, MPID_Attribute *attr_p )
+int MPIR_Call_attr_delete( int handle, MPIR_Attribute *attr_p )
 {
     int rc;
     int mpi_errno = MPI_SUCCESS;
-    MPID_Keyval* kv = attr_p->keyval;
+    MPII_Keyval* kv = attr_p->keyval;
 
     if(kv->delfn.user_function == NULL)
         goto fn_exit;
@@ -91,12 +91,12 @@ int MPIR_Call_attr_delete( int handle, MPID_Attribute *attr_p )
                 handle,
                 attr_p->keyval->handle,
                 attr_p->attrType,
-                (void *)(MPIU_Pint)attr_p->value,
+                (void *)(intptr_t)attr_p->value,
                 attr_p->keyval->extra_state
                 );
     /* --BEGIN ERROR HANDLING-- */
     if(rc != 0){
-#if MPICH_ERROR_MSG_LEVEL < MPICH_ERROR_MSG_ALL
+#if MPICH_ERROR_MSG_LEVEL < MPICH_ERROR_MSG__ALL
 	/* If rc is a valid error class, then return that.  
 	   Note that it may be a dynamic error class */
 	/* AMBIGUOUS: This is an ambiguity in the MPI standard: What is the
@@ -134,11 +134,11 @@ int MPIR_Call_attr_delete( int handle, MPID_Attribute *attr_p )
 #define FUNCNAME MPIR_Call_attr_copy
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Call_attr_copy( int handle, MPID_Attribute *attr_p, void** value_copy, int* flag)
+int MPIR_Call_attr_copy( int handle, MPIR_Attribute *attr_p, void** value_copy, int* flag)
 {
     int mpi_errno = MPI_SUCCESS;
     int rc;
-    MPID_Keyval* kv = attr_p->keyval;
+    MPII_Keyval* kv = attr_p->keyval;
 
     if(kv->copyfn.user_function == NULL)
         goto fn_exit;
@@ -149,14 +149,14 @@ int MPIR_Call_attr_copy( int handle, MPID_Attribute *attr_p, void** value_copy, 
                 attr_p->keyval->handle,
                 attr_p->keyval->extra_state,
                 attr_p->attrType,
-                (void *)(MPIU_Pint)attr_p->value,
+                (void *)(intptr_t)attr_p->value,
                 value_copy,
                 flag
                 );
 
     /* --BEGIN ERROR HANDLING-- */
     if(rc != 0){
-#if MPICH_ERROR_MSG_LEVEL < MPICH_ERROR_MSG_ALL
+#if MPICH_ERROR_MSG_LEVEL < MPICH_ERROR_MSG__ALL
 	mpi_errno = rc;
 #else
         mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER, "**user", "**usercopy %d", rc);
@@ -175,10 +175,10 @@ fn_fail:
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 /* Routine to duplicate an attribute list */
-int MPIR_Attr_dup_list( int handle, MPID_Attribute *old_attrs, 
-			MPID_Attribute **new_attr )
+int MPIR_Attr_dup_list( int handle, MPIR_Attribute *old_attrs,
+			MPIR_Attribute **new_attr )
 {
-    MPID_Attribute *p, *new_p, **next_new_attr_ptr=new_attr;
+    MPIR_Attribute *p, *new_p, **next_new_attr_ptr=new_attr;
     void* new_value = NULL;
     int mpi_errno = MPI_SUCCESS;
 
@@ -217,13 +217,13 @@ int MPIR_Attr_dup_list( int handle, MPID_Attribute *old_attrs,
 
         new_p->keyval = p->keyval;
         /* Remember that we need this keyval */
-        MPIR_Keyval_add_ref(p->keyval);
+        MPII_Keyval_add_ref(p->keyval);
 
         new_p->attrType         = p->attrType;
         new_p->pre_sentinal     = 0;
 	/* FIXME: This is not correct in some cases (size(MPI_Aint)>
-	 sizeof(MPIU_Pint)) */
-        new_p->value            = (MPID_AttrVal_t)(MPIU_Pint)new_value;
+	 sizeof(intptr_t)) */
+        new_p->value            = (MPII_Attr_val_t)(intptr_t)new_value;
         new_p->post_sentinal    = 0;
         new_p->next             = 0;
 
@@ -241,9 +241,9 @@ int MPIR_Attr_dup_list( int handle, MPID_Attribute *old_attrs,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 /* Routine to delete an attribute list */
-int MPIR_Attr_delete_list( int handle, MPID_Attribute **attr )
+int MPIR_Attr_delete_list( int handle, MPIR_Attribute **attr )
 {
-    MPID_Attribute *p, *new_p;
+    MPIR_Attribute *p, *new_p;
     int mpi_errno = MPI_SUCCESS;
 
     p = *attr;
@@ -277,13 +277,13 @@ int MPIR_Attr_delete_list( int handle, MPID_Attribute **attr )
 	{
 	    int in_use;
 	    /* Decrement the use of the keyval */
-	    MPIR_Keyval_release_ref( p->keyval, &in_use);
+	    MPII_Keyval_release_ref( p->keyval, &in_use);
 	    if (!in_use) {
-		MPIU_Handle_obj_free( &MPID_Keyval_mem, p->keyval );
+		MPIR_Handle_obj_free( &MPII_Keyval_mem, p->keyval );
 	    }
 	}
 	
-	MPIU_Handle_obj_free( &MPID_Attr_mem, p );
+	MPIR_Handle_obj_free( &MPID_Attr_mem, p );
 	
 	p = new_p;
     }
@@ -302,12 +302,12 @@ int MPIR_Attr_delete_list( int handle, MPID_Attribute **attr )
 }
 
 int
-MPIR_Attr_copy_c_proxy(
+MPII_Attr_copy_c_proxy(
     MPI_Comm_copy_attr_function* user_function,
     int handle,
     int keyval,
     void* extra_state,
-    MPIR_AttrType attrib_type,
+    MPIR_Attr_type attrib_type,
     void* attrib,
     void** attrib_copy,
     int* flag
@@ -317,7 +317,7 @@ MPIR_Attr_copy_c_proxy(
     int ret;
 
     /* Make sure that the attribute value is delieverd as a pointer */
-    if (MPIR_ATTR_KIND(attrib_type) == MPIR_ATTR_KIND(MPIR_ATTR_INT)){
+    if (MPII_ATTR_KIND(attrib_type) == MPII_ATTR_KIND(MPIR_ATTR_INT)){
         attrib_val = &attrib;
     }
     else{
@@ -336,11 +336,11 @@ MPIR_Attr_copy_c_proxy(
 
 
 int
-MPIR_Attr_delete_c_proxy(
+MPII_Attr_delete_c_proxy(
     MPI_Comm_delete_attr_function* user_function,
     int handle,
     int keyval,
-    MPIR_AttrType attrib_type,
+    MPIR_Attr_type attrib_type,
     void* attrib,
     void* extra_state
     )
@@ -349,7 +349,7 @@ MPIR_Attr_delete_c_proxy(
     int ret;
 
     /* Make sure that the attribute value is delieverd as a pointer */
-    if (MPIR_ATTR_KIND(attrib_type) == MPIR_ATTR_KIND(MPIR_ATTR_INT))
+    if (MPII_ATTR_KIND(attrib_type) == MPII_ATTR_KIND(MPIR_ATTR_INT))
         attrib_val = &attrib;
     else
         attrib_val = attrib;
@@ -366,14 +366,14 @@ MPIR_Attr_delete_c_proxy(
 
 /* FIXME: Missing routine description */
 void
-MPIR_Keyval_set_proxy(
+MPII_Keyval_set_proxy(
     int keyval,
-    MPID_Attr_copy_proxy copy_proxy,
-    MPID_Attr_delete_proxy delete_proxy
+    MPII_Attr_copy_proxy copy_proxy,
+    MPII_Attr_delete_proxy delete_proxy
     )
 {
-    MPID_Keyval*  keyval_ptr;
-    MPID_Keyval_get_ptr( keyval, keyval_ptr );
+    MPII_Keyval*  keyval_ptr;
+    MPII_Keyval_get_ptr( keyval, keyval_ptr );
     if(keyval_ptr == NULL)
         return;
 

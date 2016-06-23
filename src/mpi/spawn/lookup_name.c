@@ -67,12 +67,12 @@ int MPI_Lookup_name(const char *service_name, MPI_Info info, char *port_name)
 {
     static const char FCNAME[] = "MPI_Lookup_name";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Info *info_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_LOOKUP_NAME);
+    MPIR_Info *info_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_LOOKUP_NAME);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_LOOKUP_NAME);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_LOOKUP_NAME);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -86,7 +86,7 @@ int MPI_Lookup_name(const char *service_name, MPI_Info info, char *port_name)
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Info_get_ptr( info, info_ptr );
+    MPIR_Info_get_ptr( info, info_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -95,7 +95,7 @@ int MPI_Lookup_name(const char *service_name, MPI_Info info, char *port_name)
         {
             /* Validate info_ptr (only if not null) */
 	    if (info_ptr) 
-		MPID_Info_valid_ptr( info_ptr, mpi_errno );
+		MPIR_Info_valid_ptr( info_ptr, mpi_errno );
 	    /* Validate character pointers */
 	    MPIR_ERRTEST_ARGNULL( service_name, "service_name", mpi_errno );
 	    MPIR_ERRTEST_ARGNULL( port_name, "port_name", mpi_errno );
@@ -138,7 +138,7 @@ int MPI_Lookup_name(const char *service_name, MPI_Info info, char *port_name)
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_LOOKUP_NAME);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_LOOKUP_NAME);
     return mpi_errno;
 
   fn_fail:

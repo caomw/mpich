@@ -22,7 +22,7 @@
 #include "mpe.h"
 #endif
 
-#ifdef USE_DBG_LOGGING
+#ifdef MPL_USE_DBG_LOGGING
   #define RDCOLL_DEBUG 1
 #endif
 #ifdef AGGREGATION_PROFILE
@@ -464,7 +464,6 @@ void ADIOI_GPFS_ReadStridedColl(ADIO_File fd, void *buf, int count,
 
     GPFSMPIO_T_CIO_REPORT( 0, fd, myrank, nprocs)
 
-    if (!buftype_is_contig) ADIOI_Delete_flattened(datatype);
 
     /* free all memory allocated for collective I/O */
     for (i=0; i<nprocs; i++) {
@@ -553,8 +552,8 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
     /* now find the real values */
     for (i=0; i < nprocs; i++)
 	for (j=0; j<others_req[i].count; j++) {
-	    st_loc = ADIOI_MIN(st_loc, others_req[i].offsets[j]);
-	    end_loc = ADIOI_MAX(end_loc, (others_req[i].offsets[j]
+	    st_loc = MPL_MIN(st_loc, others_req[i].offsets[j]);
+	    end_loc = MPL_MAX(end_loc, (others_req[i].offsets[j]
 					  + others_req[i].lens[j] - 1));
 	}
 
@@ -660,7 +659,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 #ifdef PROFILE
         MPE_Log_event(13, 0, "start computation");
 #endif
-	size = ADIOI_MIN((unsigned)coll_bufsize, end_loc-st_loc+1-done); 
+	size = MPL_MIN((unsigned)coll_bufsize, end_loc-st_loc+1-done); 
 	real_off = off - for_curr_iter;
 	real_size = size + for_curr_iter;
 
@@ -693,11 +692,11 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 		    }
 		    if (req_off < real_off + real_size) {
 			count[i]++;
-      ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)read_buf)+req_off-real_off) == (ADIO_Offset)(MPIU_Upint)(read_buf+req_off-real_off));
+      ADIOI_Assert((((ADIO_Offset)(uintptr_t)read_buf)+req_off-real_off) == (ADIO_Offset)(uintptr_t)(read_buf+req_off-real_off));
 			MPI_Address(read_buf+req_off-real_off, 
                                &(others_req[i].mem_ptrs[j]));
       ADIOI_Assert((real_off + real_size - req_off) == (int)(real_off + real_size - req_off));
-			send_size[i] += (int)(ADIOI_MIN(real_off + real_size - req_off, 
+			send_size[i] += (int)(MPL_MIN(real_off + real_size - req_off, 
                                       (ADIO_Offset)(unsigned)req_len)); 
 
 			if (real_off+real_size-req_off < (ADIO_Offset)(unsigned)req_len) {
@@ -707,7 +706,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
                                      real_off+real_size)) { 
 				/* this is the case illustrated in the
 				   figure above. */
-				for_next_iter = ADIOI_MAX(for_next_iter,
+				for_next_iter = MPL_MAX(for_next_iter,
 					  real_off + real_size - others_req[i].offsets[j+1]); 
 				/* max because it must cover requests 
 				   from different processes */
@@ -777,7 +776,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 
 	if (for_next_iter) {
 	    tmp_buf = (char *) ADIOI_Malloc(for_next_iter);
-      ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)read_buf)+real_size-for_next_iter) == (ADIO_Offset)(MPIU_Upint)(read_buf+real_size-for_next_iter));
+      ADIOI_Assert((((ADIO_Offset)(uintptr_t)read_buf)+real_size-for_next_iter) == (ADIO_Offset)(uintptr_t)(read_buf+real_size-for_next_iter));
       ADIOI_Assert((for_next_iter+coll_bufsize) == (size_t)(for_next_iter+coll_bufsize));
 	    memcpy(tmp_buf, read_buf+real_size-for_next_iter, for_next_iter);
 	    ADIOI_Free(fd->io_buf);
@@ -970,7 +969,7 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 #define ADIOI_BUF_INCR \
 { \
     while (buf_incr) { \
-	size_in_buf = ADIOI_MIN(buf_incr, flat_buf_sz); \
+	size_in_buf = MPL_MIN(buf_incr, flat_buf_sz); \
 	user_buf_idx += size_in_buf; \
 	flat_buf_sz -= size_in_buf; \
 	if (!flat_buf_sz) { \
@@ -991,8 +990,8 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 #define ADIOI_BUF_COPY \
 { \
     while (size) { \
-	size_in_buf = ADIOI_MIN(size, flat_buf_sz); \
-  ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)buf) + user_buf_idx) == (ADIO_Offset)(MPIU_Upint)(buf + user_buf_idx)); \
+	size_in_buf = MPL_MIN(size, flat_buf_sz); \
+  ADIOI_Assert((((ADIO_Offset)(uintptr_t)buf) + user_buf_idx) == (ADIO_Offset)(uintptr_t)(buf + user_buf_idx)); \
   ADIOI_Assert(size_in_buf == (size_t)size_in_buf); \
 	memcpy(((char *) buf) + user_buf_idx, \
 	       &(recv_buf[p][recv_buf_idx[p]]), size_in_buf); \
@@ -1037,8 +1036,8 @@ static void ADIOI_Fill_user_buffer(ADIO_File fd, void *buf, ADIOI_Flatlist_node
     /* Not sure unsigned is necessary, but it makes the math safer */
     unsigned *curr_from_proc, *done_from_proc, *recv_buf_idx;
 
-    ADIOI_UNREFERENCED_ARG(requests);
-    ADIOI_UNREFERENCED_ARG(statuses);
+    MPL_UNREFERENCED_ARG(requests);
+    MPL_UNREFERENCED_ARG(statuses);
 
 /*  curr_from_proc[p] = amount of data recd from proc. p that has already
                         been accounted for so far
@@ -1086,7 +1085,7 @@ static void ADIOI_Fill_user_buffer(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 	    if (recv_buf_idx[p] < recv_size[p]) {
 		if (curr_from_proc[p]+len > done_from_proc[p]) {
 		    if (done_from_proc[p] > curr_from_proc[p]) {
-			size = ADIOI_MIN(curr_from_proc[p] + len - 
+			size = MPL_MIN(curr_from_proc[p] + len - 
 			      done_from_proc[p], recv_size[p]-recv_buf_idx[p]);
 			buf_incr = done_from_proc[p] - curr_from_proc[p];
 			ADIOI_BUF_INCR
@@ -1096,7 +1095,7 @@ static void ADIOI_Fill_user_buffer(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 			ADIOI_BUF_COPY
 		    }
 		    else {
-			size = ADIOI_MIN(len,recv_size[p]-recv_buf_idx[p]);
+			size = MPL_MIN(len,recv_size[p]-recv_buf_idx[p]);
 			buf_incr = len;
       ADIOI_Assert((curr_from_proc[p] + size) == (unsigned)((ADIO_Offset)curr_from_proc[p] + size));
 			curr_from_proc[p] += (unsigned) size;

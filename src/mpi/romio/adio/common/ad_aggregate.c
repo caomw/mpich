@@ -81,7 +81,7 @@ int ADIOI_Calc_aggregator(ADIO_File fd,
     int rank_index, rank;
     ADIO_Offset avail_bytes;
 
-    ADIOI_UNREFERENCED_ARG(fd_start);
+    MPL_UNREFERENCED_ARG(fd_start);
 
     /* get an index into our array of aggregators */
     rank_index = (int) ((off - min_off + fd_size)/ fd_size - 1);
@@ -154,8 +154,8 @@ void ADIOI_Calc_file_domains(ADIO_Offset *st_offsets, ADIO_Offset
     max_end_offset = end_offsets[0];
 
     for (i=1; i<nprocs; i++) {
-	min_st_offset = ADIOI_MIN(min_st_offset, st_offsets[i]);
-	max_end_offset = ADIOI_MAX(max_end_offset, end_offsets[i]);
+	min_st_offset = MPL_MIN(min_st_offset, st_offsets[i]);
+	max_end_offset = MPL_MAX(max_end_offset, end_offsets[i]);
     }
 
 /* determine the "file domain (FD)" of each process, i.e., the portion of

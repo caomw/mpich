@@ -545,6 +545,9 @@ typedef int MPI_Info;
 /* predefined types for MPI_Comm_split_type */
 #define MPI_COMM_TYPE_SHARED    1
 
+/* MPICH-specific types */
+#define MPIX_COMM_TYPE_NEIGHBORHOOD 2
+
 /* Definitions that are determined by configure. */
 typedef @MPI_AINT@ MPI_Aint;
 typedef @MPI_FINT@ MPI_Fint;
@@ -873,7 +876,6 @@ typedef int (MPIX_Grequest_wait_function)(int, void **, double, MPI_Status *);
 
 #define MPI_ERR_LASTCODE    0x3fffffff  /* Last valid error code for a 
 					   predefined error class */
-/* WARNING: this is also defined in mpishared.h.  Update both locations */
 #define MPICH_ERR_LAST_CLASS 74     /* It is also helpful to know the
 				       last valid class */
 

@@ -72,7 +72,6 @@ Makefile
 *.vfproj
 *conf.h
 *conf.h.in
-*fs.c
 *old*.pdf
 .*-cache
 .deps
@@ -109,6 +108,7 @@ apply-xfail.sh
 
 # the hooks dir shouldn't be accidentally committed
 /maint/hooks
+/maint/getfuncstack
 
 # directories copied by autogen.sh from other directories and (generally) should
 # not have any contents added directly to them
@@ -118,6 +118,8 @@ apply-xfail.sh
 /src/pm/hydra/confdb
 /src/pm/hydra/mpl
 /src/pm/hydra/mpl/confdb
+/src/mpi/romio/mpl
+/src/mpi/romio/mpl/confdb
 /src/mpi/romio/version.m4
 /src/pm/hydra/version.m4
 /test/mpi/version.m4
@@ -176,7 +178,7 @@ Makefile.am-stamp
 
 # random additions 2
 /mpich-doxygen
-/src/include/glue_romio.h
+/src/include/mpir_ext.h
 /src/include/mpichinfo.h
 /src/packaging/envmods/mpich.module
 /src/packaging/pkgconfig/mpich.pc
@@ -198,6 +200,7 @@ Makefile.am-stamp
 /src/mpl/confdb
 /src/mpl/libtool
 /src/mpl/include/mplconfig.h
+/src/mpl/include/mpl_timer.h
 /src/mpl/include/stamp-h1
 /src/mpl/include/config.h
 /src/mpl/include/stamp-h2
@@ -220,8 +223,8 @@ Makefile.am-stamp
 /src/binding/fortran/use_mpi_f08/Makefile.mk
 
 # MPICH2 parameter handling
-/src/include/mpich_cvars.h
-/src/util/cvar/mpich_cvars.c
+/src/include/mpir_cvars.h
+/src/util/cvar/mpir_cvars.c
 
 
 ################################################################################
@@ -476,8 +479,8 @@ Makefile.am-stamp
 /src/include/mpif.h
 #/src/include/mpe_thread.h
 /src/include/mpimod.pcl
-/src/include/mpid_datatype.h
-/src/include/mpid_dataloop.h
+/src/include/mpidu_datatype.h
+/src/include/mpidu_dataloop.h
 /src/include/gen_dataloop.h
 /src/include/mpich2info.h
 /src/include/mpio.h
@@ -560,9 +563,6 @@ Makefile.am-stamp
 /src/pm/util/test/argstest
 /src/pm/util/test/forktest
 
-# /src/util/dbg/
-/src/util/dbg/getfuncstack
-
 # /src/util/logging/common/
 /src/util/logging/common/describe_states.c
 /src/util/logging/common/state_names.h
@@ -574,9 +574,6 @@ Makefile.am-stamp
 /src/util/logging/rlog/pprintirlog
 /src/util/logging/rlog/irlog2rlog
 /src/util/logging/rlog/trace_impl.h
-
-# /src/util/timers
-/src/util/timers/mpiu_timer.h
 
 # /test/
 /test/runtests

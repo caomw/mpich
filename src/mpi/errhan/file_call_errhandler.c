@@ -5,10 +5,7 @@
  */
 
 #include "mpiimpl.h"
-
-/* mpiext.h contains the prototypes for functions to interface MPICH
-   and ROMIO */
-#include "mpiext.h"
+#include "mpir_ext.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_File_call_errhandler */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -54,17 +51,14 @@ int MPI_File_call_errhandler(MPI_File fh, int errorcode)
 {
     int mpi_errno = MPI_SUCCESS;
 #ifdef MPI_MODE_RDONLY
-    MPID_Errhandler *e;
+    MPIR_Errhandler *e;
     MPI_Errhandler eh;
 #endif
-    MPID_THREADPRIV_DECL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_FILE_CALL_ERRHANDLER);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_FILE_CALL_ERRHANDLER);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_FILE_CALL_ERRHANDLER);
-
-    MPID_THREADPRIV_GET;
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_FILE_CALL_ERRHANDLER);
 
 #ifdef MPI_MODE_RDONLY
     /* Validate parameters, especially handles needing to be converted */
@@ -85,10 +79,10 @@ int MPI_File_call_errhandler(MPI_File fh, int errorcode)
     }
 #endif
     if (!eh) {
-	MPID_Errhandler_get_ptr( MPI_ERRORS_RETURN, e );
+	MPIR_Errhandler_get_ptr( MPI_ERRORS_RETURN, e );
     }
     else {
-	MPID_Errhandler_get_ptr( eh, e );
+	MPIR_Errhandler_get_ptr( eh, e );
     }
 
     /* Note that, unlike the rest of MPICH, MPI_File objects are pointers,
@@ -103,11 +97,11 @@ int MPI_File_call_errhandler(MPI_File fh, int errorcode)
     }
 
     switch (e->language) {
-    case MPID_LANG_C:
+    case MPIR_LANG__C:
 	(*e->errfn.C_File_Handler_function)( &fh, &errorcode );
 	break;
 #ifdef HAVE_CXX_BINDING
-    case MPID_LANG_CXX:
+    case MPIR_LANG__CXX:
 	/* See HAVE_LANGUAGE_FORTRAN below for an explanation */
     { void *fh1 = (void *)&fh;
 	(*MPIR_Process.cxx_call_errfn)( 1, fh1, &errorcode, 
@@ -116,8 +110,8 @@ int MPI_File_call_errhandler(MPI_File fh, int errorcode)
 	break;
 #endif
 #ifdef HAVE_FORTRAN_BINDING
-    case MPID_LANG_FORTRAN90:
-    case MPID_LANG_FORTRAN:
+    case MPIR_LANG__FORTRAN90:
+    case MPIR_LANG__FORTRAN:
 	/* The assignemt to a local variable prevents the compiler
 	   from generating a warning about a type-punned pointer.  Since
 	   the value is really const (but MPI didn't define error handlers 
@@ -142,7 +136,7 @@ int MPI_File_call_errhandler(MPI_File fh, int errorcode)
 #else 
  fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_FILE_CALL_ERRHANDLER);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_FILE_CALL_ERRHANDLER);
     return mpi_errno;
 }
 

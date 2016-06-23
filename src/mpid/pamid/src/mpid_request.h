@@ -23,27 +23,27 @@
 #ifndef __src_mpid_request_h__
 #define __src_mpid_request_h__
 
-#include "mpid_datatype.h"
+#include "mpidu_datatype.h"
 
 /**
- * \addtogroup MPID_REQUEST
+ * \addtogroup MPIR_REQUEST
  * \{
  */
 
-#define MPID_Request_create    MPID_Request_create_inline
-#define MPID_Request_release   MPID_Request_release_inline
+#define MPIR_Request_create    MPID_Request_create_inline
+#define MPIR_Request_free   MPID_Request_free_inline
 #define MPIDI_Request_complete MPIDI_Request_complete_inline
 #define MPIDI_Request_complete_norelease MPIDI_Request_complete_norelease_inline
 #define MPID_Request_discard   MPID_Request_discard_inline
 
 
-extern MPIU_Object_alloc_t MPID_Request_mem;
+extern MPIR_Object_alloc_t MPIR_Request_mem;
 #if TOKEN_FLOW_CONTROL
 extern void MPIDI_mm_free(void *,size_t);
 #endif
 typedef enum {mpiuMalloc=1,mpidiBufMM} MPIDI_mallocType;
 
-void    MPIDI_Request_uncomplete(MPID_Request *req);
+void    MPIDI_Request_uncomplete(MPIR_Request *req);
 #if (MPIU_HANDLE_ALLOCATION_METHOD == MPIU_HANDLE_ALLOCATION_THREAD_LOCAL) && defined(__BGQ__)
 void    MPIDI_Request_allocate_pool();
 #endif
@@ -77,7 +77,7 @@ void    MPIDI_Request_allocate_pool();
   (_req)->mpid.envelope.msginfo.MPIctxt=(_ctxtid);      \
 })
 
-#define MPIDI_Msginfo_getPeerRequest(_msg)       ({ MPID_Request *req=NULL; MPID_Request_get_ptr((_msg)->req, req); MPID_assert(req != NULL); req; })
+#define MPIDI_Msginfo_getPeerRequest(_msg)       ({ MPIR_Request *req=NULL; MPIR_Request_get_ptr((_msg)->req, req); MPID_assert(req != NULL); req; })
 #define MPIDI_Msginfo_getPeerRequestH(_msg)      ({                       (_msg)->req;                               })
 #define MPIDI_Msginfo_cpyPeerRequestH(_dst,_src) ({                       (_dst)->req = (_src)->req;    MPI_SUCCESS; })
 #define MPIDI_Request_getPeerRequest(_req)       MPIDI_Msginfo_getPeerRequest(&(_req)->mpid.envelope.msginfo)
@@ -90,7 +90,7 @@ void    MPIDI_Request_allocate_pool();
 #define MPIU_HANDLE_ALLOCATION_THREAD_LOCAL  1
 
 /* XXX DJG for TLS hack */
-#define MPID_REQUEST_TLS_MAX 128
+#define MPIR_REQUEST_TLS_MAX 128
 
 #if (MPIU_HANDLE_ALLOCATION_METHOD == MPIU_HANDLE_ALLOCATION_THREAD_LOCAL) && defined(__BGQ__)
 
@@ -109,7 +109,7 @@ void    MPIDI_Request_allocate_pool();
 ({                                                                      \
   size_t tid = MPIDI_THREAD_ID();                                       \
   MPIDI_RequestHandle_t *rh = &MPIDI_Process.request_handles[tid];      \
-  if (likely(rh->count < MPID_REQUEST_TLS_MAX))				\
+  if (likely(rh->count < MPIR_REQUEST_TLS_MAX))				\
     {                                                                   \
       /* push request onto the top of the stack */                      \
       req->mpid.next = rh->head;                                        \
@@ -118,7 +118,7 @@ void    MPIDI_Request_allocate_pool();
     }                                                                   \
   else                                                                  \
     {                                                                   \
-      MPIU_Handle_obj_free(&MPID_Request_mem, req);                     \
+      MPIR_Handle_obj_free(&MPIR_Request_mem, req);                     \
     }                                                                   \
 })
 
@@ -126,17 +126,17 @@ void    MPIDI_Request_allocate_pool();
 
 #  define MPIDI_Request_tls_alloc(req)                                  \
 ({                                                                      \
-  (req) = MPIU_Handle_obj_alloc(&MPID_Request_mem);                     \
+  (req) = MPIR_Handle_obj_alloc(&MPIR_Request_mem);                     \
   if (req == NULL)                                                      \
     MPID_Abort(NULL, MPI_ERR_NO_SPACE, -1, "Cannot allocate Request");  \
 })
 
-#  define MPIDI_Request_tls_free(req) MPIU_Handle_obj_free(&MPID_Request_mem, (req))
+#  define MPIDI_Request_tls_free(req) MPIR_Handle_obj_free(&MPIR_Request_mem, (req))
 
 #endif
 
 #ifdef HAVE_DEBUGGER_SUPPORT
-#define MPIDI_Request_clear_dbg(req_) ((req_)->dbg_next = NULL)
+#define MPIDI_Request_clear_dbg(req_) ((req_)->u.send.dbg_next = NULL)
 #else
 #define MPIDI_Request_clear_dbg(req_)
 #endif
@@ -145,15 +145,15 @@ void    MPIDI_Request_allocate_pool();
  * \brief Create a very generic request
  * \note  This should only ever be called by more specific allocators
  */
-static inline MPID_Request *
+static inline MPIR_Request *
 MPIDI_Request_create_basic()
 {
-  MPID_Request * req = NULL;
+  MPIR_Request * req = NULL;
 
   MPIDI_Request_tls_alloc(req);
   MPID_assert(req != NULL);
-  MPID_assert(HANDLE_GET_MPI_KIND(req->handle) == MPID_REQUEST);
-  MPID_cc_set(&req->cc, 1);
+  MPID_assert(HANDLE_GET_MPI_KIND(req->handle) == MPIR_REQUEST);
+  MPIR_cc_set(&req->cc, 1);
   req->cc_ptr = &req->cc;
 
 #if 0
@@ -171,12 +171,12 @@ MPIDI_Request_create_basic()
 /**
  * \brief Create new request without initalizing
  */
-static inline MPID_Request *
+static inline MPIR_Request *
 MPIDI_Request_create2_fast()
 {
-  MPID_Request * req;
+  MPIR_Request * req;
   req = MPIDI_Request_create_basic();
-  MPIU_Object_set_ref(req, 2);
+  MPIR_Object_set_ref(req, 2);
 
   return req;
 }
@@ -186,7 +186,7 @@ MPIDI_Request_create2_fast()
  * \brief Create and initialize a new request
  */
 static inline void
-MPIDI_Request_initialize(MPID_Request * req)
+MPIDI_Request_initialize(MPIR_Request * req)
 {
   req->greq_fns          = NULL;
 
@@ -217,12 +217,12 @@ MPIDI_Request_initialize(MPID_Request * req)
 /**
  * \brief Create and initialize a new request
  */
-static inline MPID_Request *
+static inline MPIR_Request *
 MPID_Request_create_inline()
 {
-  MPID_Request * req;
+  MPIR_Request * req;
   req = MPIDI_Request_create_basic();
-  MPIU_Object_set_ref(req, 1);
+  MPIR_Object_set_ref(req, 1);
 
   MPIDI_Request_initialize(req);
   req->comm=NULL;
@@ -234,22 +234,22 @@ MPID_Request_create_inline()
 /**
  * \brief Create and initialize a new request
  */
-static inline MPID_Request *
+static inline MPIR_Request *
 MPIDI_Request_create2()
 {
-  MPID_Request * req;
-  req = MPID_Request_create();
-  MPIU_Object_set_ref(req, 2);
+  MPIR_Request * req;
+  req = MPIR_Request_create();
+  MPIR_Object_set_ref(req, 2);
 
   return req;
 }
 
-static inline MPID_Request *
+static inline MPIR_Request *
 MPIDI_Request_create1()
 {
-  MPID_Request * req;
-  req = MPID_Request_create();
-  MPIU_Object_set_ref(req, 1);
+  MPIR_Request * req;
+  req = MPIR_Request_create();
+  MPIR_Object_set_ref(req, 1);
 
   return req;
 }
@@ -268,25 +268,25 @@ MPIDI_Request_create1()
 
 
 static inline void
-MPID_Request_release_inline(MPID_Request *req)
+MPID_Request_free_inline(MPIR_Request *req)
 {
   int count;
-  MPID_assert(HANDLE_GET_MPI_KIND(req->handle) == MPID_REQUEST);
-  MPIU_Object_release_ref(req, &count);
+  MPID_assert(HANDLE_GET_MPI_KIND(req->handle) == MPIR_REQUEST);
+  MPIR_Object_release_ref(req, &count);
   MPID_assert(count >= 0);
 
 
   if (count == 0)
   {
-    MPID_assert(MPID_cc_is_complete(&req->cc));
+    MPID_assert(MPIR_cc_is_complete(&req->cc));
 
     if (req->comm)              MPIR_Comm_release(req->comm, 0);
-    if (req->greq_fns)          MPIU_Free(req->greq_fns);
-    if (req->mpid.datatype_ptr) MPID_Datatype_release(req->mpid.datatype_ptr);
+    if (req->greq_fns)          MPL_free(req->greq_fns);
+    if (req->mpid.datatype_ptr) MPIDU_Datatype_release(req->mpid.datatype_ptr);
     if (req->mpid.uebuf_malloc== mpiuMalloc) {
-        MPIU_Free(req->mpid.uebuf);
+        MPL_free(req->mpid.uebuf);
     }
-    if(req->mpid.win_req)       MPIU_Free(req->mpid.win_req);
+    if(req->mpid.win_req)       MPL_free(req->mpid.win_req);
 #if TOKEN_FLOW_CONTROL
     else if (req->mpid.uebuf_malloc == mpidiBufMM) {
         MPIU_THREAD_CS_ENTER(MSGQUEUE,0);
@@ -301,10 +301,10 @@ MPID_Request_release_inline(MPID_Request *req)
 
 /* This request was never used, at most had uebuf allocated. */
 static inline void
-MPID_Request_discard_inline(MPID_Request *req)
+MPID_Request_discard_inline(MPIR_Request *req)
 {
     if (req->mpid.uebuf_malloc == mpiuMalloc) {
-        MPIU_Free(req->mpid.uebuf);
+        MPL_free(req->mpid.uebuf);
     }
 #if TOKEN_FLOW_CONTROL
     else if (req->mpid.uebuf_malloc == mpidiBufMM) {
@@ -316,17 +316,17 @@ MPID_Request_discard_inline(MPID_Request *req)
     MPIDI_Request_tls_free(req);
 }
 
-#define MPID_REQUEST_SET_COMPLETED(req_) \
+#define MPIR_REQUEST_SET_COMPLETED(req_) \
   MPIDI_Request_complete_norelease_inline(req_)
 
 static inline void
-MPIDI_Request_complete_inline(MPID_Request *req)
+MPIDI_Request_complete_inline(MPIR_Request *req)
 {
     int count;
-    MPID_cc_decr(req->cc_ptr, &count);
+    MPIR_cc_decr(req->cc_ptr, &count);
     MPID_assert(count >= 0);
 
-    MPID_Request_release(req);
+    MPIR_Request_free(req);
     if (count == 0) /* decrement completion count; if 0, signal progress engine */
     {
       MPIDI_Progress_signal();
@@ -335,10 +335,10 @@ MPIDI_Request_complete_inline(MPID_Request *req)
 
 
 static inline void
-MPIDI_Request_complete_norelease_inline(MPID_Request *req)
+MPIDI_Request_complete_norelease_inline(MPIR_Request *req)
 {
     int count;
-    MPID_cc_decr(req->cc_ptr, &count);
+    MPIR_cc_decr(req->cc_ptr, &count);
     MPID_assert(count >= 0);
 
     if (count == 0) /* decrement completion count; if 0, signal progress engine */

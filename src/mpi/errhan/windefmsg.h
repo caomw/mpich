@@ -10,7 +10,7 @@ typedef struct msgpair {
         const unsigned int sentinal1;
         const char *short_name, *long_name; 
         const unsigned int sentinal2; } msgpair;
-#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG_NONE
+#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG__NONE
 /* The names are in sorted order, allowing the use of a simple
   linear search or bisection algorithm to find the message corresponding to
   a particular message */
@@ -24,8 +24,8 @@ static const char short_gen3[] = "**GetMemTwice";
 static const char long_gen3[]  = "Global shared memory initializer called more than once";
 static const char short_gen4[] = "**MPIDI_CH3I_SHM_Attach_to_mem";
 static const char long_gen4[]  = "MPIDI_CH3I_SHM_Attach_to_mem failed";
-static const char short_gen5[] = "**MPIU_Strdup";
-static const char long_gen5[]  = "MPIU_Strdup failed";
+static const char short_gen5[] = "**MPL_strdup";
+static const char long_gen5[]  = "MPL_strdup failed";
 static const char short_gen6[] = "**MapViewOfFileEx";
 static const char long_gen6[]  = "MapViewOfFileEx failed";
 static const char short_gen7[] = "**OpenProcess";
@@ -217,7 +217,7 @@ static const char long_gen99[]  = "[ch3:sock] failed to handle connection accept
 static const char short_gen100[] = "**ch3|sock|scopenresp";
 static const char long_gen100[]  = "[ch3:sock] failed to handle open response packet";
 static const char short_gen101[] = "**ch3|sock|strdup";
-static const char long_gen101[]  = "[ch3:sock] MPIU_Strdup failed";
+static const char long_gen101[]  = "[ch3:sock] MPL_strdup failed";
 static const char short_gen102[] = "**ch3|syncack";
 static const char long_gen102[]  = "failure occurred while attempting to send eager synchronization packet";
 static const char short_gen103[] = "**ch3|unknownpkt";
@@ -1255,7 +1255,7 @@ static const char long_gen618[]  = "unable to bind socket to port";
 static const char short_gen619[] = "**sock|poll|eqfail";
 static const char long_gen619[]  = "fatal error: failed to enqueue an event; event was lost";
 static const char short_gen620[] = "**sock|poll|eqmalloc";
-static const char long_gen620[]  = "MPIU_Malloc failed to allocate memory for an event queue structure";
+static const char long_gen620[]  = "MPL_malloc failed to allocate memory for an event queue structure";
 static const char short_gen621[] = "**sock|poll|listen";
 static const char long_gen621[]  = "listen() failed";
 static const char short_gen622[] = "**sock|poll|nodelay";
@@ -1997,7 +1997,7 @@ static const msgpair generic_err_msgs[] = {
 };
 #endif
 
-#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG_GENERIC
+#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG__GENERIC
 static const char short_spc0[] = "**CreateFileMapping %d";
 static const char long_spc0[]  = "CreateFileMapping failed, error %d";
 static const char short_spc1[] = "**CreateThread %d";
@@ -3285,7 +3285,7 @@ static const msgpair specific_err_msgs[] = {
 };
 #endif
 
-#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG_NONE
+#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG__NONE
 #define MPIR_MAX_ERROR_CLASS_INDEX 54
 static int class_to_index[] = {
 641,42,113,126,642,104,548,564,164,504,

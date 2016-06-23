@@ -28,6 +28,8 @@
 #include <unistd.h>
 #endif
 #include <errno.h>
+
+#include "pmi.h"
 #include "simple_pmiutil.h"
 
 #define MAXVALLEN 1024
@@ -50,7 +52,7 @@ static char PMI2U_print_id[PMI2U_IDSIZE] = "unset";
 
 void PMI2U_Set_rank( int PMI_rank )
 {
-    PMI2U_Snprintf( PMI2U_print_id, PMI2U_IDSIZE, "cli_%d", PMI_rank );
+    MPL_snprintf( PMI2U_print_id, PMI2U_IDSIZE, "cli_%d", PMI_rank );
 }
 void PMI2U_SetServer( void )
 {
@@ -77,7 +79,7 @@ void PMI2U_printf( int print_flag, const char *fmt, ... )
 	    char filename[1024];
 	    p = getenv("PMI_ID");
 	    if (p) {
-		PMI2U_Snprintf( filename, sizeof(filename),
+		MPL_snprintf( filename, sizeof(filename),
 			       "testclient-%s.out", p );
 		logfile = fopen( filename, "w" );
 	    }
@@ -191,12 +193,12 @@ int PMI2U_writeline( int fd, char *buf )
 	if ( n < 0 ) {
 	    PMI2U_printf( 1, "write_line error; fd=%d buf=:%s:\n", fd, buf );
 	    perror("system msg for write_line failure ");
-	    return(-1);
+	    return PMI_FAIL;
 	}
 	if ( n < size)
 	    PMI2U_printf( 1, "write_line failed to write entire message\n" );
     }
-    return 0;
+    return PMI_SUCCESS;
 }
 
 /*
@@ -209,7 +211,7 @@ int PMI2U_parse_keyvals( char *st )
     int  offset;
 
     if ( !st )
-	return( -1 );
+	return PMI_FAIL;
 
     PMI2U_keyval_tab_idx = 0;
     p = st;
@@ -220,10 +222,10 @@ int PMI2U_parse_keyvals( char *st )
 	if ( *p == '=' ) {
 	    PMI2U_printf( 1, "PMI2U_parse_keyvals:  unexpected = at character %d in %s\n",
 		       p - st, st );
-	    return( -1 );
+	    return PMI_FAIL;
 	}
 	if ( *p == '\n' || *p == '\0' )
-	    return( 0 );	/* normal exit */
+	    return PMI_SUCCESS; /* normal exit */
 	/* got normal character */
 	keystart = p;		/* remember where key started */
 	while ( *p != ' ' && *p != '=' && *p != '\n' && *p != '\0' )
@@ -232,7 +234,7 @@ int PMI2U_parse_keyvals( char *st )
 	    PMI2U_printf( 1,
        "PMI2U_parse_keyvals: unexpected key delimiter at character %d in %s\n",
 		       p - st, st );
-	    return( -1 );
+	    return PMI_FAIL;
 	}
 	/* Null terminate the key */
 	*p = 0;
@@ -255,7 +257,7 @@ int PMI2U_parse_keyvals( char *st )
 	if ( *p == ' ' )
 	    continue;
 	if ( *p == '\n' || *p == '\0' )
-	    return( 0 );	/* value has been set to empty */
+	    return PMI_FAIL; /* value has been set to empty */
     }
 }
 

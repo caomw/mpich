@@ -24,7 +24,7 @@
 
 
 void
-MPIDI_RecvMsg_Unexp(MPID_Request  * rreq,
+MPIDI_RecvMsg_Unexp(MPIR_Request  * rreq,
                     void          * buf,
                     MPI_Aint        count,
                     MPI_Datatype    datatype)
@@ -49,8 +49,8 @@ MPIDI_RecvMsg_Unexp(MPID_Request  * rreq,
       /* -------------------------------------------------------- */
       if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
         {
-          MPID_Datatype_get_ptr(datatype, rreq->mpid.datatype_ptr);
-          MPID_Datatype_add_ref(rreq->mpid.datatype_ptr);
+          MPIDU_Datatype_get_ptr(datatype, rreq->mpid.datatype_ptr);
+          MPIDU_Datatype_add_ref(rreq->mpid.datatype_ptr);
         }
 
       if (likely((is_sync+is_zero) == 0))
@@ -62,7 +62,7 @@ MPIDI_RecvMsg_Unexp(MPID_Request  * rreq,
     }
   else 
     {
-     if (MPID_cc_is_complete(&rreq->cc))
+     if (MPIR_cc_is_complete(&rreq->cc))
      {
       if (unlikely(MPIDI_Request_isSync(rreq)))
       {
@@ -84,7 +84,7 @@ MPIDI_RecvMsg_Unexp(MPID_Request  * rreq,
         {
           if (likely(MPIR_STATUS_GET_CANCEL_BIT(rreq->status) == FALSE))
             {
-              MPIDI_msg_sz_t _count=0;
+              intptr_t _count=0;
               MPIDI_Buffer_copy(rreq->mpid.uebuf,
                                 rreq->mpid.uebuflen,
                                 MPI_CHAR,
@@ -127,8 +127,8 @@ MPIDI_RecvMsg_Unexp(MPID_Request  * rreq,
         }
       if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
         {
-          MPID_Datatype_get_ptr(datatype, rreq->mpid.datatype_ptr);
-          MPID_Datatype_add_ref(rreq->mpid.datatype_ptr);
+          MPIDU_Datatype_get_ptr(datatype, rreq->mpid.datatype_ptr);
+          MPIDU_Datatype_add_ref(rreq->mpid.datatype_ptr);
         }
      }
     }
@@ -137,10 +137,10 @@ MPIDI_RecvMsg_Unexp(MPID_Request  * rreq,
 
 
 void
-MPIDI_RecvMsg_procnull(MPID_Comm     * comm,
+MPIDI_RecvMsg_procnull(MPIR_Comm     * comm,
                        unsigned        is_blocking,
                        MPI_Status    * status,
-                       MPID_Request ** request)
+                       MPIR_Request ** request)
 {
   if (is_blocking)
     {
@@ -149,10 +149,10 @@ MPIDI_RecvMsg_procnull(MPID_Comm     * comm,
     }
   else
     {
-      MPID_Request * rreq;
+      MPIR_Request * rreq;
       rreq = MPIDI_Request_create2();
       MPIR_Status_set_procnull(&rreq->status);
-      rreq->kind = MPID_REQUEST_RECV;
+      rreq->kind = MPIR_REQUEST_KIND__RECV;
       rreq->comm = comm;
       MPIR_Comm_add_ref(comm);
       MPIDI_Request_complete(rreq);

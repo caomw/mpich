@@ -18,7 +18,7 @@
 
 extern mpidi_dynamic_tasking;
 
-static int MPIDI_Open_port(MPID_Info *, char *);
+static int MPIDI_Open_port(MPIR_Info *, char *);
 static int MPIDI_Close_port(const char *);
 
 
@@ -45,7 +45,7 @@ static MPIDI_PortFns portFns = { MPIDI_Open_port,
 .N MPI_SUCCESS
 .N MPI_ERR_OTHER
 @*/
-int MPID_Open_port(MPID_Info *info_ptr, char *port_name)
+int MPID_Open_port(MPIR_Info *info_ptr, char *port_name)
 {
     int mpi_errno=MPI_SUCCESS;
 
@@ -94,8 +94,8 @@ int MPID_Close_port(const char *port_name)
 #define FUNCNAME MPID_Comm_accept
 #undef FCNAME
 #define FCNAME MPIU_QUOTE(FUNCNAME)
-int MPID_Comm_accept(const char * port_name, MPID_Info * info, int root,
-		     MPID_Comm * comm, MPID_Comm ** newcomm_ptr)
+int MPID_Comm_accept(const char * port_name, MPIR_Info * info, int root,
+                     MPIR_Comm * comm, MPIR_Comm ** newcomm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -122,8 +122,8 @@ int MPID_Comm_accept(const char * port_name, MPID_Info * info, int root,
 #define FUNCNAME MPID_Comm_connect
 #undef FCNAME
 #define FCNAME MPIU_QUOTE(FUNCNAME)
-int MPID_Comm_connect(const char * port_name, MPID_Info * info, int root,
-		      MPID_Comm * comm, MPID_Comm ** newcomm_ptr)
+int MPID_Comm_connect(const char * port_name, MPIR_Info * info, int root,
+                      MPIR_Comm * comm, MPIR_Comm ** newcomm_ptr)
 {
     int mpi_errno=MPI_SUCCESS;
 
@@ -224,10 +224,10 @@ static void MPIDI_free_port_name_tag(int tag)
 /*
  * MPIDI_Open_port()
  */
-static int MPIDI_Open_port(MPID_Info *info_ptr, char *port_name)
+static int MPIDI_Open_port(MPIR_Info *info_ptr, char *port_name)
 {
     int mpi_errno = MPI_SUCCESS;
-    int str_errno = MPIU_STR_SUCCESS;
+    int str_errno = MPL_STR_SUCCESS;
     int len;
     int port_name_tag = 0; /* this tag is added to the business card,
                               which is then returned as the port name */
@@ -238,15 +238,15 @@ static int MPIDI_Open_port(MPID_Info *info_ptr, char *port_name)
     TRACE_ERR("MPIDI_get_port_name_tag - port_name_tag=%d mpi_errno=%d\n", port_name_tag, mpi_errno);
 
     len = MPI_MAX_PORT_NAME;
-    str_errno = MPIU_Str_add_int_arg(&port_name, &len,
+    str_errno = MPL_str_add_int_arg(&port_name, &len,
                                      MPIDI_PORT_NAME_TAG_KEY, port_name_tag);
     /*len = MPI_MAX_TASKID_NAME;*/
     taskid_tag = PAMIX_Client_query(MPIDI_Client, PAMI_CLIENT_TASK_ID  ).value.intval;
-    str_errno = MPIU_Str_add_int_arg(&port_name, &len,
+    str_errno = MPL_str_add_int_arg(&port_name, &len,
                                      MPIDI_TASKID_TAG_KEY, taskid_tag);
-    TRACE_ERR("MPIU_Str_add_int_arg - port_name=%s str_errno=%d\n", port_name, str_errno);
+    TRACE_ERR("MPL_str_add_int_arg - port_name=%s str_errno=%d\n", port_name, str_errno);
 
-    /* This works because Get_business_card uses the same MPIU_Str_xxx
+    /* This works because Get_business_card uses the same MPL_str_xxx
        functions as above to add the business card to the input string */
     /* FIXME: We should instead ask the mpid_pg routines to give us
        a connection string. There may need to be a separate step to
@@ -286,9 +286,9 @@ fn_fail:
 int MPIDI_GetTagFromPort( const char *port_name, int *port_name_tag )
 {
     int mpi_errno = MPI_SUCCESS;
-    int str_errno = MPIU_STR_SUCCESS;
+    int str_errno = MPL_STR_SUCCESS;
 
-    str_errno = MPIU_Str_get_int_arg(port_name, MPIDI_PORT_NAME_TAG_KEY,
+    str_errno = MPL_str_get_int_arg(port_name, MPIDI_PORT_NAME_TAG_KEY,
                                      port_name_tag);
 
  fn_exit:
@@ -304,9 +304,9 @@ int MPIDI_GetTagFromPort( const char *port_name, int *port_name_tag )
 int MPIDI_GetTaskidFromPort( const char *port_name, int *taskid_tag )
 {
     int mpi_errno = MPI_SUCCESS;
-    int str_errno = MPIU_STR_SUCCESS;
+    int str_errno = MPL_STR_SUCCESS;
 
-    str_errno = MPIU_Str_get_int_arg(port_name, MPIDI_TASKID_TAG_KEY,
+    str_errno = MPL_str_get_int_arg(port_name, MPIDI_TASKID_TAG_KEY,
                                      taskid_tag);
 
  fn_exit:

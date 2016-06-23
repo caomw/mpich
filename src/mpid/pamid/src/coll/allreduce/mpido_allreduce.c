@@ -40,7 +40,7 @@ int MPIDO_Allreduce(const void *sendbuf,
                     int count,
                     MPI_Datatype dt,
                     MPI_Op op,
-                    MPID_Comm *comm_ptr,
+                    MPIR_Comm *comm_ptr,
                     int *mpierrno)
 {
 #ifndef HAVE_PAMI_IN_PLACE
@@ -121,14 +121,14 @@ int MPIDO_Allreduce(const void *sendbuf,
     if(MPIDI_Process.cuda_aware_support_on)
     {
        MPI_Aint dt_extent;
-       MPID_Datatype_get_extent_macro(dt, dt_extent);
+       MPIDU_Datatype_get_extent_macro(dt, dt_extent);
        char *scbuf = NULL;
        char *rcbuf = NULL;
        int is_send_dev_buf = MPIDI_cuda_is_device_buf(sendbuf);
        int is_recv_dev_buf = MPIDI_cuda_is_device_buf(recvbuf);
        if(is_send_dev_buf)
        {
-         scbuf = MPIU_Malloc(dt_extent * count);
+         scbuf = MPL_malloc(dt_extent * count);
          cudaError_t cudaerr = CudaMemcpy(scbuf, sendbuf, dt_extent * count, cudaMemcpyDeviceToHost);
          if (cudaSuccess != cudaerr) 
            fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
@@ -137,7 +137,7 @@ int MPIDO_Allreduce(const void *sendbuf,
          scbuf = sendbuf;
        if(is_recv_dev_buf)
        {
-         rcbuf = MPIU_Malloc(dt_extent * count);
+         rcbuf = MPL_malloc(dt_extent * count);
          if(sendbuf == MPI_IN_PLACE)
          {
            cudaError_t cudaerr = CudaMemcpy(rcbuf, recvbuf, dt_extent * count, cudaMemcpyDeviceToHost);
@@ -150,13 +150,13 @@ int MPIDO_Allreduce(const void *sendbuf,
        else
          rcbuf = recvbuf;
        int cuda_res =  MPIR_Allreduce(scbuf, rcbuf, count, dt, op, comm_ptr, mpierrno);
-       if(is_send_dev_buf)MPIU_Free(scbuf);
+       if(is_send_dev_buf)MPL_free(scbuf);
        if(is_recv_dev_buf)
          {
            cudaError_t cudaerr = CudaMemcpy(recvbuf, rcbuf, dt_extent * count, cudaMemcpyHostToDevice);
            if (cudaSuccess != cudaerr)
              fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
-           MPIU_Free(rcbuf);
+           MPL_free(rcbuf);
          }
        return cuda_res;
     }
@@ -415,8 +415,8 @@ int MPIDO_Allreduce(const void *sendbuf,
   if(unlikely(verbose))
   {
     unsigned long long int threadID;
-    MPIU_Thread_id_t tid;
-    MPIU_Thread_self(&tid);
+    MPL_thread_id_t tid;
+    MPL_thread_self(&tid);
     threadID = (unsigned long long int)tid;
     fprintf(stderr,"<%llx> Using protocol %s for allreduce on %u\n", 
             threadID,
@@ -440,7 +440,7 @@ int MPIDO_Allreduce_simple(const void *sendbuf,
                     int count,
                     MPI_Datatype dt,
                     MPI_Op op,
-                    MPID_Comm *comm_ptr,
+                    MPIR_Comm *comm_ptr,
                     int *mpierrno)
 {
 #ifndef HAVE_PAMI_IN_PLACE
@@ -467,7 +467,7 @@ int MPIDO_Allreduce_simple(const void *sendbuf,
    pami_xfer_t allred;
    const pami_metadata_t *my_allred_md = (pami_metadata_t *)NULL;
    const struct MPIDI_Comm* const mpid = &(comm_ptr->mpid);
-   MPID_Datatype *data_ptr;
+   MPIDU_Datatype*data_ptr;
    MPI_Aint data_true_lb = 0;
    int data_size, data_contig;
 
@@ -539,7 +539,7 @@ MPIDO_CSWrapper_allreduce(pami_xfer_t *allreduce,
                           void        *comm)
 {
    int mpierrno = 0;
-   MPID_Comm   *comm_ptr = (MPID_Comm*)comm;
+   MPIR_Comm   *comm_ptr = (MPIR_Comm*)comm;
    MPI_Datatype type;
    MPI_Op op;
    void *sbuf;

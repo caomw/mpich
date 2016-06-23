@@ -39,7 +39,9 @@ void ADIOI_Shfp_fname(ADIO_File fd, int rank, int *error_code)
     fd->shared_fp_fname = (char *) ADIOI_Malloc(PATH_MAX);
 
     if (!rank) {
-        srand(time(NULL));
+	/* srand takes int but time returns long; keep the lower and most
+	 * significant  32 bits */
+        srand(time(NULL)& 0xffffffff);
         i = rand();
 	pid = (int)getpid();
 	
@@ -87,9 +89,9 @@ void ADIOI_Shfp_fname(ADIO_File fd, int rank, int *error_code)
 	    }
 	}
 	    
-	ADIOI_Snprintf(tmp, 128, ".shfp.%d.%d", pid, i);
-	/* ADIOI_Strnapp will return non-zero if truncated.  That's ok */
-	ADIOI_Strnapp(fd->shared_fp_fname, tmp, PATH_MAX);
+	MPL_snprintf(tmp, 128, ".shfp.%d.%d", pid, i);
+	/* MPL_strnapp will return non-zero if truncated.  That's ok */
+	MPL_strnapp(fd->shared_fp_fname, tmp, PATH_MAX);
 	
 	len = (int)strlen(fd->shared_fp_fname);
 	MPI_Bcast(&len, 1, MPI_INT, 0, fd->comm);

@@ -54,12 +54,12 @@ Output Parameters:
 int MPI_Group_size(MPI_Group group, int *size)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Group *group_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_GROUP_SIZE);
+    MPIR_Group *group_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_GROUP_SIZE);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_GROUP_SIZE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_GROUP_SIZE);
     
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -73,7 +73,7 @@ int MPI_Group_size(MPI_Group group, int *size)
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Group_get_ptr( group, group_ptr );
+    MPIR_Group_get_ptr( group, group_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -81,7 +81,7 @@ int MPI_Group_size(MPI_Group group, int *size)
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate group_ptr */
-            MPID_Group_valid_ptr( group_ptr, mpi_errno );
+            MPIR_Group_valid_ptr( group_ptr, mpi_errno );
 	    /* If group_ptr is not value, it will be reset to null */
             if (mpi_errno) goto fn_fail;
         }
@@ -96,7 +96,7 @@ int MPI_Group_size(MPI_Group group, int *size)
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_GROUP_SIZE);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_GROUP_SIZE);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

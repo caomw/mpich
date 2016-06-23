@@ -65,13 +65,13 @@ int MPI_Alloc_mem(MPI_Aint size, MPI_Info info, void *baseptr)
     static const char FCNAME[] = "MPI_Alloc_mem";
     int mpi_errno = MPI_SUCCESS;
     void *ap;
-    MPID_Info *info_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_ALLOC_MEM);
+    MPIR_Info *info_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_ALLOC_MEM);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_ALLOC_MEM);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_ALLOC_MEM);
     
 #   ifdef HAVE_ERROR_CHECKING
     {
@@ -85,11 +85,11 @@ int MPI_Alloc_mem(MPI_Aint size, MPI_Info info, void *baseptr)
     }
 #   endif /* HAVE_ERROR_CHECKING */
 
-    MPID_Info_get_ptr( info, info_ptr );
+    MPIR_Info_get_ptr( info, info_ptr );
 
     /* ... body of routine ...  */
 
-    MPIU_Ensure_Aint_fits_in_pointer(size);
+    MPIR_Ensure_Aint_fits_in_pointer(size);
     ap = MPID_Alloc_mem(size, info_ptr);
 
     /* --BEGIN ERROR HANDLING-- */
@@ -100,12 +100,13 @@ int MPI_Alloc_mem(MPI_Aint size, MPI_Info info, void *baseptr)
     }
     /* --END ERROR HANDLING-- */
 
+    MPL_VG_MEM_INIT(ap, size);
     *(void **)baseptr = ap;
 
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_ALLOC_MEM);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_ALLOC_MEM);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

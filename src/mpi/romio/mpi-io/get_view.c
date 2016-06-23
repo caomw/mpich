@@ -25,9 +25,6 @@ int MPI_File_get_view(MPI_File fh, MPI_Offset *disp, MPI_Datatype *etype, MPI_Da
 #define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
-#ifdef MPISGI
-#include "mpisgi2.h"
-#endif
 
 /*@
     MPI_File_get_view - Returns the file view
@@ -59,7 +56,7 @@ int MPI_File_get_view(MPI_File fh, MPI_Offset *disp, MPI_Datatype *etype,
     /* --BEGIN ERROR HANDLING-- */
     MPIO_CHECK_FILE_HANDLE(adio_fh, myname, error_code);
 
-    if (datarep <= (char *) 0)
+    if (datarep == NULL)
     {
 	error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
 					  myname, __LINE__, MPI_ERR_ARG, 
@@ -78,7 +75,7 @@ int MPI_File_get_view(MPI_File fh, MPI_Offset *disp, MPI_Datatype *etype,
     else {
 	/* FIXME: It is wrong to use MPI_Type_contiguous; the user could choose to
 	   re-implement MPI_Type_contiguous in an unexpected way.  Either use 
-	   MPIR_Barrier_impl as in MPICH or PMPI_Type_contiguous */
+	   MPID_Barrier as in MPICH or PMPI_Type_contiguous */
         MPI_Type_contiguous(1, adio_fh->etype, &copy_etype);
 
 	/* FIXME: Ditto for MPI_Type_commit - use NMPI or PMPI */

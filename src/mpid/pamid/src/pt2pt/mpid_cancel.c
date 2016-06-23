@@ -23,9 +23,9 @@
 
 
 int
-MPID_Cancel_recv(MPID_Request * rreq)
+MPID_Cancel_recv(MPIR_Request * rreq)
 {
-  MPID_assert(rreq->kind == MPID_REQUEST_RECV);
+  MPID_assert(rreq->kind == MPIR_REQUEST_KIND__RECV);
   if (MPIDI_Recvq_FDPR(rreq))
     {
       MPIR_STATUS_SET_CANCEL_BIT(rreq->status, TRUE);
@@ -47,7 +47,7 @@ MPID_Cancel_recv(MPID_Request * rreq)
 static inline pami_result_t
 MPIDI_CancelReq_post(pami_context_t context, void * _req)
 {
-  MPID_Request * req = (MPID_Request*)_req;
+  MPIR_Request * req = (MPIR_Request*)_req;
   MPID_assert(req != NULL);
 
   /* ------------------------------------------------- */
@@ -90,7 +90,7 @@ MPIDI_CancelReq_post(pami_context_t context, void * _req)
 
 
 int
-MPID_Cancel_send(MPID_Request * sreq)
+MPID_Cancel_send(MPIR_Request * sreq)
 {
   MPID_assert(sreq != NULL);
 
@@ -98,18 +98,18 @@ MPID_Cancel_send(MPID_Request * sreq)
     return MPI_SUCCESS;
 
   MPIDI_Request_uncomplete(sreq);
-  /* TRACE_ERR("Posting cancel for request=%p   cc(curr)=%d ref(curr)=%d\n", sreq, val+1, MPIU_Object_get_ref(sreq)); */
+  /* TRACE_ERR("Posting cancel for request=%p   cc(curr)=%d ref(curr)=%d\n", sreq, val+1, MPIR_Object_get_ref(sreq)); */
 
   pami_context_t context = MPIDI_Context_local(sreq);
 
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
   if (likely(MPIDI_Process.perobj.context_post.active > 0))
     {
       /* This leaks intentionally.  At this time, the amount of work
        * required to avoid a leak here just isn't worth it.
        * Hopefully people aren't cancelling sends too much.
        */
-      pami_work_t  * work    = MPIU_Malloc(sizeof(pami_work_t));
+      pami_work_t  * work    = MPL_malloc(sizeof(pami_work_t));
       PAMI_Context_post(context, work, MPIDI_CancelReq_post, sreq);
     }
   else
@@ -123,7 +123,7 @@ MPID_Cancel_send(MPID_Request * sreq)
        MPIDI_CancelReq_post(context, sreq);
        PAMI_Context_unlock(context);
     }
-#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY_PER_OBJECT) */
+#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY__POBJ) */
   /*
    * It is not necessary to lock the context before access in the "global" mpich
    * lock mode because all application threads must first acquire the global

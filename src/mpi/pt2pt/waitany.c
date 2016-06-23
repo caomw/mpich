@@ -7,8 +7,8 @@
 
 #include "mpiimpl.h"
 
-#if !defined(MPID_REQUEST_PTR_ARRAY_SIZE)
-#define MPID_REQUEST_PTR_ARRAY_SIZE 16
+#if !defined(MPIR_REQUEST_PTR_ARRAY_SIZE)
+#define MPIR_REQUEST_PTR_ARRAY_SIZE 16
 #endif
 
 /* -- Begin Profiling Symbol Block for routine MPI_Waitany */
@@ -69,8 +69,8 @@ int MPI_Waitany(int count, MPI_Request array_of_requests[], int *indx,
 		MPI_Status *status)
 {
     static const char FCNAME[] = "MPI_Waitany";
-    MPID_Request * request_ptr_array[MPID_REQUEST_PTR_ARRAY_SIZE];
-    MPID_Request ** request_ptrs = request_ptr_array;
+    MPIR_Request * request_ptr_array[MPIR_REQUEST_PTR_ARRAY_SIZE];
+    MPIR_Request ** request_ptrs = request_ptr_array;
     MPID_Progress_state progress_state;
     int i;
     int n_inactive;
@@ -79,13 +79,13 @@ int MPI_Waitany(int count, MPI_Request array_of_requests[], int *indx,
     int found_nonnull_req;
     int last_disabled_anysource = -1;
     int mpi_errno = MPI_SUCCESS;
-    MPIU_CHKLMEM_DECL(1);
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_WAITANY);
+    MPIR_CHKLMEM_DECL(1);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_WAITANY);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_PT2PT_FUNC_ENTER(MPID_STATE_MPI_WAITANY);
+    MPIR_FUNC_TERSE_PT2PT_ENTER(MPID_STATE_MPI_WAITANY);
 
     /* Check the arguments */
 #   ifdef HAVE_ERROR_CHECKING
@@ -108,9 +108,9 @@ int MPI_Waitany(int count, MPI_Request array_of_requests[], int *indx,
     /* ... body of routine ...  */
     
     /* Convert MPI request handles to a request object pointers */
-    if (count > MPID_REQUEST_PTR_ARRAY_SIZE)
+    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE)
     {
-	MPIU_CHKLMEM_MALLOC_ORJUMP(request_ptrs, MPID_Request **, count * sizeof(MPID_Request *), mpi_errno, "request pointers");
+	MPIR_CHKLMEM_MALLOC_ORJUMP(request_ptrs, MPIR_Request **, count * sizeof(MPIR_Request *), mpi_errno, "request pointers");
     }
 
     n_inactive = 0;
@@ -133,13 +133,13 @@ int MPI_Waitany(int count, MPI_Request array_of_requests[], int *indx,
 #endif /* HAVE_ERROR_CHECKING */
                 if (array_of_requests[i] != MPI_REQUEST_NULL)
                 {
-                    MPID_Request_get_ptr(array_of_requests[i], request_ptrs[i]);
+                    MPIR_Request_get_ptr(array_of_requests[i], request_ptrs[i]);
                     /* Validate object pointers if error checking is enabled */
 #ifdef HAVE_ERROR_CHECKING
                     {
                         MPID_BEGIN_ERROR_CHECKS;
                         {
-                            MPID_Request_valid_ptr( request_ptrs[i], mpi_errno );
+                            MPIR_Request_valid_ptr( request_ptrs[i], mpi_errno );
                             if (mpi_errno != MPI_SUCCESS) goto fn_progress_end_fail;
                         }
                         MPID_END_ERROR_CHECKS;
@@ -157,13 +157,13 @@ int MPI_Waitany(int count, MPI_Request array_of_requests[], int *indx,
             /* we found at least one non-null request */
             found_nonnull_req = TRUE;
 
-            if (request_ptrs[i]->kind == MPID_UREQUEST && request_ptrs[i]->greq_fns->poll_fn != NULL)
+            if (request_ptrs[i]->kind == MPIR_REQUEST_KIND__GREQUEST && request_ptrs[i]->u.ureq.greq_fns->poll_fn != NULL)
 	    {
                 /* this is a generalized request; make progress on it */
-                mpi_errno = (request_ptrs[i]->greq_fns->poll_fn)(request_ptrs[i]->greq_fns->grequest_extra_state, status);
+                mpi_errno = (request_ptrs[i]->u.ureq.greq_fns->poll_fn)(request_ptrs[i]->u.ureq.greq_fns->grequest_extra_state, status);
 		if (mpi_errno != MPI_SUCCESS) goto fn_progress_end_fail;
 	    }
-            if (MPID_Request_is_complete(request_ptrs[i]))
+            if (MPIR_Request_is_complete(request_ptrs[i]))
 	    {
 		mpi_errno = MPIR_Request_complete(&array_of_requests[i], 
 						  request_ptrs[i], status, 
@@ -220,12 +220,12 @@ int MPI_Waitany(int count, MPI_Request array_of_requests[], int *indx,
     /* ... end of body of routine ... */
     
   fn_exit:
-    if (count > MPID_REQUEST_PTR_ARRAY_SIZE)
+    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE)
     {
-	MPIU_CHKLMEM_FREEALL();
+	MPIR_CHKLMEM_FREEALL();
     }
 
-    MPID_MPI_PT2PT_FUNC_EXIT(MPID_STATE_MPI_WAITANY);
+    MPIR_FUNC_TERSE_PT2PT_EXIT(MPID_STATE_MPI_WAITANY);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

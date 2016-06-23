@@ -59,13 +59,13 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 {
     static const char FCNAME[] = "MPI_Iprobe";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_IPROBE);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_IPROBE);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_PT2PT_FUNC_ENTER(MPID_STATE_MPI_IPROBE);
+    MPIR_FUNC_TERSE_PT2PT_ENTER(MPID_STATE_MPI_IPROBE);
     
     /* Validate handle parameters needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -79,7 +79,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 #   endif /* HAVE_ERROR_CHECKING */
     
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
     
     /* Validate parameters if error checking is enabled */
 #   ifdef HAVE_ERROR_CHECKING
@@ -87,7 +87,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
         MPID_BEGIN_ERROR_CHECKS;
         {
 	    /* Validate communicator */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno) goto fn_fail;
 	    
 	    MPIR_ERRTEST_ARGNULL( flag, "flag", mpi_errno );
@@ -103,14 +103,14 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
     /* ... body of routine ...  */
     
     /* FIXME: Is this correct for intercomms? */
-    mpi_errno = MPID_Iprobe(source, tag, comm_ptr, MPID_CONTEXT_INTRA_PT2PT, 
+    mpi_errno = MPID_Iprobe(source, tag, comm_ptr, MPIR_CONTEXT_INTRA_PT2PT,
 			    flag, status);
     if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_PT2PT_FUNC_EXIT(MPID_STATE_MPI_IPROBE);
+    MPIR_FUNC_TERSE_PT2PT_EXIT(MPID_STATE_MPI_IPROBE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

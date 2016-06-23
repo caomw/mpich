@@ -33,7 +33,7 @@ void MPIR_Get_count_impl(const MPI_Status *status, MPI_Datatype datatype, int *c
     MPI_Count size;
 
     MPID_Datatype_get_size_macro(datatype, size);
-    MPIU_Assert(size >= 0 && MPIR_STATUS_GET_COUNT(*status) >= 0);
+    MPIR_Assert(size >= 0 && MPIR_STATUS_GET_COUNT(*status) >= 0);
     if (size != 0) {
         /* MPI-3 says return MPI_UNDEFINED if too large for an int */
 	if ((MPIR_STATUS_GET_COUNT(*status) % size) != 0 || ((MPIR_STATUS_GET_COUNT(*status) / size) > INT_MAX))
@@ -91,17 +91,17 @@ size of 'datatype' (so that 'count' would not be integral), a 'count' of
 int MPI_Get_count( const MPI_Status *status, MPI_Datatype datatype, int *count )
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_GET_COUNT);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_GET_COUNT);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_GET_COUNT);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_GET_COUNT);
 
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPID_Datatype *datatype_ptr = NULL;
+	    MPIR_Datatype *datatype_ptr = NULL;
 
 	    MPIR_ERRTEST_ARGNULL(status, "status", mpi_errno);
 	    MPIR_ERRTEST_ARGNULL(count, "count", mpi_errno);
@@ -110,7 +110,7 @@ int MPI_Get_count( const MPI_Status *status, MPI_Datatype datatype, int *count )
             /* Validate datatype_ptr */
 	    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
 		MPID_Datatype_get_ptr(datatype, datatype_ptr);
-		MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+		MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno) goto fn_fail;
 		/* Q: Must the type be committed to be used with this function? */
 	    }
@@ -128,7 +128,7 @@ int MPI_Get_count( const MPI_Status *status, MPI_Datatype datatype, int *count )
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_GET_COUNT);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_GET_COUNT);
     return mpi_errno;
     
     /* --BEGIN ERROR HANDLING-- */

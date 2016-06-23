@@ -9,7 +9,6 @@
 #include "demux.h"
 #include "bsci.h"
 #include "topo.h"
-#include "hydt_ftb.h"
 
 struct HYD_pmcd_pmip_s HYD_pmcd_pmip;
 
@@ -68,54 +67,54 @@ static void cleanup_params(void)
 
     /* System global */
     if (HYD_pmcd_pmip.system_global.pmi_fd)
-        HYDU_FREE(HYD_pmcd_pmip.system_global.pmi_fd);
+        MPL_free(HYD_pmcd_pmip.system_global.pmi_fd);
 
     if (HYD_pmcd_pmip.system_global.pmi_process_mapping)
-        HYDU_FREE(HYD_pmcd_pmip.system_global.pmi_process_mapping);
+        MPL_free(HYD_pmcd_pmip.system_global.pmi_process_mapping);
 
 
     /* Upstream */
     if (HYD_pmcd_pmip.upstream.server_name)
-        HYDU_FREE(HYD_pmcd_pmip.upstream.server_name);
+        MPL_free(HYD_pmcd_pmip.upstream.server_name);
 
 
     /* Downstream */
     if (HYD_pmcd_pmip.downstream.out)
-        HYDU_FREE(HYD_pmcd_pmip.downstream.out);
+        MPL_free(HYD_pmcd_pmip.downstream.out);
 
     if (HYD_pmcd_pmip.downstream.err)
-        HYDU_FREE(HYD_pmcd_pmip.downstream.err);
+        MPL_free(HYD_pmcd_pmip.downstream.err);
 
     if (HYD_pmcd_pmip.downstream.pid)
-        HYDU_FREE(HYD_pmcd_pmip.downstream.pid);
+        MPL_free(HYD_pmcd_pmip.downstream.pid);
 
     if (HYD_pmcd_pmip.downstream.exit_status)
-        HYDU_FREE(HYD_pmcd_pmip.downstream.exit_status);
+        MPL_free(HYD_pmcd_pmip.downstream.exit_status);
 
     if (HYD_pmcd_pmip.downstream.pmi_rank)
-        HYDU_FREE(HYD_pmcd_pmip.downstream.pmi_rank);
+        MPL_free(HYD_pmcd_pmip.downstream.pmi_rank);
 
     if (HYD_pmcd_pmip.downstream.pmi_fd)
-        HYDU_FREE(HYD_pmcd_pmip.downstream.pmi_fd);
+        MPL_free(HYD_pmcd_pmip.downstream.pmi_fd);
 
     if (HYD_pmcd_pmip.downstream.pmi_fd_active)
-        HYDU_FREE(HYD_pmcd_pmip.downstream.pmi_fd_active);
+        MPL_free(HYD_pmcd_pmip.downstream.pmi_fd_active);
 
 
     /* Local */
     if (HYD_pmcd_pmip.local.iface_ip_env_name)
-        HYDU_FREE(HYD_pmcd_pmip.local.iface_ip_env_name);
+        MPL_free(HYD_pmcd_pmip.local.iface_ip_env_name);
 
     if (HYD_pmcd_pmip.local.hostname)
-        HYDU_FREE(HYD_pmcd_pmip.local.hostname);
+        MPL_free(HYD_pmcd_pmip.local.hostname);
 
     if (HYD_pmcd_pmip.local.spawner_kvsname)
-        HYDU_FREE(HYD_pmcd_pmip.local.spawner_kvsname);
+        MPL_free(HYD_pmcd_pmip.local.spawner_kvsname);
 
     if (HYD_pmcd_pmip.local.ckpoint_prefix_list) {
         for (i = 0; HYD_pmcd_pmip.local.ckpoint_prefix_list[i]; i++)
-            HYDU_FREE(HYD_pmcd_pmip.local.ckpoint_prefix_list[i]);
-        HYDU_FREE(HYD_pmcd_pmip.local.ckpoint_prefix_list);
+            MPL_free(HYD_pmcd_pmip.local.ckpoint_prefix_list[i]);
+        MPL_free(HYD_pmcd_pmip.local.ckpoint_prefix_list);
     }
 
     HYD_pmcd_free_pmi_kvs_list(HYD_pmcd_pmip.local.kvs);
@@ -170,9 +169,6 @@ int main(int argc, char **argv)
 
     status = HYDT_dmx_init(&HYD_pmcd_pmip.user_global.demux);
     HYDU_ERR_POP(status, "unable to initialize the demux engine\n");
-
-    status = HYDT_ftb_init();
-    HYDU_ERR_POP(status, "unable to initialize FTB\n");
 
     /* See if HYDI_CONTROL_FD is set before trying to connect upstream */
     ret = MPL_env2int("HYDI_CONTROL_FD", &HYD_pmcd_pmip.upstream.control);
@@ -278,9 +274,6 @@ int main(int argc, char **argv)
 
     status = HYDT_dmx_finalize();
     HYDU_ERR_POP(status, "error returned from demux finalize\n");
-
-    status = HYDT_ftb_finalize();
-    HYDU_ERR_POP(status, "unable to finalize FTB\n");
 
     status = HYDT_bsci_finalize();
     HYDU_ERR_POP(status, "unable to finalize the bootstrap device\n");

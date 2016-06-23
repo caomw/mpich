@@ -237,7 +237,7 @@ PMIProcess *PMISetupNewProcess( int fd, ProcessState *pState )
 {
     PMIProcess *pmiprocess;
 
-    pmiprocess = (PMIProcess *)MPIU_Malloc( sizeof(PMIProcess) );
+    pmiprocess = (PMIProcess *)MPL_malloc( sizeof(PMIProcess) );
     if (!pmiprocess) return 0;
     pmiprocess->fd           = fd;
     pmiprocess->nextChar     = pmiprocess->readBuf;
@@ -265,13 +265,13 @@ PMIProcess *PMISetupNewProcess( int fd, ProcessState *pState )
 int PMISetupNewGroup( int nProcess, PMIKVSpace *kvs )
 {
     PMIGroup *g;
-    curPMIGroup = (PMIGroup *)MPIU_Malloc( sizeof(PMIGroup) );
+    curPMIGroup = (PMIGroup *)MPL_malloc( sizeof(PMIGroup) );
     if (!curPMIGroup) return 1;
 
     curPMIGroup->nProcess   = nProcess;
     curPMIGroup->groupID    = pmimaster.nGroups++;
     curPMIGroup->nInBarrier = 0;
-    curPMIGroup->pmiProcess = (PMIProcess **)MPIU_Malloc( 
+    curPMIGroup->pmiProcess = (PMIProcess **)MPL_malloc(
 					 sizeof(PMIProcess*) * nProcess );
     if (!curPMIGroup->pmiProcess) return 1;
     curPMIGroup->nextGroup  = 0;
@@ -456,7 +456,7 @@ static PMIKVSpace *fPMIKVSAllocate( void )
     static int kvsnum = 0;    /* Used to generate names */
 
     /* Create the space */
-    kvs = (PMIKVSpace *)MPIU_Malloc( sizeof(PMIKVSpace) );
+    kvs = (PMIKVSpace *)MPL_malloc( sizeof(PMIKVSpace) );
     if (!kvs) {
 	MPL_internal_error_printf( "too many kvs's\n" );
 	return 0;
@@ -494,7 +494,7 @@ static int fPMIKVSGetNewSpace( char kvsname[], int maxlen )
     PMIKVSpace *kvs;
 
     kvs = fPMIKVSAllocate( );
-    MPIU_Strncpy( kvsname, kvs->kvsname, maxlen );
+    MPL_strncpy( kvsname, kvs->kvsname, maxlen );
     return 0;
 }
 static int fPMIKVSFindKey( PMIKVSpace *kvs, 
@@ -508,7 +508,7 @@ static int fPMIKVSFindKey( PMIKVSpace *kvs,
 	rc = strcmp( p->key, key );
 	if (rc == 0) {
 	    /* Found it.  Get the value and return success */
-	    MPIU_Strncpy( val, p->val, maxval );
+	    MPL_strncpy( val, p->val, maxval );
 	    return 0;
 	}
 	if (rc > 0) {
@@ -544,12 +544,12 @@ static int fPMIKVSAddPair( PMIKVSpace *kvs,
 	pprev = &(p->nextPair);
 	p = p->nextPair;
     }
-    pair = (PMIKVPair *)MPIU_Malloc( sizeof(PMIKVPair) );
+    pair = (PMIKVPair *)MPL_malloc( sizeof(PMIKVPair) );
     if (!pair) {
 	return -1;
     }
-    MPIU_Strncpy( pair->key, key, sizeof(pair->key) );
-    MPIU_Strncpy( pair->val, val, sizeof(pair->val) );
+    MPL_strncpy( pair->key, key, sizeof(pair->key) );
+    MPL_strncpy( pair->val, val, sizeof(pair->val) );
 
     /* Insert into the list */
     pair->nextPair = p;
@@ -593,7 +593,7 @@ static int PMIKVSFree( PMIKVSpace *kvs )
     p = kvs->pairs;
     while (p) {
 	pNext = p->nextPair;
-	MPIU_Free( p );
+	MPL_free( p );
 	p = pNext;
     }
 
@@ -605,7 +605,7 @@ static int PMIKVSFree( PMIKVSpace *kvs )
 	rc = strcmp( k->kvsname, kvs->kvsname );
 	if (rc == 0) {
 	    *kPrev = k->nextKVS;
-	    MPIU_Free( k );
+	    MPL_free( k );
 	    break;
 	}
 	kPrev = &(k->nextKVS);
@@ -698,7 +698,7 @@ static int fPMI_Handle_put( PMIProcess *pentry )
 	}
 	else {
 	    rc = 0;
-	    MPIU_Strncpy( message, "success", PMIU_MAXLINE );
+	    MPL_strncpy( message, "success", PMIU_MAXLINE );
 	}
     }
     else {
@@ -733,18 +733,18 @@ static int fPMI_Handle_get( PMIProcess *pentry )
 	rc = fPMIKVSFindKey( kvs, key, value, sizeof(value) );
 	if (rc == 0) {
 	    rc = 0;
-	    MPIU_Strncpy( message, "success", PMIU_MAXLINE );
+	    MPL_strncpy( message, "success", PMIU_MAXLINE );
 	}
 	else if (rc) {
 	    rc = -1;
-	    MPIU_Strncpy( value, "unknown", PMIU_MAXLINE );
+	    MPL_strncpy( value, "unknown", PMIU_MAXLINE );
 	    MPL_snprintf( message, PMIU_MAXLINE, "key_%s_not_found", 
 			   kvsname );
 	}
     }
     else { 
 	rc = -1;
-	MPIU_Strncpy( value, "unknown", PMIU_MAXLINE );
+	MPL_strncpy( value, "unknown", PMIU_MAXLINE );
 	MPL_snprintf( message, PMIU_MAXLINE, "kvs_%s_not_found", kvsname );
     }
     MPL_snprintf( outbuf, PMIU_MAXLINE, 
@@ -1011,7 +1011,7 @@ static int fPMI_Handle_spawn( PMIProcess *pentry )
     DBG_PRINTFCOND(pmidebug,( "Entering fPMI_Handle_spawn\n" ));
 
     if (!pentry->spawnWorld) {
-	pWorld = (ProcessWorld *)MPIU_Malloc( sizeof(ProcessWorld) );
+	pWorld = (ProcessWorld *)MPL_malloc( sizeof(ProcessWorld) );
 	if (!pWorld) return 1;
 	
 	pentry->spawnWorld = pWorld;
@@ -1036,7 +1036,7 @@ static int fPMI_Handle_spawn( PMIProcess *pentry )
        commands */ 
 
     /* Create a new app */
-    app = (ProcessApp *)MPIU_Malloc( sizeof(ProcessApp) );
+    app = (ProcessApp *)MPL_malloc( sizeof(ProcessApp) );
     if (!app) return 1;
     app->myAppNum  = 0;
     app->exename   = 0;
@@ -1108,7 +1108,7 @@ static int fPMI_Handle_spawn( PMIProcess *pentry )
 	    pWorld->nProcess += app->nProcess;
 	}
 	else if (strcmp( "execname", cmdPtr ) == 0) {
-	    app->exename = MPIU_Strdup( valPtr );
+	    app->exename = MPL_strdup( valPtr );
 	}
 	else if (strcmp( "totspawns", cmdPtr ) == 0) {
 	    /* This tells us how many separate spawn commands
@@ -1135,14 +1135,14 @@ static int fPMI_Handle_spawn( PMIProcess *pentry )
 				   argnum, PMI_MAX_ARGS-1 );
 		return 1;
 	    }
-	    args[argnum] = MPIU_Strdup( valPtr );
+	    args[argnum] = MPL_strdup( valPtr );
 	}
 	else if (strcmp( "preput_num", cmdPtr ) == 0) {
 	    preputNum = atoi(valPtr);
 	}
 	else if (strncmp( "preput_key_", cmdPtr, 11 ) == 0) {
 	    /* Save the key */
-	    MPIU_Strncpy( key, valPtr, sizeof(key) );
+	    MPL_strncpy( key, valPtr, sizeof(key) );
 	}
 	else if (strncmp( "preput_val_", cmdPtr, 11 ) == 0) {
 	    /* Place the key,val into the space associate with the current 
@@ -1166,7 +1166,7 @@ static int fPMI_Handle_spawn( PMIProcess *pentry )
 	    /* The actual name has a digit, which indicates *which* info 
 	       key this is */
 	    curInfoIdx = atoi( cmdPtr + 9 );
-	    MPIU_Strncpy( curInfoKey, valPtr, sizeof(curInfoKey) );
+	    MPL_strncpy( curInfoKey, valPtr, sizeof(curInfoKey) );
 	}
 	else if (strncmp( "info_val_", cmdPtr, 9 ) == 0) {
 	    /* The actual name has a digit, which indicates *which* info 
@@ -1177,7 +1177,7 @@ static int fPMI_Handle_spawn( PMIProcess *pentry )
 		return 1;
 	    }
 	    else {
-		MPIU_Strncpy( curInfoVal, valPtr, sizeof(curInfoVal) );
+		MPL_strncpy( curInfoVal, valPtr, sizeof(curInfoVal) );
 		/* Apply this info item */
 		fPMIInfoKey( app, curInfoKey, curInfoVal );
 		/* printf( "Got info %s+%s\n", curInfoKey, curInfoVal ); */
@@ -1191,7 +1191,7 @@ static int fPMI_Handle_spawn( PMIProcess *pentry )
     }	
 
     if (app->nArgs > 0) {
-	app->args  = (const char **)MPIU_Malloc( app->nArgs * sizeof(char *) );
+	app->args  = (const char **)MPL_malloc( app->nArgs * sizeof(char *) );
 	for (i=0; i<app->nArgs; i++) {
 	    app->args[i] = args[i];
 	    args[i]      = 0;
@@ -1320,16 +1320,16 @@ int PMI_InitSingletonConnection( int fd, PMIProcess *pmiprocess )
 static int fPMIInfoKey( ProcessApp *app, const char key[], const char val[] )
 {
     if (strcmp( key, "host" ) == 0) {
-	app->hostname = MPIU_Strdup( val );
+	app->hostname = MPL_strdup( val );
     }
     else if (strcmp( key, "arch" ) == 0) {
-	app->arch     = MPIU_Strdup( val );
+	app->arch     = MPL_strdup( val );
     }
     else if (strcmp( key, "wdir" ) == 0) {
-	app->wdir     = MPIU_Strdup( val );
+	app->wdir     = MPL_strdup( val );
     }
     else if (strcmp( key, "path" ) == 0) {
-	app->path     = MPIU_Strdup( val );
+	app->path     = MPL_strdup( val );
     }
     else if (strcmp( key, "soft" ) == 0) {
 	MPIE_ParseSoftspec( val, &app->soft );

@@ -54,7 +54,7 @@ int MPIR_Pack_impl(const void *inbuf,
         dt_true_lb = 0;
         data_sz    = incount * MPID_Datatype_get_basic_size(datatype);
     } else {
-        MPID_Datatype *dt_ptr;
+        MPIR_Datatype *dt_ptr;
         MPID_Datatype_get_ptr(datatype, dt_ptr);
 	contig     = dt_ptr->is_contig;
         dt_true_lb = dt_ptr->true_lb;
@@ -62,7 +62,7 @@ int MPIR_Pack_impl(const void *inbuf,
     }
 
     if (contig) {
-        MPIU_Memcpy((char *) outbuf + *position, (char *)inbuf + dt_true_lb, data_sz);
+        MPIR_Memcpy((char *) outbuf + *position, (char *)inbuf + dt_true_lb, data_sz);
         *position = (int)((MPI_Aint)*position + data_sz);
         goto fn_exit;
     }
@@ -85,7 +85,7 @@ int MPIR_Pack_impl(const void *inbuf,
     last  = SEGMENT_IGNORE_LAST;
 
     /* Ensure that pointer increment fits in a pointer */
-    MPIU_Ensure_Aint_fits_in_pointer((MPIU_VOID_PTR_CAST_TO_MPI_AINT outbuf) +
+    MPIR_Ensure_Aint_fits_in_pointer((MPIR_VOID_PTR_CAST_TO_MPI_AINT outbuf) +
 				     (MPI_Aint) *position);
 
     MPID_Segment_pack(segp,
@@ -94,7 +94,7 @@ int MPIR_Pack_impl(const void *inbuf,
 		      (void *) ((char *) outbuf + *position));
 
     /* Ensure that calculation fits into an int datatype. */
-    MPIU_Ensure_Aint_fits_in_int((MPI_Aint)*position + last);
+    MPIR_Ensure_Aint_fits_in_int((MPI_Aint)*position + last);
 
     *position = (int)((MPI_Aint)*position + last);
 
@@ -155,13 +155,13 @@ int MPI_Pack(const void *inbuf,
 {
     int mpi_errno = MPI_SUCCESS;
     MPI_Aint position_x;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_PACK);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_PACK);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_PACK);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_PACK);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -175,7 +175,7 @@ int MPI_Pack(const void *inbuf,
 #   endif
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -191,16 +191,16 @@ int MPI_Pack(const void *inbuf,
 	    MPIR_ERRTEST_ARGNULL(position, "position", mpi_errno);
             /* Validate comm_ptr */
 	    /* If comm_ptr is not valid, it will be reset to null */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
 	    if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
 	    MPIR_ERRTEST_DATATYPE(datatype, "datatype", mpi_errno);
 
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *datatype_ptr = NULL;
+                MPIR_Datatype *datatype_ptr = NULL;
 
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                 MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -246,13 +246,13 @@ int MPI_Pack(const void *inbuf,
 
     position_x = *position;
     mpi_errno = MPIR_Pack_impl(inbuf, incount, datatype, outbuf, outsize, &position_x);
-    MPIU_Assign_trunc(*position, position_x, int);
+    MPIR_Assign_trunc(*position, position_x, int);
     if (mpi_errno) goto fn_fail;
     
    /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_PACK);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_PACK);
     return mpi_errno;
 
   fn_fail:

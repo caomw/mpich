@@ -5,6 +5,10 @@
  *      See COPYRIGHT in top-level directory.
  */
 
+#if defined (MPL_USE_DBG_LOGGING)
+MPL_dbg_class MPIDU_DBG_SOCK_CONNECT;
+#endif /* MPL_USE_DBG_LOGGING */
+
 /* FIXME: The usual missing documentation (what are these routines for?
    preconditions?  who calls? post conditions? */
 #undef FUNCNAME
@@ -13,13 +17,17 @@
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDU_Sock_init(void)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_INIT);
+
+#if defined (MPL_USE_DBG_LOGGING)
+    MPIDU_DBG_SOCK_CONNECT = MPL_dbg_class_alloc("SOCK_CONNECT", "sock_connect");
+#endif
 
     MPIDU_Socki_initialized++;
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
     return MPI_SUCCESS;
 }
 
@@ -31,11 +39,11 @@ int MPIDU_Sock_init(void)
 int MPIDU_Sock_finalize(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_FINALIZE);
 
     MPIDU_SOCKI_VERIFY_INIT(mpi_errno, fn_exit);
     
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_FINALIZE);
 
     MPIDU_Socki_initialized--;
 
@@ -47,6 +55,6 @@ int MPIDU_Sock_finalize(void)
 #ifdef USE_SOCK_VERIFY
   fn_exit:
 #endif
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_FINALIZE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_FINALIZE);
     return mpi_errno;
 }

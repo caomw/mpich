@@ -66,11 +66,11 @@ _dt_contig_out, _data_sz_out, _dt_ptr, _dt_true_lb)             \
         (_dt_contig_out) = TRUE;                                \
         (_dt_true_lb)    = 0;                                   \
         (_data_sz_out)   = (_count) *                           \
-        MPID_Datatype_get_basic_size(_datatype);                \
+        MPIDU_Datatype_get_basic_size(_datatype);                \
     }                                                           \
   else                                                          \
     {                                                           \
-        MPID_Datatype_get_ptr((_datatype), (_dt_ptr));          \
+        MPIDU_Datatype_get_ptr((_datatype), (_dt_ptr));          \
         (_dt_contig_out) = (_dt_ptr)->is_contig;                \
         (_dt_true_lb)    = (_dt_ptr)->true_lb;                  \
         (_data_sz_out)   = (_count) * (_dt_ptr)->size;          \
@@ -86,12 +86,12 @@ _data_sz_out)                                                   \
   if (HANDLE_GET_KIND(_datatype) == HANDLE_KIND_BUILTIN)        \
     {                                                           \
         (_data_sz_out)   = (_count) *                           \
-        MPID_Datatype_get_basic_size(_datatype);                \
+        MPIDU_Datatype_get_basic_size(_datatype);                \
     }                                                           \
   else                                                          \
     {                                                           \
-        MPID_Datatype *_dt_ptr;                                 \
-        MPID_Datatype_get_ptr((_datatype), (_dt_ptr));          \
+        MPIDU_Datatype*_dt_ptr;                                 \
+        MPIDU_Datatype_get_ptr((_datatype), (_dt_ptr));          \
         (_data_sz_out)   = (_count) * (_dt_ptr)->size;          \
     }                                                           \
 })
@@ -108,10 +108,10 @@ _data_sz_out)                                                   \
  * \param[in] type  The type of the memory, excluding "*"
  * \return Address or NULL
  */
-#define MPIU_Calloc0(count, type)               \
+#define MPL_calloc0(count, type)               \
 ({                                              \
   size_t __size = (count) * sizeof(type);       \
-  type* __p = MPIU_Malloc(__size);              \
+  type* __p = MPL_malloc(__size);              \
   MPID_assert(__p != NULL);                     \
   if (__p != NULL)                              \
     memset(__p, 0, __size);                     \
@@ -122,7 +122,7 @@ _data_sz_out)                                                   \
 ({                                              \
   if (*(p) != NULL)                             \
     {                                           \
-      MPIU_Free(*(p));                          \
+      MPL_free(*(p));                          \
       *(p) = NULL;                              \
     }                                           \
 })
@@ -136,12 +136,12 @@ _data_sz_out)                                                   \
 #define MPID_VCR_GET_LPIDS(comm, taskids)                      \
 ({                                                             \
   int i;                                                       \
-  taskids=MPIU_Malloc((comm->local_size)*sizeof(pami_task_t)); \
+  taskids=MPL_malloc((comm->local_size)*sizeof(pami_task_t)); \
   MPID_assert(taskids != NULL);                                \
   for(i=0; i<comm->local_size; i++)                            \
     taskids[i] = comm->vcr[i]->taskid;                         \
 })
-#define MPID_VCR_FREE_LPIDS(taskids) MPIU_Free(taskids)
+#define MPID_VCR_FREE_LPIDS(taskids) MPL_free(taskids)
 
 #define MPID_GPID_Get(comm_ptr, rank, gpid)             \
 ({                                                      \
@@ -157,7 +157,7 @@ MPIDI_Context_post(pami_context_t       context,
                    pami_work_function   fn,
                    void               * cookie)
 {
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
   /* It is possible that a work function posted to a context may attempt to
    * initiate a communication operation and, if context post were disabled, that
    * operation would be performed directly on the context BY TAKING A LOCK that
@@ -176,7 +176,7 @@ MPIDI_Context_post(pami_context_t       context,
   pami_result_t rc;
   rc = PAMI_Context_post(context, work, fn, cookie);
   MPID_assert(rc == PAMI_SUCCESS);
-#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY_PER_OBJECT) */
+#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY__POBJ) */
   /*
    * It is not necessary to lock the context before access in the "global"
    * mpich lock mode because all threads, application and async progress,
@@ -186,7 +186,7 @@ MPIDI_Context_post(pami_context_t       context,
 #endif
 }
 
-#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT)
+#if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ)
 #define MPIDI_Send_post(__func, __req)                          \
 ({                                                              \
   pami_context_t context = MPIDI_Context_local(__req);          \
@@ -207,11 +207,11 @@ MPIDI_Context_post(pami_context_t       context,
       PAMI_Context_unlock(context);                             \
     }                                                           \
 })
-#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY_PER_OBJECT) */
+#else /* (MPICH_THREAD_GRANULARITY != MPICH_THREAD_GRANULARITY__POBJ) */
 #define MPIDI_Send_post(__func, __req)                          \
 ({                                                              \
   __func(MPIDI_Context[0], __req);                              \
 })
-#endif /* #if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT) */
+#endif /* #if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ) */
 
 #endif

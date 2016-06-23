@@ -89,22 +89,22 @@ int MPI_Type_hindexed(int count,
     static const char FCNAME[] = "MPI_Type_hindexed";
     int mpi_errno = MPI_SUCCESS;
     MPI_Datatype new_handle;
-    MPID_Datatype *new_dtp;
+    MPIR_Datatype *new_dtp;
     int i, *ints;
-    MPIU_CHKLMEM_DECL(1);
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_HINDEXED);
+    MPIR_CHKLMEM_DECL(1);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_HINDEXED);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_HINDEXED);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_HINDEXED);
 
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
 	    int j;
-	    MPID_Datatype *datatype_ptr = NULL;
+	    MPIR_Datatype *datatype_ptr = NULL;
 
 	    MPIR_ERRTEST_COUNT(count, mpi_errno);
 	    MPIR_ERRTEST_DATATYPE(oldtype, "datatype", mpi_errno);
@@ -115,7 +115,7 @@ int MPI_Type_hindexed(int count,
 
             if (HANDLE_GET_KIND(oldtype) != HANDLE_KIND_BUILTIN) {
                 MPID_Datatype_get_ptr( oldtype, datatype_ptr );
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
             }
             /* verify that all blocklengths are >= 0 */
@@ -139,7 +139,7 @@ int MPI_Type_hindexed(int count,
 				  &new_handle);
     if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
-    MPIU_CHKLMEM_MALLOC(ints, int *, (count + 1) * sizeof(int), mpi_errno, "contents integer array");
+    MPIR_CHKLMEM_MALLOC(ints, int *, (count + 1) * sizeof(int), mpi_errno, "contents integer array");
 
     /* copy ints into temporary buffer (count and blocklengths) */
     ints[0] = count;
@@ -159,12 +159,12 @@ int MPI_Type_hindexed(int count,
 				           &oldtype);
     if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
-    MPID_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPIU_CHKLMEM_FREEALL();
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_HINDEXED);
+    MPIR_CHKLMEM_FREEALL();
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_HINDEXED);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

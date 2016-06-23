@@ -29,10 +29,11 @@
 
 #include "mpl.h"
 
+#include "pmi.h"
 #include "simple_pmiutil.h"
 
 /* Use the memory definitions from mpich/src/include */
-#include "mpimem.h"
+#include "mpir_mem.h"
 
 #define MAXVALLEN 1024
 #define MAXKEYLEN   32
@@ -58,7 +59,7 @@ void PMIU_Set_rank( int PMI_rank )
 }
 void PMIU_SetServer( void )
 {
-    MPIU_Strncpy( PMIU_print_id, "server", PMIU_IDSIZE );
+    MPL_strncpy( PMIU_print_id, "server", PMIU_IDSIZE );
 }
 
 /* Note that vfprintf is part of C89 */
@@ -126,7 +127,7 @@ int PMIU_readline( int fd, char *buf, int maxlen )
        replacement version in src/pm/util/pmiserv.c) */
     if (nextChar != lastChar && fd != lastfd) {
 	MPL_internal_error_printf( "Panic - buffer inconsistent\n" );
-	return -1;
+	return PMI_FAIL;
     }
 
     p      = buf;
@@ -192,12 +193,12 @@ int PMIU_writeline( int fd, char *buf )
 	if ( n < 0 ) {
 	    PMIU_printf( 1, "write_line error; fd=%d buf=:%s:\n", fd, buf );
 	    perror("system msg for write_line failure ");
-	    return(-1);
+	    return PMI_FAIL;
 	}
 	if ( n < size)
 	    PMIU_printf( 1, "write_line failed to write entire message\n" );
     }
-    return 0;
+    return PMI_SUCCESS;
 }
 
 /*
@@ -210,7 +211,7 @@ int PMIU_parse_keyvals( char *st )
     int  offset;
 
     if ( !st )
-	return( -1 );
+	return PMI_FAIL;
 
     PMIU_keyval_tab_idx = 0;
     p = st;
@@ -221,10 +222,10 @@ int PMIU_parse_keyvals( char *st )
 	if ( *p == '=' ) {
 	    PMIU_printf( 1, "PMIU_parse_keyvals:  unexpected = at character %d in %s\n",
 		       p - st, st );
-	    return( -1 );
+	    return PMI_FAIL;
 	}
 	if ( *p == '\n' || *p == '\0' )
-	    return( 0 );	/* normal exit */
+	    return PMI_SUCCESS;	/* normal exit */
 	/* got normal character */
 	keystart = p;		/* remember where key started */
 	while ( *p != ' ' && *p != '=' && *p != '\n' && *p != '\0' )
@@ -233,19 +234,19 @@ int PMIU_parse_keyvals( char *st )
 	    PMIU_printf( 1,
        "PMIU_parse_keyvals: unexpected key delimiter at character %d in %s\n",
 		       p - st, st );
-	    return( -1 );
+	    return PMI_FAIL;
 	}
 	/* Null terminate the key */
 	*p = 0;
 	/* store key */
-        MPIU_Strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].key, keystart, 
+        MPL_strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].key, keystart, 
 		      MAXKEYLEN );
 
 	valstart = ++p;			/* start of value */
 	while ( *p != ' ' && *p != '\n' && *p != '\0' )
 	    p++;
 	/* store value */
-        MPIU_Strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].value, valstart, 
+        MPL_strncpy( PMIU_keyval_tab[PMIU_keyval_tab_idx].value, valstart, 
 		      MAXVALLEN );
 	offset = (int)(p - valstart);
 	/* When compiled with -fPIC, the pgcc compiler generates incorrect
@@ -256,7 +257,7 @@ int PMIU_parse_keyvals( char *st )
 	if ( *p == ' ' )
 	    continue;
 	if ( *p == '\n' || *p == '\0' )
-	    return( 0 );	/* value has been set to empty */
+	    return PMI_SUCCESS;	/* value has been set to empty */
     }
 }
 
@@ -273,9 +274,9 @@ char *PMIU_getval( const char *keystr, char *valstr, int vallen )
     
     for (i = 0; i < PMIU_keyval_tab_idx; i++) {
 	if ( strcmp( keystr, PMIU_keyval_tab[i].key ) == 0 ) { 
-	    rc = MPIU_Strncpy( valstr, PMIU_keyval_tab[i].value, vallen );
+	    rc = MPL_strncpy( valstr, PMIU_keyval_tab[i].value, vallen );
 	    if (rc != 0) {
-		PMIU_printf( 1, "MPIU_Strncpy failed in PMIU_getval\n" );
+		PMIU_printf( 1, "MPL_strncpy failed in PMIU_getval\n" );
 		return NULL;
 	    }
 	    return valstr;
@@ -291,7 +292,7 @@ void PMIU_chgval( const char *keystr, char *valstr )
     
     for ( i = 0; i < PMIU_keyval_tab_idx; i++ ) {
 	if ( strcmp( keystr, PMIU_keyval_tab[i].key ) == 0 ) {
-	    MPIU_Strncpy( PMIU_keyval_tab[i].value, valstr, MAXVALLEN - 1 );
+	    MPL_strncpy( PMIU_keyval_tab[i].value, valstr, MAXVALLEN - 1 );
 	    PMIU_keyval_tab[i].value[MAXVALLEN - 1] = '\0';
 	}
     }

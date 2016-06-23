@@ -78,13 +78,13 @@ int MPI_Compare_and_swap(const void *origin_addr, const void *compare_addr,
 {
     static const char FCNAME[] = "MPI_Compare_and_swap";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Win *win_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMPARE_AND_SWAP);
+    MPIR_Win *win_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMPARE_AND_SWAP);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_RMA_FUNC_ENTER(MPID_STATE_MPI_COMPARE_AND_SWAP);
+    MPIR_FUNC_TERSE_RMA_ENTER(MPID_STATE_MPI_COMPARE_AND_SWAP);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -98,17 +98,17 @@ int MPI_Compare_and_swap(const void *origin_addr, const void *compare_addr,
 #   endif /* HAVE_ERROR_CHECKING */
     
     /* Convert MPI object handles to object pointers */
-    MPID_Win_get_ptr( win, win_ptr );
+    MPIR_Win_get_ptr( win, win_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Comm *comm_ptr;
+            MPIR_Comm *comm_ptr;
             
             /* Validate win_ptr */
-            MPID_Win_valid_ptr( win_ptr, mpi_errno );
+            MPIR_Win_valid_ptr( win_ptr, mpi_errno );
             if (mpi_errno) goto fn_fail;
 
             MPIR_ERRTEST_ARGNULL(origin_addr, "origin_addr", mpi_errno);
@@ -142,7 +142,7 @@ int MPI_Compare_and_swap(const void *origin_addr, const void *compare_addr,
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_RMA_FUNC_EXIT(MPID_STATE_MPI_COMPARE_AND_SWAP);
+    MPIR_FUNC_TERSE_RMA_EXIT(MPID_STATE_MPI_COMPARE_AND_SWAP);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

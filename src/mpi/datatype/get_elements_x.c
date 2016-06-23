@@ -76,7 +76,7 @@ PMPI_LOCAL MPI_Count MPIR_Type_get_basic_type_elements(MPI_Count *bytes_p,
         usable_bytes = *bytes_p;
     }
     else {
-        usable_bytes = MPIR_MIN(*bytes_p,
+        usable_bytes = MPL_MIN(*bytes_p,
                            count * MPID_Datatype_get_basic_size(datatype));
     }
 
@@ -159,7 +159,7 @@ PMPI_LOCAL MPI_Count MPIR_Type_get_elements(MPI_Count *bytes_p,
                                             MPI_Count count,
                                             MPI_Datatype datatype)
 {
-    MPID_Datatype *datatype_ptr = NULL;
+    MPIR_Datatype *datatype_ptr = NULL;
 
     MPID_Datatype_get_ptr(datatype, datatype_ptr); /* invalid if builtin */
 
@@ -253,7 +253,7 @@ PMPI_LOCAL MPI_Count MPIR_Type_get_elements(MPI_Count *bytes_p,
                                                                   types[i]);
                         nr_elements += last_nr_elements;
 
-                        MPIU_Assert(last_nr_elements >= 0);
+                        MPIR_Assert(last_nr_elements >= 0);
 
                         if (last_nr_elements < ints[i+1]) break;
                     }
@@ -267,7 +267,7 @@ PMPI_LOCAL MPI_Count MPIR_Type_get_elements(MPI_Count *bytes_p,
             case MPI_COMBINER_F90_INTEGER:
             default:
                 /* --BEGIN ERROR HANDLING-- */
-                MPIU_Assert(0);
+                MPIR_Assert(0);
                 return -1;
                 break;
                 /* --END ERROR HANDLING-- */
@@ -282,7 +282,7 @@ PMPI_LOCAL MPI_Count MPIR_Type_get_elements(MPI_Count *bytes_p,
 int MPIR_Get_elements_x_impl(const MPI_Status *status, MPI_Datatype datatype, MPI_Count *elements)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Datatype *datatype_ptr = NULL;
+    MPIR_Datatype *datatype_ptr = NULL;
     MPI_Count byte_count;
 
     if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
@@ -323,7 +323,7 @@ int MPIR_Get_elements_x_impl(const MPI_Status *status, MPI_Datatype datatype, MP
                                                               -1,
                                                               datatype);
         }
-        MPIU_Assert(byte_count >= 0);
+        MPIR_Assert(byte_count >= 0);
     }
     else if (datatype_ptr->size == 0) {
         if (MPIR_STATUS_GET_COUNT(*status) > 0) {
@@ -343,7 +343,7 @@ int MPIR_Get_elements_x_impl(const MPI_Status *status, MPI_Datatype datatype, MP
         }
     }
     else /* derived type with weird element type or weird size */ {
-        MPIU_Assert(datatype_ptr->builtin_element_size == -1);
+        MPIR_Assert(datatype_ptr->builtin_element_size == -1);
 
         byte_count = MPIR_STATUS_GET_COUNT(*status);
         *elements = MPIR_Type_get_elements(&byte_count, -1, datatype);
@@ -384,10 +384,10 @@ Output Parameters:
 int MPI_Get_elements_x(const MPI_Status *status, MPI_Datatype datatype, MPI_Count *count)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_GET_ELEMENTS_X);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_GET_ELEMENTS_X);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_GET_ELEMENTS_X);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_GET_ELEMENTS_X);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -411,9 +411,9 @@ int MPI_Get_elements_x(const MPI_Status *status, MPI_Datatype datatype, MPI_Coun
         MPID_BEGIN_ERROR_CHECKS
         {
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *datatype_ptr = NULL;
+                MPIR_Datatype *datatype_ptr = NULL;
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
             }
 
@@ -432,7 +432,7 @@ int MPI_Get_elements_x(const MPI_Status *status, MPI_Datatype datatype, MPI_Coun
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_GET_ELEMENTS_X);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_GET_ELEMENTS_X);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

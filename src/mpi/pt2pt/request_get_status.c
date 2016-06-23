@@ -57,13 +57,13 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
 {
     static const char FCNAME[] = "MPI_Request_get_status";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *request_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_REQUEST_GET_STATUS);
+    MPIR_Request *request_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_REQUEST_GET_STATUS);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_REQUEST_GET_STATUS);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_REQUEST_GET_STATUS);
 
     /* Check the arguments */
 #   ifdef HAVE_ERROR_CHECKING
@@ -90,7 +90,7 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
     }
 
     /* Convert MPI object handles to object pointers */
-    MPID_Request_get_ptr( request, request_ptr );
+    MPIR_Request_get_ptr( request, request_ptr );
 
     /* Validate parameters if error checking is enabled */
 #   ifdef HAVE_ERROR_CHECKING
@@ -98,7 +98,7 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
         MPID_BEGIN_ERROR_CHECKS;
         {
 	    /* Validate request_ptr */
-            MPID_Request_valid_ptr( request_ptr, mpi_errno );
+            MPIR_Request_valid_ptr( request_ptr, mpi_errno );
             if (mpi_errno) goto fn_fail;
         }
         MPID_END_ERROR_CHECKS;
@@ -107,17 +107,17 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
 
     /* ... body of routine ...  */
 
-    if (!MPID_Request_is_complete(request_ptr)) {
+    if (!MPIR_Request_is_complete(request_ptr)) {
 	/* request not complete. poke the progress engine. Req #3130 */
 	mpi_errno = MPID_Progress_test();
 	if (mpi_errno != MPI_SUCCESS) goto fn_fail;
     }
     
-    if (MPID_Request_is_complete(request_ptr))
+    if (MPIR_Request_is_complete(request_ptr))
     {
 	switch(request_ptr->kind)
 	{
-        case MPID_REQUEST_SEND:
+        case MPIR_REQUEST_KIND__SEND:
         {
             if (status != MPI_STATUS_IGNORE)
             {
@@ -127,20 +127,20 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
             break;
         }
         
-        case MPID_REQUEST_RECV:
+        case MPIR_REQUEST_KIND__RECV:
         {
             MPIR_Request_extract_status(request_ptr, status);
             mpi_errno = request_ptr->status.MPI_ERROR;
             break;
         }
         
-        case MPID_PREQUEST_SEND:
+        case MPIR_REQUEST_KIND__PREQUEST_SEND:
         {
-            MPID_Request * prequest_ptr = request_ptr->partner_request;
+            MPIR_Request * prequest_ptr = request_ptr->u.persist.real_request;
             
             if (prequest_ptr != NULL)
             {
-		if (prequest_ptr->kind != MPID_UREQUEST)
+		if (prequest_ptr->kind != MPIR_REQUEST_KIND__GREQUEST)
 		{
 		    if (status != MPI_STATUS_IGNORE)
 		    {
@@ -189,9 +189,9 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
             break;
         }
         
-        case MPID_PREQUEST_RECV:
+        case MPIR_REQUEST_KIND__PREQUEST_RECV:
         {
-            MPID_Request * prequest_ptr = request_ptr->partner_request;
+            MPIR_Request * prequest_ptr = request_ptr->u.persist.real_request;
             
             if (prequest_ptr != NULL)
             {
@@ -209,7 +209,7 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
             break;
         }
 
-        case MPID_UREQUEST:
+        case MPIR_REQUEST_KIND__GREQUEST:
         {
             int rc;
             
@@ -245,7 +245,7 @@ int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_REQUEST_GET_STATUS);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_REQUEST_GET_STATUS);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

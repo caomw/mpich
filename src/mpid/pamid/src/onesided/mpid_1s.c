@@ -43,9 +43,9 @@ MPIDI_Win_DoneCB(pami_context_t  context,
                                      req->origin.count,
                                      req->origin.datatype);
           MPID_assert(mpi_errno == MPI_SUCCESS);
-          MPID_Datatype_release(req->origin.dt.pointer);
-          MPIU_Free(req->buffer);
-          MPIU_Free(req->user_buffer);
+          MPIDU_Datatype_release(req->origin.dt.pointer);
+          MPL_free(req->buffer);
+          MPL_free(req->user_buffer);
           req->buffer_free = 0;
         }
     }
@@ -55,19 +55,19 @@ MPIDI_Win_DoneCB(pami_context_t  context,
         ((req->type >= MPIDI_WIN_REQUEST_COMPARE_AND_SWAP) && 
          (req->origin.completed == req->origin.dt.num_contig)))
     {
-      MPID_Request * req_handle = req->req_handle;
+      MPIR_Request * req_handle = req->req_handle;
 
       if (req->buffer_free) {
-          MPIU_Free(req->buffer);
-          MPIU_Free(req->user_buffer);
+          MPL_free(req->buffer);
+          MPL_free(req->user_buffer);
           req->buffer_free = 0;
       }
       MPIDI_Win_datatype_unmap(&req->target.dt);
       if (req->accum_headers)
-          MPIU_Free(req->accum_headers);
+          MPL_free(req->accum_headers);
 
       if (!((req->type > MPIDI_WIN_REQUEST_GET_ACCUMULATE) && (req->type <=MPIDI_WIN_REQUEST_RGET_ACCUMULATE)))
-          MPIU_Free(req);
+          MPL_free(req);
 
       if(req_handle) {
 
@@ -77,19 +77,19 @@ MPIDI_Win_DoneCB(pami_context_t  context,
            * portion of the request structure after decrementing the completion
            * counter.
            *
-           * See MPID_Request_release_inline()
+           * See MPID_Request_free_inline()
            */
-          MPID_cc_set(req_handle->cc_ptr, 0);
+          MPIR_cc_set(req_handle->cc_ptr, 0);
       }
     }
   if ((MPIDI_Process.typed_onesided == 1) && (!req->target.dt.contig || !req->origin.dt.contig)) {
     /* We used the PAMI_Rput/Rget_typed call and added a ref so any MPI_Type_free before the context
-     * executes the put/get would not free the MPID_Datatype, which would also free the associated PAMI datatype
+     * executes the put/get would not free the MPIDU_Datatype, which would also free the associated PAMI datatype
      * which was still needed for communication -- that communication has completed, so now release the ref
-     * in the callback to allow the MPID_Datatype to be freed.
+     * in the callback to allow the MPIDU_Datatypeto be freed.
      */
-    MPID_Datatype_release(req->origin.dt.pointer);
-    MPID_Datatype_release(req->target.dt.pointer);
+    MPIDU_Datatype_release(req->origin.dt.pointer);
+    MPIDU_Datatype_release(req->target.dt.pointer);
   }
   MPIDI_Progress_signal();
 }
@@ -125,13 +125,13 @@ MPIDI_Win_datatype_map(MPIDI_Datatype * dt)
     {
       unsigned map_size = dt->pointer->max_contig_blocks*dt->count + 1;
       dt->num_contig = map_size;
-      dt->map = (DLOOP_VECTOR*)MPIU_Malloc(map_size * sizeof(DLOOP_VECTOR));
+      dt->map = (DLOOP_VECTOR*)MPL_malloc(map_size * sizeof(DLOOP_VECTOR));
       MPID_assert(dt->map != NULL);
 
       DLOOP_Offset last = dt->pointer->size*dt->count;
-      MPID_Segment seg;
-      MPID_Segment_init(NULL, dt->count, dt->type, &seg, 0);
-      MPID_Segment_pack_vector(&seg, 0, &last, dt->map, &dt->num_contig);
+      MPIDU_Segment seg;
+      MPIDU_Segment_init(NULL, dt->count, dt->type, &seg, 0);
+      MPIDU_Segment_pack_vector(&seg, 0, &last, dt->map, &dt->num_contig);
       MPID_assert((unsigned)dt->num_contig <= map_size);
 #ifdef TRACE_ON
       TRACE_ERR("dt->pointer->size=%d  num_contig:  orig=%u  new=%d\n", dt->pointer->size, map_size, dt->num_contig);
@@ -147,5 +147,5 @@ void
 MPIDI_Win_datatype_unmap(MPIDI_Datatype * dt)
 {
   if (dt->map != &dt->__map)
-    MPIU_Free(dt->map);;
+    MPL_free(dt->map);;
 }

@@ -37,8 +37,8 @@ int MPIR_Type_struct_impl(int count, const int *array_of_blocklengths,
     int mpi_errno = MPI_SUCCESS;
     MPI_Datatype new_handle;
     int i, *ints;
-    MPID_Datatype *new_dtp;
-    MPIU_CHKLMEM_DECL(1);
+    MPIR_Datatype *new_dtp;
+    MPIR_CHKLMEM_DECL(1);
 
     mpi_errno = MPID_Type_struct(count,
 				 array_of_blocklengths,
@@ -48,7 +48,7 @@ int MPIR_Type_struct_impl(int count, const int *array_of_blocklengths,
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
 
-    MPIU_CHKLMEM_MALLOC(ints, int *, (count + 1) * sizeof(int), mpi_errno, "contents integer array");
+    MPIR_CHKLMEM_MALLOC(ints, int *, (count + 1) * sizeof(int), mpi_errno, "contents integer array");
 
     ints[0] = count;
     for (i=0; i < count; i++) {
@@ -67,10 +67,10 @@ int MPIR_Type_struct_impl(int count, const int *array_of_blocklengths,
     
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-    MPID_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
 
  fn_exit:
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -155,12 +155,12 @@ int MPI_Type_struct(int count,
 		    MPI_Datatype *newtype)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_STRUCT);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_STRUCT);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_STRUCT);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_STRUCT);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -168,7 +168,7 @@ int MPI_Type_struct(int count,
         MPID_BEGIN_ERROR_CHECKS;
         {
 	    int i;
-	    MPID_Datatype *datatype_ptr;
+	    MPIR_Datatype *datatype_ptr;
 
 	    MPIR_ERRTEST_COUNT(count,mpi_errno);
 	    if (count > 0) {
@@ -184,7 +184,7 @@ int MPI_Type_struct(int count,
                 if (array_of_types[i] != MPI_DATATYPE_NULL &&
                     HANDLE_GET_KIND(array_of_types[i]) != HANDLE_KIND_BUILTIN) {
                     MPID_Datatype_get_ptr(array_of_types[i], datatype_ptr);
-                    MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                    MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 }
 	    }
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -201,7 +201,7 @@ int MPI_Type_struct(int count,
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_STRUCT);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_STRUCT);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

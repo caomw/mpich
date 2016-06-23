@@ -13,11 +13,11 @@
 #include "mpl.h"   /* MPL_error_printf */
 
 #include "mpichconf.h" /* HAVE_SNPRINTF */
-#include "mpimem.h"    /* MPL_snprintf */
+#include "mpir_mem.h"    /* MPL_snprintf */
 
 #include "mpi.h"
 /*#define RLOG_timestamp PMPI_Wtime*/
-#include "mpiu_timer.h"
+
 static double RLOG_timestamp(void)
 {
     double d;
@@ -65,7 +65,7 @@ RLOG_Struct* RLOG_InitLog(int rank, int size)
 {
     RLOG_Struct* pRLOG;
 
-    pRLOG = (RLOG_Struct*)MPIU_Malloc(sizeof(RLOG_Struct));
+    pRLOG = (RLOG_Struct*)MPL_malloc(sizeof(RLOG_Struct));
     if (pRLOG == NULL)
 	return NULL;
 
@@ -81,7 +81,7 @@ RLOG_Struct* RLOG_InitLog(int rank, int size)
     if (pRLOG->pOutput == NULL)
     {
 	MPL_error_printf("RLOG Error: unable to allocate an output structure.\n");
-	MPIU_Free(pRLOG);
+	MPL_free(pRLOG);
 	return NULL;
     }
 
@@ -407,11 +407,11 @@ void RLOG_DescribeState(RLOG_Struct* pRLOG, int state, char *name, char *color)
     pHeader->length = sizeof(RLOG_HEADER) + sizeof(RLOG_STATE);
 
     pState->event = state;
-    MPIU_Strncpy(pState->color, (color != NULL) ? color : get_random_color_str(), RLOG_COLOR_LENGTH);
+    MPL_strncpy(pState->color, (color != NULL) ? color : get_random_color_str(), RLOG_COLOR_LENGTH);
     pState->color[RLOG_COLOR_LENGTH-1] = '\0';
     if (name)
     {
-	MPIU_Strncpy(pState->description, name, RLOG_DESCRIPTION_LENGTH);
+	MPL_strncpy(pState->description, name, RLOG_DESCRIPTION_LENGTH);
 	pState->description[RLOG_DESCRIPTION_LENGTH-1] = '\0';
     }
     else

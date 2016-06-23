@@ -52,7 +52,7 @@ struct PREPEND_PREFIX(mpi_flatten_params) {
     MPI_Aint *disps;
 };
 
-/* MPID_Segment_mpi_flatten - flatten a type into a representation
+/* MPIDU_Segment_mpi_flatten - flatten a type into a representation
  *                            appropriate for passing to hindexed create.
  *
  * NOTE: blocks will be in units of bytes when returned.
@@ -96,7 +96,7 @@ void PREPEND_PREFIX(Segment_mpi_flatten)(DLOOP_Segment *segp,
 				       NULL,
 				       &params);
 
-    /* last value already handled by MPID_Segment_manipulate */
+    /* last value already handled by MPIDU_Segment_manipulate */
     *lengthp = params.index;
     return;
 }
@@ -236,9 +236,9 @@ static int DLOOP_Leaf_vector_mpi_flatten(DLOOP_Offset *blocks_p,
 	     */
 	    *blocks_p -= (blocks_left + (size / el_size));
 #ifdef MPID_SP_VERBOSE
-	    MPIU_dbg_printf("\t[vector to vec exiting (1): next ind = %d, " DLOOP_OFFSET_FMT_DEC_SPEC " blocks processed.\n",
+	    MPL_DBG_MSG_FMT(MPIR_DBG_DATATYPE,VERBOSE,(MPL_DBG_FDEST,"\t[vector to vec exiting (1): next ind = %d, " DLOOP_OFFSET_FMT_DEC_SPEC " blocks processed.\n",
 			    paramp->u.pack_vector.index,
-			    *blocks_p);
+                            *blocks_p));
 #endif
 	    return 1;
 	}
@@ -261,9 +261,9 @@ static int DLOOP_Leaf_vector_mpi_flatten(DLOOP_Offset *blocks_p,
     }
 
 #ifdef MPID_SP_VERBOSE
-    MPIU_dbg_printf("\t[vector to vec exiting (2): next ind = %d, " DLOOP_OFFSET_FMT_DEC_SPEC " blocks processed.\n",
+    MPL_DBG_MSG_FMT(MPIR_DBG_DATATYPE,VERBOSE,(MPL_DBG_FDEST,"\t[vector to vec exiting (2): next ind = %d, " DLOOP_OFFSET_FMT_DEC_SPEC " blocks processed.\n",
 		    paramp->u.pack_vector.index,
-		    *blocks_p);
+                    *blocks_p));
 #endif
 
     /* if we get here then we processed ALL the blocks; don't need to update

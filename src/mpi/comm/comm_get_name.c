@@ -25,10 +25,10 @@ int MPI_Comm_get_name(MPI_Comm comm, char *comm_name, int *resultlen) __attribut
 #undef MPI_Comm_get_name
 #define MPI_Comm_get_name PMPI_Comm_get_name
 
-void MPIR_Comm_get_name_impl(MPID_Comm *comm_ptr, char *comm_name, int *resultlen)
+void MPIR_Comm_get_name_impl(MPIR_Comm *comm_ptr, char *comm_name, int *resultlen)
 {
     /* The user must allocate a large enough section of memory */
-    MPIU_Strncpy(comm_name, comm_ptr->name, MPI_MAX_OBJECT_NAME);
+    MPL_strncpy(comm_name, comm_ptr->name, MPI_MAX_OBJECT_NAME);
     *resultlen = (int)strlen(comm_name);
     return;
 }
@@ -66,12 +66,12 @@ Output Parameters:
 int MPI_Comm_get_name(MPI_Comm comm, char *comm_name, int *resultlen)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_GET_NAME);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_GET_NAME);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_GET_NAME);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_GET_NAME);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -85,14 +85,14 @@ int MPI_Comm_get_name(MPI_Comm comm, char *comm_name, int *resultlen)
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Validate parameters and objects (post conversion) */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
     
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPID_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
+	    MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
             if (mpi_errno) goto fn_fail;
 
 	    /* If comm_ptr is not valid, it will be reset to null */
@@ -112,7 +112,7 @@ int MPI_Comm_get_name(MPI_Comm comm, char *comm_name, int *resultlen)
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_GET_NAME);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_GET_NAME);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

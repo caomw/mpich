@@ -30,10 +30,10 @@ int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) __attribute__((weak,alias("PM
 #define FUNCNAME MPIR_Comm_dup_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Comm_dup_impl(MPID_Comm *comm_ptr, MPID_Comm **newcomm_ptr)
+int MPIR_Comm_dup_impl(MPIR_Comm *comm_ptr, MPIR_Comm **newcomm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Attribute *new_attributes = 0;
+    MPIR_Attribute *new_attributes = 0;
 
     /* Copy attributes, executing the attribute copy functions */
     /* This accesses the attribute dup function through the perprocess
@@ -53,7 +53,7 @@ int MPIR_Comm_dup_impl(MPID_Comm *comm_ptr, MPID_Comm **newcomm_ptr)
     /* We must use the local size, because this is compared to the
        rank of the process in the communicator.  For intercomms,
        this must be the local size */
-    mpi_errno = MPIR_Comm_copy( comm_ptr, comm_ptr->local_size, newcomm_ptr );
+    mpi_errno = MPII_Comm_copy( comm_ptr, comm_ptr->local_size, newcomm_ptr );
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
     (*newcomm_ptr)->attributes = new_attributes;
@@ -119,13 +119,13 @@ Notes:
 int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL, *newcomm_ptr;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_DUP);
+    MPIR_Comm *comm_ptr = NULL, *newcomm_ptr;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_DUP);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_DUP);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_DUP);
     
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -139,7 +139,7 @@ int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
     
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -147,7 +147,7 @@ int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno) goto fn_fail;
 	    /* If comm_ptr is not valid, it will be reset to null */
             MPIR_ERRTEST_ARGNULL(newcomm, "newcomm", mpi_errno);
@@ -161,11 +161,11 @@ int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
     mpi_errno = MPIR_Comm_dup_impl(comm_ptr, &newcomm_ptr);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-    MPID_OBJ_PUBLISH_HANDLE(*newcomm, newcomm_ptr->handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*newcomm, newcomm_ptr->handle);
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_DUP);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_DUP);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
     

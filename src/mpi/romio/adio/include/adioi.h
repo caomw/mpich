@@ -47,6 +47,7 @@ struct ADIOI_Hints_struct {
     int ind_rd_buffer_size;
     int ind_wr_buffer_size;
     int deferred_open;
+    int start_iodevice;
     int min_fdomain_size;
     char *cb_config_list;
     int *ranklist;
@@ -65,7 +66,6 @@ struct ADIOI_Hints_struct {
 		    int dtype_write;
 	    } pvfs2;
             struct {
-                    int start_iodevice;
                     int co_ratio;
                     int coll_threshold;
                     int ds_in_coll;
@@ -124,7 +124,9 @@ typedef struct ADIOI_Fl_node {
      * (-1 indicates "not explicitly set") */
     ADIO_Offset lb_idx;
     ADIO_Offset ub_idx;
-    struct ADIOI_Fl_node *next;  /* pointer to next node */
+    int refct;                   /* when storing flattened representation on a
+				    type, attribute copy and delete routines
+				    will manage refct */
 } ADIOI_Flatlist_node;
 
 #ifdef ROMIO_PVFS2
@@ -144,12 +146,6 @@ typedef struct ADIOI_AIO_req_str {
 	PVFS_sysresp_io resp_io;
 	PVFS_Request file_req;
 	PVFS_Request mem_req;
-#endif
-#ifdef ROMIO_NTFS
-    /* Ptr to Overlapped struct */
-    LPOVERLAPPED    lpOvl;
-    /* Ptr to file handle */
-	HANDLE fd;
 #endif
 } ADIOI_AIO_Request;
 
@@ -218,12 +214,6 @@ struct ADIOI_Fns_struct {
 /* optypes for ADIO_RequestD */
 #define ADIOI_READ                26
 #define ADIOI_WRITE               27
-
-#define ADIOI_MIN(a, b) ((a) < (b) ? (a) : (b))
-#define ADIOI_MAX(a, b) ((a) > (b) ? (a) : (b))
-/* thanks stackoverflow:
- * http://stackoverflow.com/questions/3982348/implement-generic-swap-macro-in-c */
-#define ADIOI_SWAP(x, y, T) do { T temp##x##y = x; x = y; y = temp##x##y; } while (0);
 
 #define ADIOI_PREALLOC_BUFSZ      16777216    /* buffer size used to 
                                                 preallocate disk space */
@@ -347,10 +337,15 @@ typedef struct {
 /* prototypes for ADIO internal functions */
 
 void ADIOI_SetFunctions(ADIO_File fd);
-void ADIOI_Flatten_datatype(MPI_Datatype type);
+ADIOI_Flatlist_node * ADIOI_Flatten_datatype(MPI_Datatype type);
 void ADIOI_Flatten(MPI_Datatype type, ADIOI_Flatlist_node *flat,
 		  ADIO_Offset st_offset, MPI_Count *curr_index);
-void ADIOI_Delete_flattened(MPI_Datatype datatype);
+/* callbakcs for attribute-style flattened tracking */
+int ADIOI_Flattened_type_copy(MPI_Datatype oldtype,
+	int type_keyval, void *extra_state, void *attribute_val_in,
+	void *attribute_val_out, int *flag);
+int ADIOI_Flattened_type_delete(MPI_Datatype datatype,
+	int type_keyval, void *attribute_val, void *extra_state);
 ADIOI_Flatlist_node * ADIOI_Flatten_and_find(MPI_Datatype);
 MPI_Count ADIOI_Count_contiguous_blocks(MPI_Datatype type, MPI_Count *curr_index);
 void ADIOI_Complete_async(int *error_code);
@@ -730,7 +725,6 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 void ADIOI_GEN_Close(ADIO_File fd, int *error_code);
 void ADIOI_Shfp_fname(ADIO_File fd, int rank, int *error_code);
 void ADIOI_GEN_Prealloc(ADIO_File fd, ADIO_Offset size, int *error_code);
-int ADIOI_Error(ADIO_File fd, int error_code, char *string);
 int MPIR_Err_setmsg( int, int, const char *, const char *, const char *, ... );
 int ADIOI_End_call(MPI_Comm comm, int keyval, void *attribute_val, void *extra_state);
 int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, MPI_Count nbytes);
@@ -858,7 +852,7 @@ int MPIOI_File_iread_all(MPI_File fh,
 
 /* Unix-style file locking */
 
-#if (defined(ROMIO_HFS) || defined(ROMIO_XFS))
+#if defined(ROMIO_XFS)
 
 # define ADIOI_WRITE_LOCK(fd, offset, whence, len) \
    do {if (((fd)->file_system == ADIO_XFS) || ((fd)->file_system == ADIO_HFS)) \
@@ -874,18 +868,6 @@ int MPIOI_File_iread_all(MPI_File fh,
    do {if (((fd)->file_system == ADIO_XFS) || ((fd)->file_system == ADIO_HFS)) \
      ADIOI_Set_lock64((fd)->fd_sys, F_SETLK64, F_UNLCK, offset, whence, len); \
    else ADIOI_Set_lock((fd)->fd_sys, F_SETLK, F_UNLCK, offset, whence, len); }while (0)
-
-#elif (defined(ROMIO_NTFS))
-
-#define ADIOI_LOCK_CMD		0
-#define ADIOI_UNLOCK_CMD	1
-
-#   define ADIOI_WRITE_LOCK(fd, offset, whence, len) \
-          ADIOI_Set_lock((fd)->fd_sys, ADIOI_LOCK_CMD, LOCKFILE_EXCLUSIVE_LOCK, offset, whence, len)
-#   define ADIOI_READ_LOCK(fd, offset, whence, len) \
-          ADIOI_Set_lock((fd)->fd_sys, ADIOI_LOCK_CMD, 0, offset, whence, len)
-#   define ADIOI_UNLOCK(fd, offset, whence, len) \
-          ADIOI_Set_lock((fd)->fd_sys, ADIOI_UNLOCK_CMD, LOCKFILE_FAIL_IMMEDIATELY, offset, whence, len)
 
 #else
 
@@ -922,7 +904,6 @@ int ADIOI_Set_lock64(FDTYPE fd_sys, int cmd, int type, ADIO_Offset offset, int w
 #define ADIOI_Free(a) ADIOI_Free_fn(a,__LINE__,__FILE__)
 
 int ADIOI_Strncpy( char *outstr, const char *instr, size_t maxlen );
-int ADIOI_Strnapp( char *, const char *, size_t );
 char *ADIOI_Strdup( const char * );
 
 /* the current MPI standard is not const-correct, and modern compilers warn
@@ -941,8 +922,10 @@ char *ADIOI_Strdup( const char * );
 #define ADIOI_Info_delete(info_,key_str_) \
     MPI_Info_delete((info_),((char*)key_str_))
 
+/* the I/O related support for MPI_Comm_split_type */
+int MPIR_Comm_split_filesystem(MPI_Comm comm, int key,
+	const char *dirname, MPI_Comm * newcomm);
 
-/* Provide a fallback snprintf for systems that do not have one */
 /* Define attribute as empty if it has no definition */
 #ifndef ATTRIBUTE
 #ifdef HAVE_GCC_ATTRIBUTE
@@ -951,19 +934,6 @@ char *ADIOI_Strdup( const char * );
 #define ATTRIBUTE(a)
 #endif
 #endif
-
-/* style: allow:snprintf:1 sig:0 */
-
-#ifdef HAVE_SNPRINTF
-#define ADIOI_Snprintf snprintf
-/* Sometimes systems don't provide prototypes for snprintf */
-#ifdef NEEDS_SNPRINTF_DECL
-extern int snprintf( char *, size_t, const char *, ... ) ATTRIBUTE((format(printf,3,4)));
-#endif
-#else
-int ADIOI_Snprintf( char *str, size_t size, const char *format, ... ) 
-     ATTRIBUTE((format(printf,3,4)));
-#endif /* HAVE_SNPRINTF */
 
 #define FPRINTF fprintf
 
@@ -1017,11 +987,11 @@ int  ADIOI_MPE_iwrite_b;
    (no loss of (meaningful) high order bytes in 8 byte MPI_Aint 
       to (possible) 4 byte ptr cast)                              */
 /* Should work even on 64bit or old 32bit configs                 */
-  /* Use MPIU_Ensure_Aint_fits_in_pointer from mpiutil.h and 
-         MPIU_AINT_CAST_TO_VOID_PTR from configure (mpi.h) */
-  #include "glue_romio.h"
+  /* Use MPIR_Ensure_Aint_fits_in_pointer and
+         MPIR_AINT_CAST_TO_VOID_PTR from configure (mpi.h) */
+  #include "mpir_ext.h"
 
-  #define ADIOI_AINT_CAST_TO_VOID_PTR (void*)(MPIU_Pint)
+  #define ADIOI_AINT_CAST_TO_VOID_PTR (void*)(intptr_t)
   /* The next two casts are only used when you don't want sign extension
      when casting a (possible 4 byte) aint to a (8 byte) long long or offset */
   #define ADIOI_AINT_CAST_TO_LONG_LONG (long long)
@@ -1036,11 +1006,9 @@ int  ADIOI_MPE_iwrite_b;
   #define ADIOI_AINT_CAST_TO_OFFSET ADIOI_AINT_CAST_TO_LONG_LONG
   #define ADIOI_ENSURE_AINT_FITS_IN_PTR(aint_value) 
   #define ADIOI_Assert assert
-  #define MPIU_Upint unsigned long
-  #define MPID_THREADPRIV_DECL
 #endif
 
-#ifdef USE_DBG_LOGGING    /*todo fix dependency on mpich?*/
+#ifdef MPL_USE_DBG_LOGGING    /*todo fix dependency on mpich?*/
 /* DBGT_FPRINTF terse level printing */
 #define DBGT_FPRINTF if (MPIR_Ext_dbg_romio_verbose_enabled) fprintf(stderr,"%s:%d:",__FILE__,__LINE__); \
 if (MPIR_Ext_dbg_romio_terse_enabled) fprintf
@@ -1064,7 +1032,7 @@ typedef struct wcThreadFuncData {
     char *buf;
     int size;
     ADIO_Offset offset;
-    ADIO_Status status;
+    ADIO_Status *status;
     int error_code;
 } ADIOI_IO_ThreadFuncData;
 
@@ -1086,5 +1054,7 @@ ssize_t pread(int fd, void *buf, size_t count, off_t offset);
 ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
 
 #endif
+
+#include "mpl.h"
 
 #endif  /* ADIOI_INCLUDE */

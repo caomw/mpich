@@ -48,9 +48,9 @@ int MPI_Finalized( int *flag )
     static const char FCNAME[] = "MPI_Finalized";
 #endif
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_FINALIZED);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_FINALIZED);
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_FINALIZED);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_FINALIZED);
 
 #   ifdef HAVE_ERROR_CHECKING
     {
@@ -69,21 +69,21 @@ int MPI_Finalized( int *flag )
 
     /* ... body of routine ...  */
     
-    *flag = (OPA_load_int(&MPIR_Process.mpich_state) >= MPICH_POST_FINALIZED);
+    *flag = (OPA_load_int(&MPIR_Process.mpich_state) >= MPICH_MPI_STATE__POST_FINALIZED);
     
     /* ... end of body of routine ... */
 
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_FINALIZED);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_FINALIZED);
     return mpi_errno;
     
     /* --BEGIN ERROR HANDLING-- */
 #   ifdef HAVE_ERROR_CHECKING
   fn_fail:
-    if (OPA_load_int(&MPIR_Process.mpich_state) == MPICH_IN_INIT ||
-        OPA_load_int(&MPIR_Process.mpich_state) == MPICH_POST_INIT)
+    if (OPA_load_int(&MPIR_Process.mpich_state) == MPICH_MPI_STATE__IN_INIT ||
+        OPA_load_int(&MPIR_Process.mpich_state) == MPICH_MPI_STATE__POST_INIT)
     {
 	{
 	    mpi_errno = MPIR_Err_create_code(

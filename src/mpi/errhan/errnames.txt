@@ -560,7 +560,7 @@ is too big (> MPIU_SHMW_GHND_SZ)
 #
 **MPIDI_CH3I_SHM_Attach_to_mem:MPIDI_CH3I_SHM_Attach_to_mem failed
 **MPIDI_CH3I_SHM_Attach_to_mem %d:MPIDI_CH3I_SHM_Attach_to_mem failed, error %d
-**MPIU_Strdup:MPIU_Strdup failed
+**MPL_strdup:MPL_strdup failed
 **business_card:Invalid business card
 **business_card %s:Invalid business card (%s)
 **OpenProcess:OpenProcess failed
@@ -839,8 +839,6 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mktemp_s %s:mktemp_s failed, %s
 **lseek:lseek failed
 **lseek %s:lseek failed - %s
-**fdopen:fdopen failed
-**fdopen %s:fdopen failed %s
 **tmpnam:tmpnam failed
 **tmpnam %s:tmpnam failed %s
 **fopen:fopen failed
@@ -1501,8 +1499,8 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpir_comm_get_attr %C %d %p %p:MPIR_Comm_get_attr(%C, comm_keyval=%d, attribute_val=%p, flag=%p) failed
 **mpir_type_get_attr:MPIR_Type_get_attr failed
 **mpir_type_get_attr %D %d %p %p:MPIR_Type_get_attr(%D, type_keyval=%d, attribute_val=%p, flag=%p) failed
-**mpir_wingetattr:MPIR_WinGetAttr failed
-**mpir_wingetattr %W %d %p %p:MPIR_WinGetAttr(%W, win_keyval=%d, attribute_val=%p, flag=%p) failed
+**mpir_wingetattr:MPII_Win_get_attr failed
+**mpir_wingetattr %W %d %p %p:MPII_Win_get_attr(%W, win_keyval=%d, attribute_val=%p, flag=%p) failed
 
 ## MPI-3 Mprobe routines
 **mpi_improbe: MPI_Improbe failed

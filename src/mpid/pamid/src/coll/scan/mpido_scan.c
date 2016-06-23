@@ -31,12 +31,12 @@ static void scan_cb_done(void *ctxt, void *clientdata, pami_result_t err)
 }
 int MPIDO_Doscan(const void *sendbuf, void *recvbuf, 
                int count, MPI_Datatype datatype,
-               MPI_Op op, MPID_Comm * comm_ptr, int *mpierrno, int exflag);
+               MPI_Op op, MPIR_Comm * comm_ptr, int *mpierrno, int exflag);
 
 
 int MPIDO_Scan(const void *sendbuf, void *recvbuf, 
                int count, MPI_Datatype datatype,
-               MPI_Op op, MPID_Comm * comm_ptr, int *mpierrno)
+               MPI_Op op, MPIR_Comm * comm_ptr, int *mpierrno)
 {
    return MPIDO_Doscan(sendbuf, recvbuf, count, datatype,
                 op, comm_ptr, mpierrno, 0);
@@ -44,13 +44,13 @@ int MPIDO_Scan(const void *sendbuf, void *recvbuf,
 
 int MPIDO_Iscan(const void *sendbuf, void *recvbuf,
                 int count, MPI_Datatype datatype,
-                MPI_Op op, MPID_Comm * comm_ptr, MPID_Request **request)
+                MPI_Op op, MPIR_Comm * comm_ptr, MPIR_Request **request)
 {
    /*if (unlikely((data_size == 0) || (user_selected_type == MPID_COLL_USE_MPICH)))*/
    {
       /*
        * If the mpich mpir non-blocking collectives are enabled, return without
-       * first constructing the MPID_Request. This signals to the
+       * first constructing the MPIR_Request. This signals to the
        * MPIR_Iscan_impl() function to invoke the mpich nbc
        * implementation of MPI_Iscan().
        */
@@ -70,11 +70,11 @@ int MPIDO_Iscan(const void *sendbuf, void *recvbuf,
 
       /*
        * The blocking scan has completed - create and complete a
-       * MPID_Request object so the MPIR_Iscan_impl() function
+       * MPIR_Request object so the MPIR_Iscan_impl() function
        * does not perform an additional iscan.
        */
-      MPID_Request * mpid_request = MPID_Request_create_inline();
-      mpid_request->kind = MPID_COLL_REQUEST;
+      MPIR_Request * mpid_request = MPID_Request_create_inline();
+      mpid_request->kind = MPIR_REQUEST_KIND__COLL;
       *request = mpid_request;
       MPIDI_Request_complete_norelease_inline(mpid_request);
 
@@ -86,7 +86,7 @@ int MPIDO_Iscan(const void *sendbuf, void *recvbuf,
    
 int MPIDO_Exscan(const void *sendbuf, void *recvbuf, 
                int count, MPI_Datatype datatype,
-               MPI_Op op, MPID_Comm * comm_ptr, int *mpierrno)
+               MPI_Op op, MPIR_Comm * comm_ptr, int *mpierrno)
 {
    return MPIDO_Doscan(sendbuf, recvbuf, count, datatype,
                 op, comm_ptr, mpierrno, 1);
@@ -94,7 +94,7 @@ int MPIDO_Exscan(const void *sendbuf, void *recvbuf,
 
 int MPIDO_Doscan(const void *sendbuf, void *recvbuf, 
                int count, MPI_Datatype datatype,
-               MPI_Op op, MPID_Comm * comm_ptr, int *mpierrno, int exflag)
+               MPI_Op op, MPIR_Comm * comm_ptr, int *mpierrno, int exflag)
 {
 #ifndef HAVE_PAMI_IN_PLACE
   if (sendbuf == MPI_IN_PLACE)
@@ -103,7 +103,7 @@ int MPIDO_Doscan(const void *sendbuf, void *recvbuf,
     return -1;
   }
 #endif
-   MPID_Datatype *dt_null = NULL;
+   MPIDU_Datatype*dt_null = NULL;
    MPI_Aint true_lb = 0;
    int dt_contig ATTRIBUTE((unused)), tsize ATTRIBUTE((unused));
    int mu;
@@ -139,14 +139,14 @@ int MPIDO_Doscan(const void *sendbuf, void *recvbuf,
       if(MPIDI_Process.cuda_aware_support_on)
       {
          MPI_Aint dt_extent;
-         MPID_Datatype_get_extent_macro(datatype, dt_extent);
+         MPIDU_Datatype_get_extent_macro(datatype, dt_extent);
          char *scbuf = NULL;
          char *rcbuf = NULL;
          int is_send_dev_buf = MPIDI_cuda_is_device_buf(sendbuf);
          int is_recv_dev_buf = MPIDI_cuda_is_device_buf(recvbuf);
          if(is_send_dev_buf)
          {
-           scbuf = MPIU_Malloc(dt_extent * count);
+           scbuf = MPL_malloc(dt_extent * count);
            cudaError_t cudaerr = CudaMemcpy(scbuf, sendbuf, dt_extent * count, cudaMemcpyDeviceToHost);
            if (cudaSuccess != cudaerr) 
              fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
@@ -155,7 +155,7 @@ int MPIDO_Doscan(const void *sendbuf, void *recvbuf,
            scbuf = sendbuf;
          if(is_recv_dev_buf)
          {
-           rcbuf = MPIU_Malloc(dt_extent * count);
+           rcbuf = MPL_malloc(dt_extent * count);
            if(sendbuf == MPI_IN_PLACE)
            {
            cudaError_t cudaerr = CudaMemcpy(rcbuf, recvbuf, dt_extent * count, cudaMemcpyDeviceToHost);
@@ -172,13 +172,13 @@ int MPIDO_Doscan(const void *sendbuf, void *recvbuf,
            cuda_res =  MPIR_Exscan(scbuf, rcbuf, count, datatype, op, comm_ptr, mpierrno);
          else
            cuda_res =  MPIR_Scan(scbuf, rcbuf, count, datatype, op, comm_ptr, mpierrno);
-         if(is_send_dev_buf)MPIU_Free(scbuf);
+         if(is_send_dev_buf)MPL_free(scbuf);
          if(is_recv_dev_buf)
          {
            cudaError_t cudaerr = CudaMemcpy(recvbuf, rcbuf, dt_extent * count, cudaMemcpyHostToDevice);
            if (cudaSuccess != cudaerr)
              fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
-           MPIU_Free(rcbuf);
+           MPL_free(rcbuf);
          }
          return cuda_res;
       }
@@ -242,7 +242,7 @@ int MPIDO_Doscan(const void *sendbuf, void *recvbuf,
          if(my_md->check_correct.values.rangeminmax)
          {
             MPI_Aint data_true_lb ATTRIBUTE((unused));
-            MPID_Datatype *data_ptr;
+            MPIDU_Datatype*data_ptr;
             int data_size ATTRIBUTE((unused)), data_contig ATTRIBUTE((unused));
             MPIDI_Datatype_get_info(count, datatype, data_contig, data_size, data_ptr, data_true_lb); 
             if((my_md->range_lo <= data_size) &&
@@ -290,8 +290,8 @@ int MPIDO_Doscan(const void *sendbuf, void *recvbuf,
    if(unlikely(verbose))
    {
       unsigned long long int threadID;
-      MPIU_Thread_id_t tid;
-      MPIU_Thread_self(&tid);
+      MPL_thread_id_t tid;
+      MPL_thread_self(&tid);
       threadID = (unsigned long long int)tid;
       fprintf(stderr,"<%llx> Using protocol %s for scan on %u (exflag %d)\n",
               threadID,
@@ -311,7 +311,7 @@ int MPIDO_Doscan(const void *sendbuf, void *recvbuf,
 
 int MPIDO_Doscan_simple(const void *sendbuf, void *recvbuf, 
                int count, MPI_Datatype datatype,
-               MPI_Op op, MPID_Comm * comm_ptr, int *mpierrno, int exflag)
+               MPI_Op op, MPIR_Comm * comm_ptr, int *mpierrno, int exflag)
 {
 #ifndef HAVE_PAMI_IN_PLACE
   if (sendbuf == MPI_IN_PLACE)
@@ -320,7 +320,7 @@ int MPIDO_Doscan_simple(const void *sendbuf, void *recvbuf,
     return -1;
   }
 #endif
-   MPID_Datatype *dt_null = NULL;
+   MPIDU_Datatype*dt_null = NULL;
    MPI_Aint true_lb = 0;
    int dt_contig, tsize;
    int mu;
@@ -404,7 +404,7 @@ int MPIDO_Doscan_simple(const void *sendbuf, void *recvbuf,
 
 int MPIDO_Exscan_simple(const void *sendbuf, void *recvbuf, 
                int count, MPI_Datatype datatype,
-               MPI_Op op, MPID_Comm * comm_ptr, int *mpierrno)
+               MPI_Op op, MPIR_Comm * comm_ptr, int *mpierrno)
 {
    return MPIDO_Doscan_simple(sendbuf, recvbuf, count, datatype,
                 op, comm_ptr, mpierrno, 1);
@@ -412,7 +412,7 @@ int MPIDO_Exscan_simple(const void *sendbuf, void *recvbuf,
 
 int MPIDO_Scan_simple(const void *sendbuf, void *recvbuf, 
                int count, MPI_Datatype datatype,
-               MPI_Op op, MPID_Comm * comm_ptr, int *mpierrno)
+               MPI_Op op, MPIR_Comm * comm_ptr, int *mpierrno)
 {
    return MPIDO_Doscan_simple(sendbuf, recvbuf, count, datatype,
                 op, comm_ptr, mpierrno, 0);
@@ -423,7 +423,7 @@ MPIDO_CSWrapper_scan(pami_xfer_t *scan,
                      void        *comm)
 {
    int mpierrno = 0;
-   MPID_Comm   *comm_ptr = (MPID_Comm*)comm;
+   MPIR_Comm   *comm_ptr = (MPIR_Comm*)comm;
    MPI_Datatype type;
    MPI_Op op;
    void *sbuf;

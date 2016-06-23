@@ -56,12 +56,12 @@ Output Parameters:
 int MPI_Imrecv(void *buf, int count, MPI_Datatype datatype, MPI_Message *message, MPI_Request *request)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *rreq = NULL;
-    MPID_Request *msgp = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_IMRECV);
+    MPIR_Request *rreq = NULL;
+    MPIR_Request *msgp = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_IMRECV);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_IMRECV);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_IMRECV);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -77,7 +77,7 @@ int MPI_Imrecv(void *buf, int count, MPI_Datatype datatype, MPI_Message *message
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Request_get_ptr(*message, msgp);
+    MPIR_Request_get_ptr(*message, msgp);
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -85,9 +85,9 @@ int MPI_Imrecv(void *buf, int count, MPI_Datatype datatype, MPI_Message *message
         MPID_BEGIN_ERROR_CHECKS
         {
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *datatype_ptr = NULL;
+                MPIR_Datatype *datatype_ptr = NULL;
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                 MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -95,9 +95,9 @@ int MPI_Imrecv(void *buf, int count, MPI_Datatype datatype, MPI_Message *message
 
             /* MPI_MESSAGE_NO_PROC should yield a "proc null" status */
             if (*message != MPI_MESSAGE_NO_PROC) {
-                MPID_Request_valid_ptr(msgp, mpi_errno);
+                MPIR_Request_valid_ptr(msgp, mpi_errno);
                 if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-                MPIR_ERR_CHKANDJUMP((msgp->kind != MPID_REQUEST_MPROBE),
+                MPIR_ERR_CHKANDJUMP((msgp->kind != MPIR_REQUEST_KIND__MPROBE),
                                      mpi_errno, MPI_ERR_ARG, "**reqnotmsg");
             }
 
@@ -113,14 +113,14 @@ int MPI_Imrecv(void *buf, int count, MPI_Datatype datatype, MPI_Message *message
     mpi_errno = MPID_Imrecv(buf, count, datatype, msgp, &rreq);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-    MPIU_Assert(rreq != NULL);
+    MPIR_Assert(rreq != NULL);
     *request = rreq->handle;
     *message = MPI_MESSAGE_NULL;
 
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_IMRECV);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_IMRECV);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

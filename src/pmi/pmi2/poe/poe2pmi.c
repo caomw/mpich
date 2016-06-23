@@ -153,9 +153,9 @@ int PMI2_Job_Spawn(int count, const char * cmds[],
                    int argcs[], const char ** argvs[],
                    const int maxprocs[],
                    const int info_keyval_sizes[],
-                   const struct MPID_Info *info_keyval_vectors[],
+                   const struct MPIR_Info *info_keyval_vectors[],
                    int preput_keyval_size,
-                   const struct MPID_Info *preput_keyval_vector[],
+                   const struct MPIR_Info *preput_keyval_vector[],
                    char jobId[], int jobIdSize,
                    int errors[])
 {
@@ -168,7 +168,7 @@ int PMI2_Job_Spawn(int count, const char * cmds[],
     const char *errmsg = NULL;
     int pmi2_errno = 0;
 
-    int (*pmi2_job_spawn)(int , const char * [], int [], const char ** [],const int [],const int [],const struct MPID_Info *[],int ,const struct MPID_Info *[],char jobId[],int ,int []);
+    int (*pmi2_job_spawn)(int , const char * [], int [], const char ** [],const int [],const int [],const struct MPIR_Info *[],int ,const struct MPIR_Info *[],char jobId[],int ,int []);
 
     pmi2_job_spawn = (int (*)())dlsym(poeptr, "PMI2_Job_Spawn");
     if (pmi2_job_spawn == NULL) {
@@ -296,7 +296,7 @@ int _mpi_world_exiting_handler(int world_id)
   int mpi_errno = MPI_SUCCESS;
   pami_endpoint_t dest;
 /*  struct worldExitReq *req = (struct worldExitReq *)cookie; */
-  MPID_Comm *comm = MPIR_Process.comm_world;
+  MPIR_Comm *comm = MPIR_Process.comm_world;
 
   MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
   ref_count = MPIDI_get_refcnt_of_world(world_id);
@@ -339,7 +339,7 @@ int _mpi_world_exiting_handler(int world_id)
     rc = -2;
   }
 
-/*  if(cookie) MPIU_Free(cookie);*/
+/*  if(cookie) MPL_free(cookie);*/
   return PAMI_SUCCESS;
 }
 
@@ -357,7 +357,7 @@ int getchildren(int iam, double alpha,int gsize, int *children,
 
    while( p > 1 ) {
 
-     pbig = MAX(1,MIN((int) (alpha*(double)p), p-1));
+     pbig = MPL_MAX(1,MPL_MIN((int) (alpha*(double)p), p-1));
 
      if ( fakeme == 0 ) {
 
@@ -387,12 +387,12 @@ int _mpi_reduce_for_dyntask(int *sendbuf, int *recvbuf)
 {
   int         *children, gid, child_rank, parent_rank, rc;
   int         numchildren, parent=0, i, result=0,tag, remaining_child_count;
-  MPID_Comm   *comm_ptr;
+  MPIR_Comm   *comm_ptr;
   int         mpi_errno;
   MPIR_Errflag_t errflag = MPIR_ERR_NONE;
 
   int TASKS= world_size;
-  children = MPIU_Malloc(TASKS*sizeof(int));
+  children = MPL_malloc(TASKS*sizeof(int));
 
   comm_ptr = MPIR_Process.comm_world;
 
@@ -444,6 +444,6 @@ int _mpi_reduce_for_dyntask(int *sendbuf, int *recvbuf)
   if(world_rank == 0) {
     *recvbuf = result;
   }
-  MPIU_Free(children);
+  MPL_free(children);
   return 0;
 }

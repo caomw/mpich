@@ -27,12 +27,18 @@ struct MPIR_Ibcast_status{
 };
 /* Add some functions for asynchronous error detection */
 
+/* Define MPICH_MPI_FROM_PMPI if weak symbols are not supported to build
+   the MPI routines */
+#ifndef MPICH_MPI_FROM_PMPI
+#undef MPI_Ibcast
+#define MPI_Ibcast PMPI_Ibcast
+
 #undef FUNCNAME
 #define FUNCNAME sched_test_length
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-static sched_test_length(MPID_Comm * comm, int tag, void *state)
+static int sched_test_length(MPIR_Comm * comm, int tag, void *state)
 {
     int mpi_errno = MPI_SUCCESS;
     int recv_size;
@@ -44,7 +50,7 @@ static sched_test_length(MPID_Comm * comm, int tag, void *state)
                      "**collective_size_mismatch",
 		          "**collective_size_mismatch %d %d", status->n_bytes, recv_size);
     }
-   return mpi_errno;
+    return mpi_errno;
 }
 
 #undef FUNCNAME
@@ -52,7 +58,7 @@ static sched_test_length(MPID_Comm * comm, int tag, void *state)
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-static sched_test_curr_length(MPID_Comm * comm, int tag, void *state)
+static int sched_test_curr_length(MPIR_Comm * comm, int tag, void *state)
 {
     int mpi_errno = MPI_SUCCESS;
     struct  MPIR_Ibcast_status *status = (struct MPIR_Ibcast_status*) state;
@@ -62,7 +68,7 @@ static sched_test_curr_length(MPID_Comm * comm, int tag, void *state)
                      "**collective_size_mismatch",
 		          "**collective_size_mismatch %d %d", status->n_bytes, status->curr_bytes);
     }
-   return mpi_errno;
+    return mpi_errno;
 }
 
 #undef FUNCNAME
@@ -70,7 +76,7 @@ static sched_test_curr_length(MPID_Comm * comm, int tag, void *state)
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-static sched_add_length(MPID_Comm * comm, int tag, void *state)
+static int sched_add_length(MPIR_Comm * comm, int tag, void *state)
 {
     int mpi_errno = MPI_SUCCESS;
     int recv_size;
@@ -79,11 +85,6 @@ static sched_add_length(MPID_Comm * comm, int tag, void *state)
     status->curr_bytes+= recv_size;
     return mpi_errno;
 }
-/* Define MPICH_MPI_FROM_PMPI if weak symbols are not supported to build
-   the MPI routines */
-#ifndef MPICH_MPI_FROM_PMPI
-#undef MPI_Ibcast
-#define MPI_Ibcast PMPI_Ibcast
 
 /* any non-MPI functions go here, especially non-static ones */
 
@@ -97,7 +98,7 @@ static sched_add_length(MPID_Comm * comm, int tag, void *state)
 #define FUNCNAME MPIR_Ibcast_binomial
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Ibcast_binomial(void *buffer, int count, MPI_Datatype datatype, int root, MPID_Comm *comm_ptr, MPID_Sched_t s)
+int MPIR_Ibcast_binomial(void *buffer, int count, MPI_Datatype datatype, int root, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int mask;
@@ -151,9 +152,9 @@ int MPIR_Ibcast_binomial(void *buffer, int count, MPI_Datatype datatype, int roo
 
         /* TODO: Pipeline the packing and communication */
         if (rank == root) {
-            mpi_errno = MPID_Sched_copy(buffer, count, datatype, tmp_buf, nbytes, MPI_PACKED, s);
+            mpi_errno = MPIR_Sched_copy(buffer, count, datatype, tmp_buf, nbytes, MPI_PACKED, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            MPID_SCHED_BARRIER(s);
+            MPIR_SCHED_BARRIER(s);
         }
     }
 
@@ -190,18 +191,18 @@ int MPIR_Ibcast_binomial(void *buffer, int count, MPI_Datatype datatype, int roo
             src = rank - mask; 
             if (src < 0) src += comm_size;
             if (!is_contig || !is_homogeneous)
-                mpi_errno = MPID_Sched_recv_status(tmp_buf, nbytes, MPI_BYTE, src,
+                mpi_errno = MPIR_Sched_recv_status(tmp_buf, nbytes, MPI_BYTE, src,
                                                     comm_ptr, &status->status, s);
             else
-                mpi_errno = MPID_Sched_recv_status(buffer, count, datatype, src,
+                mpi_errno = MPIR_Sched_recv_status(buffer, count, datatype, src,
                                                    comm_ptr, &status->status, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-            MPID_SCHED_BARRIER(s);
+            MPIR_SCHED_BARRIER(s);
             if(is_homogeneous){
-                mpi_errno = MPID_Sched_cb(&sched_test_length, status, s);
+                mpi_errno = MPIR_Sched_cb(&sched_test_length, status, s);
                 if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-                MPID_SCHED_BARRIER(s);
+                MPIR_SCHED_BARRIER(s);
             }
             break;
         }
@@ -225,23 +226,23 @@ int MPIR_Ibcast_binomial(void *buffer, int count, MPI_Datatype datatype, int roo
             dst = rank + mask;
             if (dst >= comm_size) dst -= comm_size;
             if (!is_contig || !is_homogeneous)
-                mpi_errno = MPID_Sched_send(tmp_buf, nbytes, MPI_BYTE, dst, comm_ptr, s);
+                mpi_errno = MPIR_Sched_send(tmp_buf, nbytes, MPI_BYTE, dst, comm_ptr, s);
             else
-                mpi_errno = MPID_Sched_send(buffer, count, datatype, dst, comm_ptr, s);
+                mpi_errno = MPIR_Sched_send(buffer, count, datatype, dst, comm_ptr, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
             /* NOTE: This is departure from MPIR_Bcast_binomial.  A true analog
-             * would put an MPID_Sched_barrier here after every send. */
+             * would put an MPIR_Sched_barrier here after every send. */
         }
         mask >>= 1;
     }
 
     if (!is_contig || !is_homogeneous) {
         if (rank != root) {
-            MPID_SCHED_BARRIER(s);
-            mpi_errno = MPID_Sched_copy(tmp_buf, nbytes, MPI_PACKED, buffer, count, datatype, s);
+            MPIR_SCHED_BARRIER(s);
+            mpi_errno = MPIR_Sched_copy(tmp_buf, nbytes, MPI_PACKED, buffer, count, datatype, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            MPID_SCHED_BARRIER(s);
+            MPIR_SCHED_BARRIER(s);
         }
     }
 
@@ -263,7 +264,7 @@ fn_fail:
 #define FUNCNAME MPIR_Iscatter_for_bcast
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Iscatter_for_bcast(void *tmp_buf, int root, MPID_Comm *comm_ptr, int nbytes, MPID_Sched_t s)
+int MPIR_Iscatter_for_bcast(void *tmp_buf, int root, MPIR_Comm *comm_ptr, int nbytes, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int rank, comm_size, src, dst;
@@ -302,10 +303,10 @@ int MPIR_Iscatter_for_bcast(void *tmp_buf, int root, MPID_Comm *comm_ptr, int nb
             curr_size = recv_size;
 
             if (recv_size > 0) {
-                mpi_errno = MPID_Sched_recv(((char *)tmp_buf + relative_rank*scatter_size),
+                mpi_errno = MPIR_Sched_recv(((char *)tmp_buf + relative_rank*scatter_size),
                                             recv_size, MPI_BYTE, src, comm_ptr, s);
                 if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-                MPID_SCHED_BARRIER(s);
+                MPIR_SCHED_BARRIER(s);
             }
             break;
         }
@@ -327,7 +328,7 @@ int MPIR_Iscatter_for_bcast(void *tmp_buf, int root, MPID_Comm *comm_ptr, int nb
                 dst = rank + mask;
                 if (dst >= comm_size)
                     dst -= comm_size;
-                mpi_errno = MPID_Sched_send(((char *)tmp_buf + scatter_size*(relative_rank+mask)),
+                mpi_errno = MPIR_Sched_send(((char *)tmp_buf + scatter_size*(relative_rank+mask)),
                                             send_size, MPI_BYTE, dst, comm_ptr, s);
                 if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
@@ -385,7 +386,7 @@ fn_fail:
 #define FUNCNAME MPIR_Ibcast_scatter_rec_dbl_allgather
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype datatype, int root, MPID_Comm *comm_ptr, MPID_Sched_t s)
+int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype datatype, int root, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int rank, comm_size, dst;
@@ -394,7 +395,7 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
     int type_size, j, k, i, tmp_mask, is_contig, is_homogeneous ATTRIBUTE((unused));
     int relative_dst, dst_tree_root, my_tree_root, send_offset;
     int recv_offset, tree_root, nprocs_completed, offset;
-    MPID_Datatype *dtp;
+    MPIR_Datatype *dtp;
     MPI_Aint true_extent, true_lb;
     void *tmp_buf;
     struct MPIR_Ibcast_status *status;
@@ -423,7 +424,7 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
     if (comm_ptr->is_hetero)
         is_homogeneous = 0;
 #endif
-    MPIU_Assert(is_homogeneous); /* we don't handle the hetero case right now */
+    MPIR_Assert(is_homogeneous); /* we don't handle the hetero case right now */
 
     MPID_Datatype_get_size_macro(datatype, type_size);
 
@@ -441,10 +442,10 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
 
         /* TODO: Pipeline the packing and communication */
         if (rank == root) {
-            mpi_errno = MPID_Sched_copy(buffer, count, datatype,
+            mpi_errno = MPIR_Sched_copy(buffer, count, datatype,
                                         tmp_buf, nbytes, MPI_BYTE, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            MPID_SCHED_BARRIER(s);
+            MPIR_SCHED_BARRIER(s);
         }
     }
 
@@ -457,7 +458,7 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
 
     /* curr_size is the amount of data that this process now has stored in
      * buffer at byte offset (relative_rank*scatter_size) */
-    curr_size = MPIU_MIN(scatter_size, (nbytes - (relative_rank * scatter_size)));
+    curr_size = MPL_MIN(scatter_size, (nbytes - (relative_rank * scatter_size)));
     if (curr_size < 0)
         curr_size = 0;
 
@@ -490,22 +491,22 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
             /* calculate the exact amount of data to be received */
             /* alternative */
             if ((nbytes - recv_offset) > 0)
-                incoming_count = MPIU_MIN((nbytes-recv_offset), (mask * scatter_size));
+                incoming_count = MPL_MIN((nbytes-recv_offset), (mask * scatter_size));
             else
                 incoming_count = 0;
 
-            mpi_errno = MPID_Sched_send(((char *)tmp_buf + send_offset),
+            mpi_errno = MPIR_Sched_send(((char *)tmp_buf + send_offset),
                                         curr_size, MPI_BYTE, dst, comm_ptr, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
             /* sendrecv, no barrier */
-            mpi_errno = MPID_Sched_recv_status(((char *)tmp_buf + recv_offset),
+            mpi_errno = MPIR_Sched_recv_status(((char *)tmp_buf + recv_offset),
                                         incoming_count,
                                         MPI_BYTE, dst, comm_ptr,&status->status, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            MPID_SCHED_BARRIER(s);
-            mpi_errno = MPID_Sched_cb(&sched_add_length, status, s);
+            MPIR_SCHED_BARRIER(s);
+            mpi_errno = MPIR_Sched_cb(&sched_add_length, status, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            MPID_SCHED_BARRIER(s);
+            MPIR_SCHED_BARRIER(s);
 
             curr_size += incoming_count;
         }
@@ -560,10 +561,10 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
                     /* incoming_count was set in the previous
                        receive. that's the amount of data to be
                        sent now. */
-                    mpi_errno = MPID_Sched_send(((char *)tmp_buf + offset),
+                    mpi_errno = MPIR_Sched_send(((char *)tmp_buf + offset),
                                                 incoming_count, MPI_BYTE, dst, comm_ptr, s);
                     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-                    MPID_SCHED_BARRIER(s);
+                    MPIR_SCHED_BARRIER(s);
                 }
                 /* recv only if this proc. doesn't have data and sender
                    has data */
@@ -574,20 +575,20 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
                     /* recalculate incoming_count, since not all processes will have
                      * this value */
                     if ((nbytes - offset) > 0)
-                        incoming_count = MPIU_MIN((nbytes-offset), (mask * scatter_size));
+                        incoming_count = MPL_MIN((nbytes-offset), (mask * scatter_size));
                     else
                         incoming_count = 0;
 
                     /* nprocs_completed is also equal to the no. of processes
                        whose data we don't have */
-                    mpi_errno = MPID_Sched_recv_status(((char *)tmp_buf + offset),
+                    mpi_errno = MPIR_Sched_recv_status(((char *)tmp_buf + offset),
                                                 incoming_count, MPI_BYTE, dst, comm_ptr,
                                                 &status->status, s);
                     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-                    MPID_SCHED_BARRIER(s);
-                    mpi_errno = MPID_Sched_cb(&sched_add_length, status, s);
+                    MPIR_SCHED_BARRIER(s);
+                    mpi_errno = MPIR_Sched_cb(&sched_add_length, status, s);
                     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-                    MPID_SCHED_BARRIER(s);
+                    MPIR_SCHED_BARRIER(s);
 
                     curr_size += incoming_count;
                 }
@@ -601,12 +602,12 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
         i++;
     }
     if(is_homogeneous){
-        mpi_errno = MPID_Sched_cb(&sched_test_curr_length, status, s);
+        mpi_errno = MPIR_Sched_cb(&sched_test_curr_length, status, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
     if (!is_contig) {
         if (rank != root) {
-            mpi_errno = MPID_Sched_copy(tmp_buf, nbytes, MPI_BYTE,
+            mpi_errno = MPIR_Sched_copy(tmp_buf, nbytes, MPI_BYTE,
                                         buffer, count, datatype, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
         }
@@ -640,7 +641,7 @@ fn_fail:
 #define FUNCNAME MPIR_Ibcast_scatter_ring_allgather
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype datatype, int root, MPID_Comm *comm_ptr, MPID_Sched_t s)
+int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype datatype, int root, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int comm_size, rank;
@@ -649,7 +650,7 @@ int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype dat
     int i, j, jnext, left, right;
     MPI_Aint true_extent, true_lb;
     void *tmp_buf = NULL;
-    MPID_Datatype *dtp = NULL;
+    MPIR_Datatype *dtp = NULL;
 
     struct MPIR_Ibcast_status *status;
     MPIR_SCHED_CHKPMEM_DECL(4);
@@ -673,7 +674,7 @@ int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype dat
     if (comm_ptr->is_hetero)
         is_homogeneous = 0;
 #endif
-    MPIU_Assert(is_homogeneous); /* we don't handle the hetero case yet */
+    MPIR_Assert(is_homogeneous); /* we don't handle the hetero case yet */
     MPIR_SCHED_CHKPMEM_MALLOC(status, struct MPIR_Ibcast_status*,
                               sizeof(struct MPIR_Ibcast_status), mpi_errno, "MPI_Status");
     MPID_Datatype_get_size_macro(datatype, type_size);
@@ -691,9 +692,9 @@ int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype dat
 
         /* TODO: Pipeline the packing and communication */
         if (rank == root) {
-            mpi_errno = MPID_Sched_copy(buffer, count, datatype, tmp_buf, nbytes, MPI_BYTE, s);
+            mpi_errno = MPIR_Sched_copy(buffer, count, datatype, tmp_buf, nbytes, MPI_BYTE, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            MPID_SCHED_BARRIER(s);
+            MPIR_SCHED_BARRIER(s);
         }
     }
 
@@ -715,35 +716,35 @@ int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype dat
 
         rel_j     = (j     - root + comm_size) % comm_size;
         rel_jnext = (jnext - root + comm_size) % comm_size;
-        left_count = MPIR_MIN(scatter_size, (nbytes - rel_jnext * scatter_size));
+        left_count = MPL_MIN(scatter_size, (nbytes - rel_jnext * scatter_size));
         if (left_count < 0)
             left_count = 0;
         left_disp = rel_jnext * scatter_size;
-        right_count = MPIR_MIN(scatter_size, (nbytes - rel_j * scatter_size));
+        right_count = MPL_MIN(scatter_size, (nbytes - rel_j * scatter_size));
         if (right_count < 0)
             right_count = 0;
         right_disp = rel_j * scatter_size;
 
-        mpi_errno = MPID_Sched_send(((char *)tmp_buf + right_disp),
+        mpi_errno = MPIR_Sched_send(((char *)tmp_buf + right_disp),
                                     right_count, MPI_BYTE, right, comm_ptr, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
         /* sendrecv, no barrier here */
-        mpi_errno = MPID_Sched_recv_status(((char *)tmp_buf + left_disp),
+        mpi_errno = MPIR_Sched_recv_status(((char *)tmp_buf + left_disp),
                                     left_count, MPI_BYTE, left, comm_ptr, &status->status, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-        MPID_SCHED_BARRIER(s);
-        mpi_errno = MPID_Sched_cb(&sched_add_length, status, s);
+        MPIR_SCHED_BARRIER(s);
+        mpi_errno = MPIR_Sched_cb(&sched_add_length, status, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-        MPID_SCHED_BARRIER(s);
+        MPIR_SCHED_BARRIER(s);
 
         j     = jnext;
         jnext = (comm_size + jnext - 1) % comm_size;
     }
-    mpi_errno = MPID_Sched_cb(&sched_test_curr_length, status, s);
+    mpi_errno = MPIR_Sched_cb(&sched_test_curr_length, status, s);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
     if (!is_contig && rank != root) {
-        mpi_errno = MPID_Sched_copy(tmp_buf, nbytes, MPI_BYTE, buffer, count, datatype, s);
+        mpi_errno = MPIR_Sched_copy(tmp_buf, nbytes, MPI_BYTE, buffer, count, datatype, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
 
@@ -763,7 +764,7 @@ fn_fail:
 #define FUNCNAME MPIR_Ibcast_SMP
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Ibcast_SMP(void *buffer, int count, MPI_Datatype datatype, int root, MPID_Comm *comm_ptr, MPID_Sched_t s)
+int MPIR_Ibcast_SMP(void *buffer, int count, MPI_Datatype datatype, int root, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int is_homogeneous;
@@ -773,7 +774,7 @@ int MPIR_Ibcast_SMP(void *buffer, int count, MPI_Datatype datatype, int root, MP
 
     if (!MPIR_CVAR_ENABLE_SMP_COLLECTIVES || !MPIR_CVAR_ENABLE_SMP_BCAST)
         MPID_Abort(comm_ptr, MPI_ERR_OTHER, 1, "SMP collectives are disabled!");
-    MPIU_Assert(MPIR_Comm_is_node_aware(comm_ptr));
+    MPIR_Assert(MPIR_Comm_is_node_aware(comm_ptr));
     MPIR_SCHED_CHKPMEM_MALLOC(status, struct MPIR_Ibcast_status*,
                               sizeof(struct MPIR_Ibcast_status), mpi_errno, "MPI_Status");
 
@@ -783,14 +784,14 @@ int MPIR_Ibcast_SMP(void *buffer, int count, MPI_Datatype datatype, int root, MP
         is_homogeneous = 0;
 #endif
 
-    MPIU_Assert(is_homogeneous); /* we don't handle the hetero case yet */
+    MPIR_Assert(is_homogeneous); /* we don't handle the hetero case yet */
     if (comm_ptr->node_comm) {
-        MPIU_Assert(comm_ptr->node_comm->coll_fns);
-        MPIU_Assert(comm_ptr->node_comm->coll_fns->Ibcast_sched);
+        MPIR_Assert(comm_ptr->node_comm->coll_fns);
+        MPIR_Assert(comm_ptr->node_comm->coll_fns->Ibcast_sched);
     }
     if (comm_ptr->node_roots_comm) {
-        MPIU_Assert(comm_ptr->node_roots_comm->coll_fns);
-        MPIU_Assert(comm_ptr->node_roots_comm->coll_fns->Ibcast_sched);
+        MPIR_Assert(comm_ptr->node_roots_comm->coll_fns);
+        MPIR_Assert(comm_ptr->node_roots_comm->coll_fns->Ibcast_sched);
     }
 
     /* MPI_Type_size() might not give the accurate size of the packed
@@ -810,33 +811,33 @@ int MPIR_Ibcast_SMP(void *buffer, int count, MPI_Datatype datatype, int root, MP
 
     /* send to intranode-rank 0 on the root's node */
     if (comm_ptr->node_comm != NULL &&
-        MPIU_Get_intranode_rank(comm_ptr, root) > 0) /* is not the node root (0) */
+        MPIR_Get_intranode_rank(comm_ptr, root) > 0) /* is not the node root (0) */
     {                                                /* and is on our node (!-1) */
         if (root == comm_ptr->rank) {
-            mpi_errno = MPID_Sched_send(buffer, count, datatype, 0, comm_ptr->node_comm, s);
+            mpi_errno = MPIR_Sched_send(buffer, count, datatype, 0, comm_ptr->node_comm, s);
         }
         else if (0 == comm_ptr->node_comm->rank) {
-            mpi_errno = MPID_Sched_recv_status(buffer, count, datatype, MPIU_Get_intranode_rank(comm_ptr, root),
+            mpi_errno = MPIR_Sched_recv_status(buffer, count, datatype, MPIR_Get_intranode_rank(comm_ptr, root),
                                         comm_ptr->node_comm, &status->status, s);
         }
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-        MPID_SCHED_BARRIER(s);
-        MPID_SCHED_BARRIER(s);
-        mpi_errno = MPID_Sched_cb(&sched_test_length, status, s);
+        MPIR_SCHED_BARRIER(s);
+        MPIR_SCHED_BARRIER(s);
+        mpi_errno = MPIR_Sched_cb(&sched_test_length, status, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-        MPID_SCHED_BARRIER(s);
+        MPIR_SCHED_BARRIER(s);
     }
 
     /* perform the internode broadcast */
     if (comm_ptr->node_roots_comm != NULL)
     {
         mpi_errno = comm_ptr->node_roots_comm->coll_fns->Ibcast_sched(buffer, count, datatype,
-                                                                MPIU_Get_internode_rank(comm_ptr, root),
+                                                                MPIR_Get_internode_rank(comm_ptr, root),
                                                                 comm_ptr->node_roots_comm, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
         /* don't allow the local ops for the intranode phase to start until this has completed */
-        MPID_SCHED_BARRIER(s);
+        MPIR_SCHED_BARRIER(s);
     }
     /* perform the intranode broadcast on all except for the root's node */
     if (comm_ptr->node_comm != NULL)
@@ -850,6 +851,7 @@ fn_exit:
     return mpi_errno;
 fn_fail:
     MPIR_SCHED_CHKPMEM_REAP(s);
+    goto fn_exit;
 }
 
 
@@ -859,20 +861,20 @@ fn_fail:
 #define FUNCNAME MPIR_Ibcast_intra
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Ibcast_intra(void *buffer, int count, MPI_Datatype datatype, int root, MPID_Comm *comm_ptr, MPID_Sched_t s)
+int MPIR_Ibcast_intra(void *buffer, int count, MPI_Datatype datatype, int root, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int comm_size, is_homogeneous ATTRIBUTE((unused));
     MPI_Aint type_size, nbytes;
 
-    MPIU_Assert(comm_ptr->comm_kind == MPID_INTRACOMM);
+    MPIR_Assert(comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM);
 
     is_homogeneous = 1;
 #ifdef MPID_HAS_HETERO
     if (comm_ptr->is_hetero)
         is_homogeneous = 0;
 #endif
-    MPIU_Assert(is_homogeneous); /* we don't handle the hetero case right now */
+    MPIR_Assert(is_homogeneous); /* we don't handle the hetero case right now */
 
     comm_size = comm_ptr->local_size;
     MPID_Datatype_get_size_macro(datatype, type_size);
@@ -910,11 +912,11 @@ fn_fail:
 #define FUNCNAME MPIR_Ibcast_inter
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Ibcast_inter(void *buffer, int count, MPI_Datatype datatype, int root, MPID_Comm *comm_ptr, MPID_Sched_t s)
+int MPIR_Ibcast_inter(void *buffer, int count, MPI_Datatype datatype, int root, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(comm_ptr->comm_kind == MPID_INTERCOMM);
+    MPIR_Assert(comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM);
 
     /* Intercommunicator broadcast.
      * Root sends to rank 0 in remote group. Remote group does local
@@ -927,26 +929,26 @@ int MPIR_Ibcast_inter(void *buffer, int count, MPI_Datatype datatype, int root, 
     else if (root == MPI_ROOT)
     {
         /* root sends to rank 0 on remote group and returns */
-        mpi_errno = MPID_Sched_send(buffer, count, datatype, 0, comm_ptr, s);
+        mpi_errno = MPIR_Sched_send(buffer, count, datatype, 0, comm_ptr, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
     else
     {
         /* remote group. rank 0 on remote group receives from root */
         if (comm_ptr->rank == 0) {
-            mpi_errno = MPID_Sched_recv(buffer, count, datatype, root, comm_ptr, s);
+            mpi_errno = MPIR_Sched_recv(buffer, count, datatype, root, comm_ptr, s);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            MPID_SCHED_BARRIER(s);
+            MPIR_SCHED_BARRIER(s);
         }
 
         if (comm_ptr->local_comm == NULL) {
-            mpi_errno = MPIR_Setup_intercomm_localcomm(comm_ptr);
+            mpi_errno = MPII_Setup_intercomm_localcomm(comm_ptr);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
         }
 
         /* now do the usual broadcast on this intracommunicator
            with rank 0 as root. */
-        MPIU_Assert(comm_ptr->local_comm->coll_fns && comm_ptr->local_comm->coll_fns->Ibcast_sched);
+        MPIR_Assert(comm_ptr->local_comm->coll_fns && comm_ptr->local_comm->coll_fns->Ibcast_sched);
         mpi_errno = comm_ptr->local_comm->coll_fns->Ibcast_sched(buffer, count, datatype, root, comm_ptr->local_comm, s);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
@@ -961,37 +963,25 @@ fn_fail:
 #define FUNCNAME MPIR_Ibcast_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Ibcast_impl(void *buffer, int count, MPI_Datatype datatype, int root, MPID_Comm *comm_ptr, MPI_Request *request)
+int MPIR_Ibcast_impl(void *buffer, int count, MPI_Datatype datatype, int root, MPIR_Comm *comm_ptr, MPI_Request *request)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *reqp = NULL;
+    MPIR_Request *reqp = NULL;
     int tag = -1;
-    MPID_Sched_t s = MPID_SCHED_NULL;
+    MPIR_Sched_t s = MPIR_SCHED_NULL;
 
     *request = MPI_REQUEST_NULL;
 
-    MPIU_Assert(comm_ptr->coll_fns != NULL);
-    if (comm_ptr->coll_fns->Ibcast_req != NULL) {
-        /* --BEGIN USEREXTENSION-- */
-        mpi_errno = comm_ptr->coll_fns->Ibcast_req(buffer, count, datatype, root, comm_ptr, &reqp);
-        if (reqp) {
-            *request = reqp->handle;
-            if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-            goto fn_exit;
-        }
-        /* --END USEREXTENSION-- */
-    }
-
-    mpi_errno = MPID_Sched_next_tag(comm_ptr, &tag);
+    mpi_errno = MPIR_Sched_next_tag(comm_ptr, &tag);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-    mpi_errno = MPID_Sched_create(&s);
+    mpi_errno = MPIR_Sched_create(&s);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-    MPIU_Assert(comm_ptr->coll_fns->Ibcast_sched != NULL);
+    MPIR_Assert(comm_ptr->coll_fns->Ibcast_sched != NULL);
     mpi_errno = comm_ptr->coll_fns->Ibcast_sched(buffer, count, datatype, root, comm_ptr, s);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-    mpi_errno = MPID_Sched_start(&s, comm_ptr, tag, &reqp);
+    mpi_errno = MPIR_Sched_start(&s, comm_ptr, tag, &reqp);
     if (reqp)
         *request = reqp->handle;
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -1033,11 +1023,11 @@ Output Parameters:
 int MPI_Ibcast(void *buffer, int count, MPI_Datatype datatype, int root, MPI_Comm comm, MPI_Request *request)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_IBCAST);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_IBCAST);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_IBCAST);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_IBCAST);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -1055,20 +1045,20 @@ int MPI_Ibcast(void *buffer, int count, MPI_Datatype datatype, int root, MPI_Com
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS
         {
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *datatype_ptr = NULL;
+                MPIR_Datatype *datatype_ptr = NULL;
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                 MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -1083,13 +1073,13 @@ int MPI_Ibcast(void *buffer, int count, MPI_Datatype datatype, int root, MPI_Com
 
     /* ... body of routine ...  */
 
-    mpi_errno = MPIR_Ibcast_impl(buffer, count, datatype, root, comm_ptr, request);
+    mpi_errno = MPID_Ibcast(buffer, count, datatype, root, comm_ptr, request);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_IBCAST);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_IBCAST);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

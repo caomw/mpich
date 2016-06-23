@@ -27,7 +27,7 @@
 #if TOKEN_FLOW_CONTROL
 #define MPIDI_Piggy_back_tokens    MPIDI_Piggy_back_tokens_inline
 static inline void *
-MPIDI_Piggy_back_tokens_inline(int dest,MPID_Request *shd,size_t len)
+MPIDI_Piggy_back_tokens_inline(int dest,MPIR_Request *shd,size_t len)
   {
          int rettoks=0;
          if (MPIDI_Token_cntr[dest].rettoks)
@@ -41,7 +41,7 @@ MPIDI_Piggy_back_tokens_inline(int dest,MPID_Request *shd,size_t len)
 
 static inline void
 MPIDI_SendMsg_short(pami_context_t    context,
-                    MPID_Request    * sreq,
+                    MPIR_Request    * sreq,
                     pami_endpoint_t   dest,
                     void            * sndbuf,
                     unsigned          sndlen,
@@ -89,14 +89,14 @@ MPIDI_SendMsg_short(pami_context_t    context,
 
 static void
 MPIDI_SendMsg_eager(pami_context_t    context,
-                    MPID_Request    * sreq,
+                    MPIR_Request    * sreq,
                     pami_endpoint_t   dest,
                     void            * sndbuf,
                     unsigned          sndlen)
   __attribute__((__noinline__));
 static void
 MPIDI_SendMsg_eager(pami_context_t    context,
-                    MPID_Request    * sreq,
+                    MPIR_Request    * sreq,
                     pami_endpoint_t   dest,
                     void            * sndbuf,
                     unsigned          sndlen)
@@ -133,14 +133,14 @@ MPIDI_SendMsg_eager(pami_context_t    context,
 
 static void
 MPIDI_SendMsg_rzv(pami_context_t    context,
-                  MPID_Request    * sreq,
+                  MPIR_Request    * sreq,
                   pami_endpoint_t   dest,
                   void            * sndbuf,
                   size_t            sndlen)
   __attribute__((__noinline__));
 static void
 MPIDI_SendMsg_rzv(pami_context_t    context,
-                  MPID_Request    * sreq,
+                  MPIR_Request    * sreq,
                   pami_endpoint_t   dest,
                   void            * sndbuf,
                   size_t            sndlen)
@@ -246,12 +246,12 @@ MPIDI_SendMsg_rzv(pami_context_t    context,
 
 static void
 MPIDI_SendMsg_rzv_zerobyte(pami_context_t    context,
-                           MPID_Request    * sreq,
+                           MPIR_Request    * sreq,
                            pami_endpoint_t   dest)
   __attribute__((__noinline__));
 static void
 MPIDI_SendMsg_rzv_zerobyte(pami_context_t    context,
-                           MPID_Request    * sreq,
+                           MPIR_Request    * sreq,
                            pami_endpoint_t   dest)
 {
   pami_result_t rc;
@@ -304,19 +304,19 @@ MPIDI_SendMsg_rzv_zerobyte(pami_context_t    context,
 
 
 static void
-MPIDI_SendMsg_process_userdefined_dt(MPID_Request      * sreq,
+MPIDI_SendMsg_process_userdefined_dt(MPIR_Request      * sreq,
                                      void             ** sndbuf,
                                      size_t            * data_sz)
   __attribute__((__noinline__));
 static void
-MPIDI_SendMsg_process_userdefined_dt(MPID_Request      * sreq,
+MPIDI_SendMsg_process_userdefined_dt(MPIR_Request      * sreq,
                                      void             ** _sndbuf,
                                      size_t            * _data_sz)
 {
   size_t          data_sz;
   int             dt_contig;
   MPI_Aint        dt_true_lb;
-  MPID_Datatype * dt_ptr;
+  MPIDU_Datatype* dt_ptr;
   void          * sndbuf;
 
   /*
@@ -354,8 +354,8 @@ MPIDI_SendMsg_process_userdefined_dt(MPID_Request      * sreq,
       if(MPIDI_Process.cuda_aware_support_on && on_device)
       {
         MPI_Aint dt_extent;
-        MPID_Datatype_get_extent_macro(sreq->mpid.datatype, dt_extent);
-        buf =  MPIU_Malloc(dt_extent * sreq->mpid.userbufcount);
+        MPIDU_Datatype_get_extent_macro(sreq->mpid.datatype, dt_extent);
+        buf =  MPL_malloc(dt_extent * sreq->mpid.userbufcount);
 
         cudaError_t cudaerr = CudaMemcpy(buf, sreq->mpid.userbuf, dt_extent * sreq->mpid.userbufcount, cudaMemcpyDeviceToHost);
         if (cudaSuccess != cudaerr) {
@@ -365,10 +365,10 @@ MPIDI_SendMsg_process_userdefined_dt(MPID_Request      * sreq,
       }
 #endif
 
-      MPID_Segment segment;
+      MPIDU_Segment segment;
 
       if(data_sz != 0) {
-        sreq->mpid.uebuf = sndbuf = MPIU_Malloc(data_sz);
+        sreq->mpid.uebuf = sndbuf = MPL_malloc(data_sz);
         if (unlikely(sndbuf == NULL))
           {
             sreq->status.MPI_ERROR = MPI_ERR_NO_SPACE;
@@ -387,16 +387,16 @@ MPIDI_SendMsg_process_userdefined_dt(MPID_Request      * sreq,
 #endif
         MPID_assert(buf != NULL);
 
-        MPID_Segment_init(buf,
+        MPIDU_Segment_init(buf,
                           sreq->mpid.userbufcount,
                           sreq->mpid.datatype,
                           &segment,
                           0);
-        MPID_Segment_pack(&segment, 0, &last, sndbuf);
+        MPIDU_Segment_pack(&segment, 0, &last, sndbuf);
         MPID_assert(last == data_sz);
 #if CUDA_AWARE_SUPPORT
         if(MPIDI_Process.cuda_aware_support_on && on_device)
-          MPIU_Free(buf);
+          MPL_free(buf);
 #endif
       } else {
 	sndbuf = NULL;
@@ -410,7 +410,7 @@ MPIDI_SendMsg_process_userdefined_dt(MPID_Request      * sreq,
 
 static inline void
 MPIDI_SendMsg(pami_context_t   context,
-              MPID_Request   * sreq,
+              MPIR_Request   * sreq,
               unsigned         isSync,
               const unsigned   isInternal)
 {
@@ -458,7 +458,7 @@ if (!TOKEN_FLOW_CONTROL_ON) {
   if (likely(HANDLE_GET_KIND(sreq->mpid.datatype) == HANDLE_KIND_BUILTIN))
     {
       sndbuf   = sreq->mpid.userbuf;
-      data_sz  = sreq->mpid.userbufcount * MPID_Datatype_get_basic_size(sreq->mpid.datatype);
+      data_sz  = sreq->mpid.userbufcount * MPIDU_Datatype_get_basic_size(sreq->mpid.datatype);
     }
   else
     {
@@ -498,7 +498,7 @@ if (!TOKEN_FLOW_CONTROL_ON) {
                           sndbuf,
                           data_sz);
 #ifdef MPIDI_STATISTICS
-      if (!isLocal && MPID_cc_is_complete(&sreq->cc))
+      if (!isLocal && MPIR_cc_is_complete(&sreq->cc))
         {
           MPID_NSTAT(mpid_statp->sendsComplete);
         }
@@ -529,7 +529,7 @@ if (!TOKEN_FLOW_CONTROL_ON) {
         }
 
 #ifdef MPIDI_STATISTICS
-      if (!isLocal && MPID_cc_is_complete(&sreq->cc))
+      if (!isLocal && MPIR_cc_is_complete(&sreq->cc))
         {
           MPID_NSTAT(mpid_statp->sendsComplete);
         }
@@ -561,7 +561,7 @@ if (!TOKEN_FLOW_CONTROL_ON) {
        if (likely(HANDLE_GET_KIND(sreq->mpid.datatype) == HANDLE_KIND_BUILTIN))
          {
            sndbuf   = sreq->mpid.userbuf;
-           data_sz  = sreq->mpid.userbufcount * MPID_Datatype_get_basic_size(sreq->mpid.datatype);
+           data_sz  = sreq->mpid.userbufcount * MPIDU_Datatype_get_basic_size(sreq->mpid.datatype);
          }
        else
         {
@@ -598,7 +598,7 @@ if (!TOKEN_FLOW_CONTROL_ON) {
                                  sndbuf,
                                  data_sz);
 #ifdef MPIDI_STATISTICS
-                    if (MPID_cc_is_complete(&sreq->cc)) {
+                    if (MPIR_cc_is_complete(&sreq->cc)) {
                         MPID_NSTAT(mpid_statp->sendsComplete);
                     }
 #endif
@@ -616,7 +616,7 @@ if (!TOKEN_FLOW_CONTROL_ON) {
                                   sndbuf,
                                   data_sz);
 #ifdef MPIDI_STATISTICS
-                       if (MPID_cc_is_complete(&sreq->cc))
+                       if (MPIR_cc_is_complete(&sreq->cc))
                        {
                           MPID_NSTAT(mpid_statp->sendsComplete);
                        }
@@ -646,7 +646,7 @@ if (!TOKEN_FLOW_CONTROL_ON) {
               MPIDI_SendMsg_rzv_zerobyte(context, sreq, dest);
             }
 #ifdef MPIDI_STATISTICS
-               if (MPID_cc_is_complete(&sreq->cc))
+               if (MPIR_cc_is_complete(&sreq->cc))
                 {
                    MPID_NSTAT(mpid_statp->sendsComplete);
                 }
@@ -678,7 +678,7 @@ pami_result_t
 MPIDI_Send_handoff(pami_context_t   context,
                    void           * _sreq)
 {
-  MPID_Request * sreq = (MPID_Request*)_sreq;
+  MPIR_Request * sreq = (MPIR_Request*)_sreq;
   MPID_assert(sreq != NULL);
 
   MPIDI_SendMsg(context, sreq, 0, 0);
@@ -690,7 +690,7 @@ pami_result_t
 MPIDI_Ssend_handoff(pami_context_t   context,
                    void           * _sreq)
 {
-  MPID_Request * sreq = (MPID_Request*)_sreq;
+  MPIR_Request * sreq = (MPIR_Request*)_sreq;
   MPID_assert(sreq != NULL);
 
   MPIDI_SendMsg(context, sreq, 1, 0);
@@ -716,7 +716,7 @@ pami_result_t
 MPIDI_Isend_handoff(pami_context_t   context,
                     void           * _sreq)
 {
-  MPID_Request * sreq = (MPID_Request*)_sreq;
+  MPIR_Request * sreq = (MPIR_Request*)_sreq;
   MPID_assert(sreq != NULL);
 
   /* This initializes all the fields not set in MPI_Isend() */
@@ -731,7 +731,7 @@ pami_result_t
 MPIDI_Isend_handoff_internal(pami_context_t   context,
                              void           * _sreq)
 {
-  MPID_Request * sreq = (MPID_Request*)_sreq;
+  MPIR_Request * sreq = (MPIR_Request*)_sreq;
   MPID_assert(sreq != NULL);
 
   /* This initializes all the fields not set in MPI_Isend() */

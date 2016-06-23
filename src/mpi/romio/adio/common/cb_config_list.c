@@ -92,7 +92,7 @@ int ADIOI_cb_bcast_rank_map(ADIO_File fd)
     /* TEMPORARY -- REMOVE WHEN NO LONGER UPDATING INFO FOR
      * FS-INDEP. */
     value = (char *) ADIOI_Malloc((MPI_MAX_INFO_VAL+1)*sizeof(char));
-    ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, "%d", fd->hints->cb_nodes);
+    MPL_snprintf(value, MPI_MAX_INFO_VAL+1, "%d", fd->hints->cb_nodes);
     ADIOI_Info_set(fd->info, "cb_nodes", value);
     p = value;
     /* the (by MPI rank) list of aggregators can be larger than
@@ -101,7 +101,7 @@ int ADIOI_cb_bcast_rank_map(ADIO_File fd)
      * end in the truncate case */
     for (i=0; i< fd->hints->cb_nodes; i++) {
         int incr, remain = (MPI_MAX_INFO_VAL) - (p-value);
-        incr = ADIOI_Snprintf(p, remain, "%d ", fd->hints->ranklist[i]);
+        incr = MPL_snprintf(p, remain, "%d ", fd->hints->ranklist[i]);
     if (incr >= remain) break;
         p += incr;
     }
@@ -202,6 +202,7 @@ int ADIOI_cb_gather_name_array(MPI_Comm comm,
 	
 	procname[0] = ADIOI_Malloc(alloc_size);
 	if (procname[0] == NULL) {
+	    ADIOI_Free(array);
 	    return -1;
 	}
 
@@ -394,9 +395,9 @@ int ADIOI_cb_copy_name_array(MPI_Comm comm,
 {
     ADIO_cb_name_array array;
 
-    ADIOI_UNREFERENCED_ARG(comm);
-    ADIOI_UNREFERENCED_ARG(keyval); 
-    ADIOI_UNREFERENCED_ARG(extra);
+    MPL_UNREFERENCED_ARG(comm);
+    MPL_UNREFERENCED_ARG(keyval);
+    MPL_UNREFERENCED_ARG(extra);
 
     array = (ADIO_cb_name_array) attr_in;
     if (array != NULL) array->refct++;
@@ -416,8 +417,8 @@ int ADIOI_cb_delete_name_array(MPI_Comm comm,
 {
     ADIO_cb_name_array array;
 
-    ADIOI_UNREFERENCED_ARG(comm);
-    ADIOI_UNREFERENCED_ARG(extra);
+    MPL_UNREFERENCED_ARG(comm);
+    MPL_UNREFERENCED_ARG(extra);
 
     array = (ADIO_cb_name_array) attr_val;
     ADIOI_Assert(array != NULL);
@@ -702,7 +703,7 @@ static int get_max_procs(int cb_nodes)
  *
  * Returns a token of types defined at top of this file.
  */
-#if defined(ROMIO_GPFS)
+#if defined(BGQPLATFORM)
 /* On BlueGene, the ',' character shows up in get_processor_name, so we have to
  * use a different delimiter */
 #define COLON ':'

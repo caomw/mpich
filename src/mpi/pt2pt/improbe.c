@@ -55,12 +55,12 @@ Output Parameters:
 int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message *message, MPI_Status *status)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *msgp = NULL;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_IMPROBE);
+    MPIR_Request *msgp = NULL;
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_IMPROBE);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_IMPROBE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_IMPROBE);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -76,14 +76,14 @@ int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message *mess
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS
         {
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
             MPIR_ERRTEST_ARGNULL(flag, "flag", mpi_errno);
@@ -96,12 +96,12 @@ int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message *mess
     /* ... body of routine ...  */
 
     *message = MPI_MESSAGE_NULL;
-    mpi_errno = MPID_Improbe(source, tag, comm_ptr, MPID_CONTEXT_INTRA_PT2PT, flag, &msgp, status);
+    mpi_errno = MPID_Improbe(source, tag, comm_ptr, MPIR_CONTEXT_INTRA_PT2PT, flag, &msgp, status);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
     if (*flag) {
 	if (msgp == NULL) {
-	    MPIU_Assert(source == MPI_PROC_NULL);
+	    MPIR_Assert(source == MPI_PROC_NULL);
 	    *message = MPI_MESSAGE_NO_PROC;
 	}
 	else {
@@ -112,7 +112,7 @@ int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message *mess
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_IMPROBE);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_IMPROBE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

@@ -55,12 +55,12 @@ Output Parameters:
 int MPI_Comm_remote_size(MPI_Comm comm, int *size)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_REMOTE_SIZE);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_REMOTE_SIZE);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_REMOTE_SIZE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_REMOTE_SIZE);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -74,7 +74,7 @@ int MPI_Comm_remote_size(MPI_Comm comm, int *size)
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -82,9 +82,9 @@ int MPI_Comm_remote_size(MPI_Comm comm, int *size)
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
 	    /* If comm_ptr is not valid, it will be reset to null */
-	    if (comm_ptr && comm_ptr->comm_kind != MPID_INTERCOMM) {
+	    if (comm_ptr && comm_ptr->comm_kind != MPIR_COMM_KIND__INTERCOMM) {
 		mpi_errno = MPIR_Err_create_code( MPI_SUCCESS, 
                         MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_COMM, 
 						  "**commnotinter", 0 );
@@ -104,7 +104,7 @@ int MPI_Comm_remote_size(MPI_Comm comm, int *size)
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_REMOTE_SIZE);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_REMOTE_SIZE);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

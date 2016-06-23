@@ -149,7 +149,7 @@ MPIR_Op_check_dtype_fn *MPIR_Op_check_dtype_table[] = {
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int allreduce_intra_or_coll_fn(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op,
-                                             MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+                                             MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -182,7 +182,7 @@ int MPIR_Allreduce_intra (
     int count, 
     MPI_Datatype datatype, 
     MPI_Op op, 
-    MPID_Comm *comm_ptr,
+    MPIR_Comm *comm_ptr,
     MPIR_Errflag_t *errflag )
 {
 #ifdef MPID_HAS_HETERO
@@ -198,11 +198,8 @@ int MPIR_Allreduce_intra (
         send_idx, recv_idx, last_idx, send_cnt, recv_cnt, *cnts, *disps; 
     MPI_Aint true_extent, true_lb, extent;
     void *tmp_buf;
-    MPIU_CHKLMEM_DECL(3);
+    MPIR_CHKLMEM_DECL(3);
     
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER( comm_ptr );
-
     if (count == 0) goto fn_exit;
 
     is_commutative = MPIR_Op_is_commutative(op);
@@ -223,7 +220,7 @@ int MPIR_Allreduce_intra (
                 /* IN_PLACE and not root of reduce. Data supplied to this
                    allreduce is in recvbuf. Pass that as the sendbuf to reduce. */
 			
-                mpi_errno = MPIR_Reduce_impl(recvbuf, NULL, count, datatype, op, 0, comm_ptr->node_comm, errflag);
+                mpi_errno = MPID_Reduce(recvbuf, NULL, count, datatype, op, 0, comm_ptr->node_comm, errflag);
                 if (mpi_errno) {
                     /* for communication errors, just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -231,7 +228,7 @@ int MPIR_Allreduce_intra (
                     MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
                 }
             } else {
-                mpi_errno = MPIR_Reduce_impl(sendbuf, recvbuf, count, datatype, op, 0, comm_ptr->node_comm, errflag);
+                mpi_errno = MPID_Reduce(sendbuf, recvbuf, count, datatype, op, 0, comm_ptr->node_comm, errflag);
                 if (mpi_errno) {
                     /* for communication errors, just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -261,7 +258,7 @@ int MPIR_Allreduce_intra (
 
         /* now broadcast the result among local processes */
         if (comm_ptr->node_comm != NULL) {
-            mpi_errno = MPIR_Bcast_impl(recvbuf, count, datatype, 0, comm_ptr->node_comm, errflag);
+            mpi_errno = MPID_Bcast(recvbuf, count, datatype, 0, comm_ptr->node_comm, errflag);
             if (mpi_errno) {
                 /* for communication errors, just record the error but continue */
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -284,7 +281,7 @@ int MPIR_Allreduce_intra (
     if (!is_homogeneous) {
         /* heterogeneous. To get the same result on all processes, we
            do a reduce to 0 and then broadcast. */
-        mpi_errno = MPIR_Reduce_impl ( sendbuf, recvbuf, count, datatype,
+        mpi_errno = MPID_Reduce( sendbuf, recvbuf, count, datatype,
                                        op, 0, comm_ptr, errflag );
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
@@ -293,7 +290,7 @@ int MPIR_Allreduce_intra (
             MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
         }
 
-        mpi_errno = MPIR_Bcast_impl( recvbuf, count, datatype, 0, comm_ptr, errflag );
+        mpi_errno = MPID_Bcast( recvbuf, count, datatype, 0, comm_ptr, errflag );
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -315,8 +312,8 @@ int MPIR_Allreduce_intra (
         MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
         MPID_Datatype_get_extent_macro(datatype, extent);
 
-        MPIU_Ensure_Aint_fits_in_pointer(count * MPIR_MAX(extent, true_extent));
-        MPIU_CHKLMEM_MALLOC(tmp_buf, void *, count*(MPIR_MAX(extent,true_extent)), mpi_errno, "temporary buffer");
+        MPIR_Ensure_Aint_fits_in_pointer(count * MPL_MAX(extent, true_extent));
+        MPIR_CHKLMEM_MALLOC(tmp_buf, void *, count*(MPL_MAX(extent,true_extent)), mpi_errno, "temporary buffer");
 	
         /* adjust for potential negative lower bound in datatype */
         tmp_buf = (void *)((char*)tmp_buf - true_lb);
@@ -448,8 +445,8 @@ int MPIR_Allreduce_intra (
                    each process receives and the displacement within
                    the buffer */
 
-		MPIU_CHKLMEM_MALLOC(cnts, int *, pof2*sizeof(int), mpi_errno, "counts");
-		MPIU_CHKLMEM_MALLOC(disps, int *, pof2*sizeof(int), mpi_errno, "displacements");
+		MPIR_CHKLMEM_MALLOC(cnts, int *, pof2*sizeof(int), mpi_errno, "counts");
+		MPIR_CHKLMEM_MALLOC(disps, int *, pof2*sizeof(int), mpi_errno, "displacements");
 
                 for (i=0; i<(pof2-1); i++) 
                     cnts[i] = count/pof2;
@@ -598,10 +595,7 @@ int MPIR_Allreduce_intra (
     }
 
   fn_exit:
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT( comm_ptr );
-
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     return (mpi_errno);
@@ -623,7 +617,7 @@ int MPIR_Allreduce_inter (
     int count, 
     MPI_Datatype datatype, 
     MPI_Op op, 
-    MPID_Comm *comm_ptr,
+    MPIR_Comm *comm_ptr,
     MPIR_Errflag_t *errflag )
 {
 /* Intercommunicator Allreduce.
@@ -635,26 +629,24 @@ int MPIR_Allreduce_inter (
     int mpi_errno_ret = MPI_SUCCESS;
     MPI_Aint true_extent, true_lb, extent;
     void *tmp_buf=NULL;
-    MPID_Comm *newcomm_ptr = NULL;
-    MPIU_CHKLMEM_DECL(1);
-
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER( comm_ptr );
+    MPIR_Comm *newcomm_ptr = NULL;
+    MPIR_CHKLMEM_DECL(1);
 
     if (comm_ptr->rank == 0) {
         MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
         MPID_Datatype_get_extent_macro(datatype, extent);
         /* I think this is the worse case, so we can avoid an assert()
          * inside the for loop */
-        /* Should MPIU_CHKLMEM_MALLOC do this? */
-        MPIU_Ensure_Aint_fits_in_pointer(count * MPIR_MAX(extent, true_extent));
-        MPIU_CHKLMEM_MALLOC(tmp_buf, void *, count*(MPIR_MAX(extent,true_extent)), mpi_errno, "temporary buffer");
+        /* Should MPIR_CHKLMEM_MALLOC do this? */
+        MPIR_Ensure_Aint_fits_in_pointer(count * MPL_MAX(extent, true_extent));
+        MPIR_CHKLMEM_MALLOC(tmp_buf, void *, count*(MPL_MAX(extent,true_extent)), mpi_errno, "temporary buffer");
         /* adjust for potential negative lower bound in datatype */
         tmp_buf = (void *)((char*)tmp_buf - true_lb);
     }
 
     /* Get the local intracommunicator */
     if (!comm_ptr->local_comm)
-        MPIR_Setup_intercomm_localcomm( comm_ptr );
+        MPII_Setup_intercomm_localcomm( comm_ptr );
 
     newcomm_ptr = comm_ptr->local_comm;
 
@@ -682,7 +674,7 @@ int MPIR_Allreduce_inter (
     }
 
     /* Do a local broadcast on this intracommunicator */
-    mpi_errno = MPIR_Bcast_impl(recvbuf, count, datatype,
+    mpi_errno = MPID_Bcast(recvbuf, count, datatype,
                                 0, newcomm_ptr, errflag);
     if (mpi_errno) {
         /* for communication errors, just record the error but continue */
@@ -692,8 +684,7 @@ int MPIR_Allreduce_inter (
     }
 
   fn_exit:
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT( comm_ptr );
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     else if (*errflag != MPIR_ERR_NONE)
@@ -714,11 +705,11 @@ int MPIR_Allreduce_inter (
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Allreduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
-                   MPI_Op op, MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+                   MPI_Op op, MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    if (comm_ptr->comm_kind == MPID_INTRACOMM) {
+    if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
         /* intracommunicator */
         mpi_errno = MPIR_Allreduce_intra(sendbuf, recvbuf, count, datatype, op, comm_ptr, errflag);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -744,7 +735,7 @@ fn_fail:
 #define FUNCNAME MPIR_Allreduce_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Allreduce_impl(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPID_Comm *comm_ptr,
+int MPIR_Allreduce_impl(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPIR_Comm *comm_ptr,
                         MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -758,7 +749,7 @@ int MPIR_Allreduce_impl(const void *sendbuf, void *recvbuf, int count, MPI_Datat
     }
     else
     {
-        if (comm_ptr->comm_kind == MPID_INTRACOMM) {
+        if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
             /* intracommunicator */
             mpi_errno = MPIR_Allreduce_intra(sendbuf, recvbuf, count, datatype, op, comm_ptr, errflag);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -815,14 +806,14 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 {
     static const char FCNAME[] = "MPI_Allreduce";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_ALLREDUCE);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_ALLREDUCE);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_COLL_FUNC_ENTER(MPID_STATE_MPI_ALLREDUCE);
+    MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_ALLREDUCE);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -836,17 +827,17 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Datatype *datatype_ptr = NULL;
-            MPID_Op *op_ptr = NULL;
+            MPIR_Datatype *datatype_ptr = NULL;
+            MPIR_Op *op_ptr = NULL;
 
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 	    MPIR_ERRTEST_COUNT(count, mpi_errno);
 	    MPIR_ERRTEST_DATATYPE(datatype, "datatype", mpi_errno);
@@ -854,13 +845,13 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 	    
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr( datatype_ptr, mpi_errno );
+                MPIR_Datatype_valid_ptr( datatype_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                 MPID_Datatype_committed_ptr( datatype_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
             }
 
-            if (comm_ptr->comm_kind == MPID_INTERCOMM) {
+            if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) {
                 MPIR_ERRTEST_SENDBUF_INPLACE(sendbuf, count, mpi_errno);
             } else {
                 if (count != 0 && sendbuf != MPI_IN_PLACE)
@@ -874,8 +865,8 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 	    MPIR_ERRTEST_USERBUFFER(recvbuf,count,datatype,mpi_errno);
 
             if (HANDLE_GET_KIND(op) != HANDLE_KIND_BUILTIN) {
-                MPID_Op_get_ptr(op, op_ptr);
-                MPID_Op_valid_ptr( op_ptr, mpi_errno );
+                MPIR_Op_get_ptr(op, op_ptr);
+                MPIR_Op_valid_ptr( op_ptr, mpi_errno );
             }
             if (HANDLE_GET_KIND(op) == HANDLE_KIND_BUILTIN) {
                 mpi_errno = 
@@ -889,13 +880,13 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 
     /* ... body of routine ...  */
 
-    mpi_errno = MPIR_Allreduce_impl(sendbuf, recvbuf, count, datatype, op, comm_ptr, &errflag);
+    mpi_errno = MPID_Allreduce(sendbuf, recvbuf, count, datatype, op, comm_ptr, &errflag);
     if (mpi_errno) goto fn_fail;
 
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_COLL_FUNC_EXIT(MPID_STATE_MPI_ALLREDUCE);
+    MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_ALLREDUCE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

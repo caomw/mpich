@@ -31,7 +31,7 @@ int MPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler) __attribu
 #define FUNCNAME MPIR_Comm_get_errhandler_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-void MPIR_Comm_get_errhandler_impl(MPID_Comm *comm_ptr, MPID_Errhandler **errhandler_ptr)
+void MPIR_Comm_get_errhandler_impl(MPIR_Comm *comm_ptr, MPIR_Errhandler **errhandler_ptr)
 {
     MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_COMM_MUTEX(comm_ptr));
     *errhandler_ptr = comm_ptr->errhandler;
@@ -68,14 +68,14 @@ Output Parameters:
 int MPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_Errhandler *errhandler_ptr;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_GET_ERRHANDLER);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_Errhandler *errhandler_ptr;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_GET_ERRHANDLER);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_GET_ERRHANDLER);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_GET_ERRHANDLER);
     
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -89,7 +89,7 @@ int MPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler)
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
     
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -97,7 +97,7 @@ int MPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler)
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr; if comm_ptr is not valid, it will be reset to null  */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
             if (mpi_errno) goto fn_fail;
 	    MPIR_ERRTEST_ARGNULL(errhandler,"errhandler",mpi_errno);
         }
@@ -118,7 +118,7 @@ int MPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler)
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_GET_ERRHANDLER);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_GET_ERRHANDLER);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

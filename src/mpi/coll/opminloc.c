@@ -53,7 +53,7 @@ typedef struct MPIR_longdoubleint_loctype {
                 a[i].value = b[i].value;                \
                 a[i].loc   = b[i].loc;                  \
             } else if (a[i].value >= b[i].value)        \
-                a[i].loc = MPIR_MIN(a[i].loc,b[i].loc); \
+                a[i].loc = MPL_MIN(a[i].loc,b[i].loc); \
         }                                               \
     }                                                   \
     break
@@ -66,7 +66,7 @@ typedef struct MPIR_longdoubleint_loctype {
                 a[i]   = b[i];                          \
                 a[i+1] = b[i+1];                        \
             } else if (a[i] >= b[i])                    \
-                a[i+1] = MPIR_MIN(a[i+1],b[i+1]);       \
+                a[i+1] = MPL_MIN(a[i+1],b[i+1]);       \
         }                                               \
     }                                                   \
     break
@@ -111,10 +111,16 @@ void MPIR_MINLOC(
 #endif
 	/* --BEGIN ERROR HANDLING-- */
     default: {
-	MPID_THREADPRIV_DECL;
-	MPID_THREADPRIV_GET;
         MPIR_ERR_SET1(mpi_errno, MPI_ERR_OP, "**opundefined","**opundefined %s", "MPI_MINLOC" );
-        MPID_THREADPRIV_FIELD(op_errno) = mpi_errno;
+        {
+            MPIR_Per_thread_t *per_thread = NULL;
+            int err = 0;
+
+            MPID_THREADPRIV_KEY_GET_ADDR(MPIR_ThreadInfo.isThreaded, MPIR_Per_thread_key,
+                                         MPIR_Per_thread, per_thread, &err);
+            MPIR_Assert(err == 0);
+            per_thread->op_errno = mpi_errno;
+        }
         break;
     }
 	/* --END ERROR HANDLING-- */

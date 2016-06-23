@@ -26,7 +26,7 @@ int MPI_Comm_get_attr(MPI_Comm comm, int comm_keyval, void *attribute_val, int *
 #define MPI_Comm_get_attr PMPI_Comm_get_attr
 
 #undef FUNCNAME
-#define FUNCNAME MPIR_CommGetAttr
+#define FUNCNAME MPII_Comm_get_attr
 
 /* Find the requested attribute.  If it exists, return either the attribute
    entry or the address of the entry, based on whether the request is for 
@@ -36,19 +36,19 @@ int MPI_Comm_get_attr(MPI_Comm comm, int comm_keyval, void *attribute_val, int *
    If the attribute has the same type as the request, it is returned as-is.
    Otherwise, the address of the attribute is returned.
 */
-int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val, 
-		      int *flag, MPIR_AttrType outAttrType )
+int MPII_Comm_get_attr( MPI_Comm comm, int comm_keyval, void *attribute_val,
+		      int *flag, MPIR_Attr_type outAttrType )
 {
-    static const char FCNAME[] = "MPIR_CommGetAttr";
+    static const char FCNAME[] = "MPII_Comm_get_attr";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     static PreDefined_attrs attr_copy;    /* Used to provide a copy of the
 					     predefined attributes */
-    MPID_MPI_STATE_DECL(MPID_STATE_MPIR_COMM_GET_ATTR);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_GET_ATTR);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPIR_COMM_GET_ATTR);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_GET_ATTR);
     
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -56,14 +56,14 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
         MPID_BEGIN_ERROR_CHECKS;
         {
 	    MPIR_ERRTEST_COMM(comm, mpi_errno);
-	    MPIR_ERRTEST_KEYVAL(comm_keyval, MPID_COMM, "communicator", mpi_errno);
+	    MPIR_ERRTEST_KEYVAL(comm_keyval, MPIR_COMM, "communicator", mpi_errno);
 #           ifdef NEEDS_POINTER_ALIGNMENT_ADJUST
             /* A common user error is to pass the address of a 4-byte
 	       int when the address of a pointer (or an address-sized int)
 	       should have been used.  We can test for this specific
-	       case.  Note that this code assumes sizeof(MPIU_Pint) is 
+	       case.  Note that this code assumes sizeof(intptr_t) is
 	       a power of 2. */
-	    if ((MPIU_Pint)attribute_val & (sizeof(MPIU_Pint)-1)) {
+	    if ((intptr_t)attribute_val & (sizeof(intptr_t)-1)) {
 		MPIR_ERR_SETANDSTMT(mpi_errno,MPI_ERR_ARG,goto fn_fail,"**attrnotptr");
 	    }
 #           endif
@@ -73,7 +73,7 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
 #   endif
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -81,7 +81,7 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
 	    /* If comm_ptr is not valid, it will be reset to null */
 	    MPIR_ERRTEST_ARGNULL(attribute_val, "attr_val", mpi_errno);
 	    MPIR_ERRTEST_ARGNULL(flag, "flag", mpi_errno);
@@ -105,7 +105,7 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
 	/* This is an address-sized int instead of a Fortran (MPI_Fint)
 	   integer because, even for the Fortran keyvals, the C interface is 
 	   used which stores the result in a pointer (hence we need a
-	   pointer-sized int).  Thus we use MPIU_Pint instead of MPI_Fint.
+	   pointer-sized int).  Thus we use intptr_t instead of MPI_Fint.
 	   On some 64-bit plaforms, such as Solaris-SPARC, using an MPI_Fint
 	   will cause the value to placed into the high, rather than low,
 	   end of the output value. */
@@ -203,7 +203,7 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
 	   version of INTEGER (KIND=MPI_ADDRESS_KIND) ) */
 	if (*flag) {
             /* Use the internal pointer-sized-int for systems (e.g., BG/P)
-               that define MPI_Aint as a different size than MPIU_Pint.
+               that define MPI_Aint as a different size than intptr_t.
 	       The casts must be as they are:
 	       On the right, the value is a pointer to an int, so to 
 	       get the correct value, we need to extract the int.
@@ -212,12 +212,12 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
 	    /* FIXME: This code is broken.  The MPIR_ATTR_INT is for Fortran
 	       MPI_Fint types, not int, and MPIR_ATTR_AINT is for Fortran
 	       INTEGER(KIND=MPI_ADDRESS_KIND), which is probably an MPI_Aint,
-	       and MPIU_Pint is for exactly the case where MPI_Aint is not
-	       the same as MPIU_Pint. 
+	       and intptr_t is for exactly the case where MPI_Aint is not
+	       the same as intptr_t.
 	       This code needs to be fixed in every place that it occurs 
 	       (i.e., see the win and type get_attr routines). */
 	    if (outAttrType == MPIR_ATTR_AINT)
-		*(MPIU_Pint*)attr_val_p = *(int*)*(void **)attr_val_p;
+		*(intptr_t*)attr_val_p = *(int*)*(void **)attr_val_p;
 	    else if (outAttrType == MPIR_ATTR_INT) {
 		/* *(int*)attr_val_p = *(int *)*(void **)attr_val_p;*/
                 /* This is correct, because the cooresponding code 
@@ -226,12 +226,12 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
                    endian systems. Any changes made here must have
                    corresponding changes in src/binding/f77/attr_getf.c ,
                    which is generated by src/binding/f77/buildiface . */
-                *(MPIU_Pint*)attr_val_p = *(int*)*(void **)attr_val_p;
+                *(intptr_t*)attr_val_p = *(int*)*(void **)attr_val_p;
             }
 	}
     }
     else {
-	MPID_Attribute *p = comm_ptr->attributes;
+	MPIR_Attribute *p = comm_ptr->attributes;
 
 	/*   */
 	*flag = 0;
@@ -260,11 +260,11 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
 			*(void**)attribute_val = &(p->value);
 		    }
 		    else {
-			*(void**)attribute_val = (void *)(MPIU_Pint)(p->value);
+			*(void**)attribute_val = (void *)(intptr_t)(p->value);
 		    }
 		}
 		else {
-		    *(void**)attribute_val = (void *)(MPIU_Pint)(p->value);
+		    *(void**)attribute_val = (void *)(intptr_t)(p->value);
                 }
 
 		break;
@@ -275,7 +275,7 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPIR_COMM_GET_ATTR);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_GET_ATTR);
     return mpi_errno;
 
   fn_fail:
@@ -294,14 +294,14 @@ int MPIR_CommGetAttr( MPI_Comm comm, int comm_keyval, void *attribute_val,
 
 /* This function is called by the fortran bindings. */
 /* FIXME: There is no reason to have this routine since it unnecessarily 
-   duplicates the MPIR_CommGetAttr interface. */
-int MPIR_CommGetAttr_fort(MPI_Comm comm, int comm_keyval, void *attribute_val,
-                          int *flag, MPIR_AttrType outAttrType )
+   duplicates the MPII_Comm_get_attr interface. */
+int MPII_Comm_get_attr_fort(MPI_Comm comm, int comm_keyval, void *attribute_val,
+                          int *flag, MPIR_Attr_type outAttrType )
 {
     int mpi_errno;
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    mpi_errno = MPIR_CommGetAttr(comm, comm_keyval, attribute_val, flag, outAttrType);
+    mpi_errno = MPII_Comm_get_attr(comm, comm_keyval, attribute_val, flag, outAttrType);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
     return mpi_errno;
@@ -351,21 +351,21 @@ int MPI_Comm_get_attr(MPI_Comm comm, int comm_keyval, void *attribute_val,
 		      int *flag)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_GET_ATTR);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_GET_ATTR);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_GET_ATTR);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_GET_ATTR);
 
     /* Instead, ask for a desired type. */
-    mpi_errno = MPIR_CommGetAttr( comm, comm_keyval, attribute_val, flag, 
+    mpi_errno = MPII_Comm_get_attr( comm, comm_keyval, attribute_val, flag,
 				  MPIR_ATTR_PTR );
     if (mpi_errno) goto fn_fail;
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_GET_ATTR);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_GET_ATTR);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

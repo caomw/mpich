@@ -67,10 +67,10 @@ Output Parameters:
 int MPI_Type_size_x(MPI_Datatype datatype, MPI_Count *size)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_SIZE_X);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_SIZE_X);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_SIZE_X);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_SIZE_X);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -94,9 +94,9 @@ int MPI_Type_size_x(MPI_Datatype datatype, MPI_Count *size)
         MPID_BEGIN_ERROR_CHECKS
         {
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *datatype_ptr = NULL;
+                MPIR_Datatype *datatype_ptr = NULL;
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
             }
 
             /* TODO more checks may be appropriate (counts, in_place, buffer aliasing, etc) */
@@ -114,7 +114,7 @@ int MPI_Type_size_x(MPI_Datatype datatype, MPI_Count *size)
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_SIZE_X);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_SIZE_X);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

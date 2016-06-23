@@ -9,25 +9,7 @@
 
 #include "mpioimpl.h"
 #include "adio_extern.h"
-
-/* MPICH error handling implementation */
-/* FIXME: These external prototypes should be included from 
-   mpich/src/include/mpiext.h */
-int MPIR_Err_create_code_valist(int, int, const char [], int, int, 
-				const char [], const char [], va_list );
-int MPIR_Err_is_fatal(int);
-
-void MPIR_Get_file_error_routine( MPI_Errhandler, 
-				  void (**)(MPI_File *, int *, ...), 
-				  int * );
-int MPIR_File_call_cxx_errhandler( MPI_File *, int *, 
-				   void (*)(MPI_File *, int *, ... ) );
-
-typedef int (* MPIR_Err_get_class_string_func_t)(int error, char *str, int length);
-void MPIR_Err_get_string( int, char *, int, MPIR_Err_get_class_string_func_t );
-
-struct MPID_Comm;
-int MPID_Abort(struct MPID_Comm *comm, int mpi_errno, int exit_code, const char *error_msg);
+#include "mpir_ext.h"
 
 int MPIO_Err_create_code(int lastcode, int fatal, const char fcname[],
 			 int line, int error_class, const char generic_msg[],
@@ -92,7 +74,7 @@ int MPIO_Err_return_file(MPI_File mpi_fh, int error_code)
     /* --BEGIN ERROR HANDLING-- */
     if (MPIR_Err_is_fatal(error_code) || kind == 0) 
     {
-	ADIOI_Snprintf(error_msg, 4096, "I/O error: ");
+	MPL_snprintf(error_msg, 4096, "I/O error: ");
 	len = (int)strlen(error_msg);
 	MPIR_Err_get_string(error_code, &error_msg[len], 4096-len, NULL);
 	MPID_Abort(NULL, MPI_SUCCESS, error_code, error_msg);

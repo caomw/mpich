@@ -64,11 +64,11 @@ int MPI_Comm_get_parent(MPI_Comm *parent)
     static const char FCNAME[] = "MPI_Comm_get_parent";
 #endif
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_GET_PARENT);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_GET_PARENT);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_GET_PARENT);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_GET_PARENT);
 
 #   ifdef HAVE_ERROR_CHECKING
     {
@@ -82,8 +82,6 @@ int MPI_Comm_get_parent(MPI_Comm *parent)
 
     /* ... body of routine ...  */
     
-    /* Note that MPIU_DBG_OpenFile also uses this code (so as to avoid
-       calling an MPI routine while logging it */
     *parent = (MPIR_Process.comm_parent == NULL) ? MPI_COMM_NULL :
                (MPIR_Process.comm_parent)->handle;  
 
@@ -92,7 +90,7 @@ int MPI_Comm_get_parent(MPI_Comm *parent)
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_GET_PARENT);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_GET_PARENT);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

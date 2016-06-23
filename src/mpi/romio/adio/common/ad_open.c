@@ -38,6 +38,15 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
     /* obtain MPI_File handle */
     mpi_fh = MPIO_File_create(sizeof(struct ADIOI_FileD));
     if (mpi_fh == MPI_FILE_NULL) {
+	fd = MPI_FILE_NULL;
+	*error_code = MPIO_Err_create_code(*error_code,
+					   MPIR_ERR_RECOVERABLE,
+					   myname,
+					   __LINE__,
+					   MPI_ERR_OTHER,
+					   "**nomem2",0);
+	goto fn_exit;
+
     }
     fd = MPIO_File_resolve(mpi_fh);
 
@@ -192,12 +201,12 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
                 (*(fd->fns->ADIOI_xxx_Close))(fd, error_code);
             }
         }
-	if (fd->filename) ADIOI_Free(fd->filename);
-	if (fd->hints->ranklist) ADIOI_Free(fd->hints->ranklist);
-	if (fd->hints->cb_config_list) ADIOI_Free(fd->hints->cb_config_list);
-	if (fd->hints) ADIOI_Free(fd->hints);
+	ADIOI_Free(fd->filename);
+	ADIOI_Free(fd->hints->ranklist);
+	ADIOI_Free(fd->hints->cb_config_list);
+	ADIOI_Free(fd->hints);
 	if (fd->info != MPI_INFO_NULL) MPI_Info_free(&(fd->info));
-	if (fd->io_buf) ADIOI_Free(fd->io_buf);
+	ADIOI_Free(fd->io_buf);
 	ADIOI_Free(fd);
         fd = ADIO_FILE_NULL;
 	if (*error_code == MPI_SUCCESS)
@@ -298,7 +307,7 @@ static int build_cb_config_list(ADIO_File fd,
 	fd->hints->cb_nodes = rank_ct;
 	/* TEMPORARY -- REMOVE WHEN NO LONGER UPDATING INFO FOR FS-INDEP. */
 	value = (char *) ADIOI_Malloc((MPI_MAX_INFO_VAL+1)*sizeof(char));
-	ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, "%d", rank_ct);
+	MPL_snprintf(value, MPI_MAX_INFO_VAL+1, "%d", rank_ct);
 	ADIOI_Info_set(fd->info, "cb_nodes", value);
 	ADIOI_Free(value);
     }

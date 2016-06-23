@@ -9,7 +9,7 @@
 #include "mpiu_greq.h"
 #include "mpioimpl.h"
 
-#ifdef USE_DBG_LOGGING
+#ifdef MPL_USE_DBG_LOGGING
   #define RDCOLL_DEBUG 1
 #endif
 #ifdef AGGREGATION_PROFILE
@@ -515,12 +515,10 @@ static void ADIOI_GEN_IreadStridedColl_free(ADIOI_NBC_Request *nbc_req,
 {
     ADIOI_GEN_IreadStridedColl_vars *vars = nbc_req->data.rd.rsc_vars;
     ADIO_File fd = vars->fd;
-    MPI_Datatype datatype = vars->datatype;
     ADIOI_Access *others_req = vars->others_req;
     int nprocs = vars->nprocs;
     int i;
 
-    if (!vars->buftype_is_contig) ADIOI_Delete_flattened(datatype);
 
     /* free all memory allocated for collective I/O */
     for (i = 0; i < nprocs; i++) {
@@ -614,8 +612,8 @@ static void ADIOI_Iread_and_exch(ADIOI_NBC_Request *nbc_req, int *error_code)
     /* now find the real values */
     for (i = 0; i < nprocs; i++)
         for (j = 0; j < others_req[i].count; j++) {
-            st_loc = ADIOI_MIN(st_loc, others_req[i].offsets[j]);
-            end_loc = ADIOI_MAX(end_loc, (others_req[i].offsets[j]
+            st_loc = MPL_MIN(st_loc, others_req[i].offsets[j]);
+            end_loc = MPL_MAX(end_loc, (others_req[i].offsets[j]
                           + others_req[i].lens[j] - 1));
         }
 
@@ -754,7 +752,7 @@ static void ADIOI_Iread_and_exch_l1_begin(ADIOI_NBC_Request *nbc_req,
                  minus what was satisfied in previous iteration
        req_size = size corresponding to req_off */
 
-    size = ADIOI_MIN((unsigned)vars->coll_bufsize,
+    size = MPL_MIN((unsigned)vars->coll_bufsize,
                      vars->end_loc - vars->st_loc + 1 - vars->done);
     real_off = vars->off - vars->for_curr_iter;
     real_size = size + vars->for_curr_iter;
@@ -789,11 +787,11 @@ static void ADIOI_Iread_and_exch_l1_begin(ADIOI_NBC_Request *nbc_req,
                 }
                 if (req_off < real_off + real_size) {
                     count[i]++;
-                    ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)read_buf) + req_off - real_off) == (ADIO_Offset)(MPIU_Upint)(read_buf + req_off - real_off));
+                    ADIOI_Assert((((ADIO_Offset)(uintptr_t)read_buf) + req_off - real_off) == (ADIO_Offset)(uintptr_t)(read_buf + req_off - real_off));
                     MPI_Address(read_buf + req_off - real_off,
                                 &(others_req[i].mem_ptrs[j]));
                     ADIOI_Assert((real_off + real_size - req_off) == (int)(real_off + real_size - req_off));
-                    send_size[i] += (int)(ADIOI_MIN(real_off + real_size - req_off,
+                    send_size[i] += (int)(MPL_MIN(real_off + real_size - req_off,
                                                     (ADIO_Offset)(unsigned)req_len));
 
                     if (real_off + real_size - req_off < (ADIO_Offset)(unsigned)req_len) {
@@ -802,7 +800,7 @@ static void ADIOI_Iread_and_exch_l1_begin(ADIOI_NBC_Request *nbc_req,
                             (others_req[i].offsets[j+1] < real_off + real_size)) {
                             /* this is the case illustrated in the
                                figure above. */
-                            for_next_iter = ADIOI_MAX(for_next_iter,
+                            for_next_iter = MPL_MAX(for_next_iter,
                                     real_off + real_size - others_req[i].offsets[j+1]);
                             /* max because it must cover requests
                                from different processes */
@@ -885,7 +883,7 @@ static void ADIOI_Iread_and_exch_l1_end(ADIOI_NBC_Request *nbc_req,
 
     if (for_next_iter) {
         tmp_buf = (char *)ADIOI_Malloc(for_next_iter);
-        ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)read_buf)+real_size-for_next_iter) == (ADIO_Offset)(MPIU_Upint)(read_buf+real_size-for_next_iter));
+        ADIOI_Assert((((ADIO_Offset)(uintptr_t)read_buf)+real_size-for_next_iter) == (ADIO_Offset)(uintptr_t)(read_buf+real_size-for_next_iter));
         ADIOI_Assert((for_next_iter+vars->coll_bufsize) == (size_t)(for_next_iter+vars->coll_bufsize));
         memcpy(tmp_buf, read_buf+real_size-for_next_iter, for_next_iter);
         ADIOI_Free(fd->io_buf);

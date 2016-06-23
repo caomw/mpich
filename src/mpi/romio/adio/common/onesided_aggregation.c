@@ -1,3 +1,9 @@
+/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
+/*
+ *  (C) 2015 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
+
 #include "adio.h"
 #include "adio_extern.h"
 #ifdef ROMIO_GPFS
@@ -303,11 +309,11 @@ printf("ADIOI_OneSidedWriteAggregation started on rank %d\n",myrank);
 #ifdef onesidedtrace
 printf("end_offsets[%d] is %ld st_offsets[%d] is %ld\n",j,end_offsets[j],j,st_offsets[j]);
 #endif
-        lastFileOffset = ADIOI_MAX(lastFileOffset,end_offsets[j]);
+        lastFileOffset = MPL_MAX(lastFileOffset,end_offsets[j]);
         if (firstFileOffset == -1)
           firstFileOffset = st_offsets[j];
         else
-          firstFileOffset = ADIOI_MIN(firstFileOffset,st_offsets[j]);
+          firstFileOffset = MPL_MIN(firstFileOffset,st_offsets[j]);
     }
 
     int myAggRank = -1; /* if I am an aggregor this is my index into fd->hints->ranklist */
@@ -1118,7 +1124,7 @@ printf("first barrier roundIter %d\n",roundIter);
         io_thread_args.io_kind = ADIOI_WRITE;
         io_thread_args.size = (currentRoundFDEnd-currentRoundFDStart) + 1;
         io_thread_args.offset = currentRoundFDStart;
-        io_thread_args.status = status;
+        io_thread_args.status = &status;
         io_thread_args.error_code = *error_code;
 
         if ( (pthread_create(&io_thread, NULL,
@@ -1206,8 +1212,6 @@ printf("freeing datastructures\n");
 
     ADIOI_Free(currentFDSourceBufferState);
 
-    if (!bufTypeIsContig)
-      ADIOI_Delete_flattened(datatype);
     return;
 }
 
@@ -1341,11 +1345,11 @@ printf("ADIOI_OneSidedReadAggregation started on rank %d\n",myrank);
 #ifdef onesidedtrace
 printf("end_offsets[%d] is %ld st_offsets[%d] is %ld\n",j,end_offsets[j],j,st_offsets[j]);
 #endif
-        lastFileOffset = ADIOI_MAX(lastFileOffset,end_offsets[j]);
+        lastFileOffset = MPL_MAX(lastFileOffset,end_offsets[j]);
         if (firstFileOffset == -1)
           firstFileOffset = st_offsets[j];
         else
-          firstFileOffset = ADIOI_MIN(firstFileOffset,st_offsets[j]);
+          firstFileOffset = MPL_MIN(firstFileOffset,st_offsets[j]);
     }
 
     int myAggRank = -1; /* if I am an aggregor this is my index into fd->hints->ranklist */
@@ -1892,7 +1896,7 @@ printf("iAmUsedAgg - currentRoundFDStart initialized "
             io_thread_args.io_kind = ADIOI_READ;
             io_thread_args.size = amountDataToReadNextRound;
             io_thread_args.offset = nextRoundFDStart;
-            io_thread_args.status = status;
+            io_thread_args.status = &status;
             io_thread_args.error_code = *error_code;
             if ( (pthread_create(&io_thread, NULL,
                     ADIOI_IO_Thread_Func, &(io_thread_args))) != 0)
@@ -2162,7 +2166,5 @@ printf("iAmUsedAgg - currentRoundFDStart initialized "
 
     ADIOI_Free(currentFDSourceBufferState);
 
-    if (!bufTypeIsContig)
-      ADIOI_Delete_flattened(datatype);
     return;
 }

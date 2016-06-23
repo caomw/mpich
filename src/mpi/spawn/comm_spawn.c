@@ -66,14 +66,14 @@ int MPI_Comm_spawn(const char *command, char *argv[], int maxprocs, MPI_Info inf
 {
     static const char FCNAME[] = "MPI_Comm_spawn";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL, *intercomm_ptr;
-    MPID_Info *info_ptr=NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_SPAWN);
+    MPIR_Comm *comm_ptr = NULL, *intercomm_ptr;
+    MPIR_Info *info_ptr=NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_SPAWN);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_SPAWN);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_SPAWN);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -87,7 +87,7 @@ int MPI_Comm_spawn(const char *command, char *argv[], int maxprocs, MPI_Info inf
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -95,7 +95,7 @@ int MPI_Comm_spawn(const char *command, char *argv[], int maxprocs, MPI_Info inf
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
 	    /* If comm_ptr is not valid, it will be reset to null */
             if (mpi_errno) goto fn_fail;
 
@@ -113,26 +113,23 @@ int MPI_Comm_spawn(const char *command, char *argv[], int maxprocs, MPI_Info inf
 #   endif /* HAVE_ERROR_CHECKING */
 
     if (comm_ptr->rank == root) {
-	MPID_Info_get_ptr( info, info_ptr );
+	MPIR_Info_get_ptr( info, info_ptr );
     }
 
     /* ... body of routine ...  */
     
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER( comm_ptr );
-
     mpi_errno = MPID_Comm_spawn_multiple(1, (char **) &command, &argv,
                                          &maxprocs, &info_ptr, root,  
                                          comm_ptr, &intercomm_ptr,
                                          array_of_errcodes); 
     if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
-    MPID_OBJ_PUBLISH_HANDLE(*intercomm, intercomm_ptr->handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*intercomm, intercomm_ptr->handle);
 
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_SPAWN);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_SPAWN);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

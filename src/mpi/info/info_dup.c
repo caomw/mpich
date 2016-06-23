@@ -5,7 +5,7 @@
  */
 
 #include "mpiimpl.h"
-#include "mpiinfo.h"
+#include "mpir_info.h"
 
 #include <string.h>
 
@@ -31,10 +31,10 @@ int MPI_Info_dup(MPI_Info info, MPI_Info *newinfo) __attribute__((weak,alias("PM
 #define FUNCNAME MPIR_Info_dup_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Info_dup_impl(MPID_Info *info_ptr, MPID_Info **new_info_ptr)
+int MPIR_Info_dup_impl(MPIR_Info *info_ptr, MPIR_Info **new_info_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Info *curr_old, *curr_new;
+    MPIR_Info *curr_old, *curr_new;
 
     *new_info_ptr = NULL;
     if (!info_ptr) goto fn_exit;
@@ -45,19 +45,19 @@ int MPIR_Info_dup_impl(MPID_Info *info_ptr, MPID_Info **new_info_ptr)
        may want to add an "allocate n elements" routine and execute this
        it two steps: count and then allocate */
     /* FIXME : multithreaded */
-    mpi_errno = MPIU_Info_alloc(&curr_new);
+    mpi_errno = MPIR_Info_alloc(&curr_new);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     *new_info_ptr = curr_new;
 
     curr_old = info_ptr->next;
     while (curr_old)
     {
-        mpi_errno = MPIU_Info_alloc(&curr_new->next);
+        mpi_errno = MPIR_Info_alloc(&curr_new->next);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
         curr_new         = curr_new->next;
-        curr_new->key    = MPIU_Strdup(curr_old->key);
-        curr_new->value  = MPIU_Strdup(curr_old->value);
+        curr_new->key    = MPL_strdup(curr_old->key);
+        curr_new->value  = MPL_strdup(curr_old->value);
 
         curr_old         = curr_old->next;
     }
@@ -93,14 +93,14 @@ Output Parameters:
 @*/
 int MPI_Info_dup( MPI_Info info, MPI_Info *newinfo )
 {
-    MPID_Info *info_ptr = 0, *new_info_ptr;
+    MPIR_Info *info_ptr = 0, *new_info_ptr;
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_INFO_DUP);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_INFO_DUP);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_INFO_DUP);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_INFO_DUP);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -114,7 +114,7 @@ int MPI_Info_dup( MPI_Info info, MPI_Info *newinfo )
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Info_get_ptr( info, info_ptr );
+    MPIR_Info_get_ptr( info, info_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -122,7 +122,7 @@ int MPI_Info_dup( MPI_Info info, MPI_Info *newinfo )
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate info_ptr */
-            MPID_Info_valid_ptr( info_ptr, mpi_errno );
+            MPIR_Info_valid_ptr( info_ptr, mpi_errno );
             MPIR_ERRTEST_ARGNULL(newinfo,"newinfo",mpi_errno);
         }
         MPID_END_ERROR_CHECKS;
@@ -139,7 +139,7 @@ int MPI_Info_dup( MPI_Info info, MPI_Info *newinfo )
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_INFO_DUP);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_INFO_DUP);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
     

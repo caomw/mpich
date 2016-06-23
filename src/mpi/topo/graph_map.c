@@ -6,7 +6,6 @@
  */
 
 #include "mpiimpl.h"
-#include "topo.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_Graph_map */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -25,12 +24,12 @@ int MPI_Graph_map(MPI_Comm comm, int nnodes, const int indx[], const int edges[]
 #ifndef MPICH_MPI_FROM_PMPI
 #undef MPI_Graph_map
 #define MPI_Graph_map PMPI_Graph_map
-int MPIR_Graph_map( const MPID_Comm *comm_ptr, int nnodes, 
+int MPIR_Graph_map( const MPIR_Comm *comm_ptr, int nnodes,
 		    const int indx[] ATTRIBUTE((unused)), 
 		    const int edges[] ATTRIBUTE((unused)), int *newrank )
 {
-    MPIU_UNREFERENCED_ARG(indx);
-    MPIU_UNREFERENCED_ARG(edges);
+    MPL_UNREFERENCED_ARG(indx);
+    MPL_UNREFERENCED_ARG(edges);
 
     /* This is the trivial version that does not remap any processes. */
     if (comm_ptr->rank < nnodes) {
@@ -46,7 +45,7 @@ int MPIR_Graph_map( const MPID_Comm *comm_ptr, int nnodes,
 #define FUNCNAME MPIR_Graph_map_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Graph_map_impl(const MPID_Comm *comm_ptr, int nnodes,
+int MPIR_Graph_map_impl(const MPIR_Comm *comm_ptr, int nnodes,
                         const int indx[], const int edges[], int *newrank)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -105,12 +104,12 @@ int MPI_Graph_map(MPI_Comm comm, int nnodes, const int indx[], const int edges[]
                   int *newrank)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_GRAPH_MAP);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_GRAPH_MAP);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_GRAPH_MAP);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_GRAPH_MAP);
     
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -124,7 +123,7 @@ int MPI_Graph_map(MPI_Comm comm, int nnodes, const int indx[], const int edges[]
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -132,7 +131,7 @@ int MPI_Graph_map(MPI_Comm comm, int nnodes, const int indx[], const int edges[]
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno) goto fn_fail;
 	    /* If comm_ptr is not valid, it will be reset to null */
 	    MPIR_ERRTEST_ARGNULL(newrank,"newrank",mpi_errno);
@@ -155,7 +154,7 @@ int MPI_Graph_map(MPI_Comm comm, int nnodes, const int indx[], const int edges[]
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_GRAPH_MAP);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_GRAPH_MAP);
     return mpi_errno;
 
   fn_fail:

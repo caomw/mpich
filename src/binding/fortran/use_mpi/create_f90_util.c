@@ -80,7 +80,7 @@ int MPIR_Create_unnamed_predefined( MPI_Datatype old, int combiner,
 
     /* Initialize the contents data */
     {
-	MPID_Datatype *new_dtp = NULL;
+	MPIR_Datatype *new_dtp = NULL;
 	int vals[2];
 	int nvals=0;
 
@@ -116,7 +116,7 @@ int MPIR_Create_unnamed_predefined( MPI_Datatype old, int combiner,
              * MPID_Type_commit */
             MPID_Datatype_get_basic_type(old, old_basic);
             MPID_Datatype_get_basic_type(new_dtp->handle, new_basic);
-            MPIU_Assert(new_basic == old_basic);
+            MPIR_Assert(new_basic == old_basic);
         }
 #endif
 
@@ -191,7 +191,7 @@ static int MPIR_Create_unnamed_predefined( MPI_Datatype old, int combiner,
 
     /* Initialize the contents data */
     if (mpi_errno == MPI_SUCCESS) {
-	MPID_Datatype *new_dtp;
+	MPIR_Datatype *new_dtp;
 	int vals[2];
 	int nvals=0;
 

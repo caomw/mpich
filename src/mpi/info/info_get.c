@@ -5,7 +5,7 @@
  */
 
 #include "mpiimpl.h"
-#include "mpiinfo.h"
+#include "mpir_info.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_Info_get */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -29,9 +29,9 @@ int MPI_Info_get(MPI_Info info, const char *key, int valuelen, char *value, int 
 #define FUNCNAME MPIR_Info_get_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Info_get_impl(MPID_Info *info_ptr, const char *key, int valuelen, char *value, int *flag)
+int MPIR_Info_get_impl(MPIR_Info *info_ptr, const char *key, int valuelen, char *value, int *flag)
 {
-    MPID_Info *curr_ptr;
+    MPIR_Info *curr_ptr;
     int err=0, mpi_errno=0;
 
     curr_ptr = info_ptr->next;
@@ -39,7 +39,7 @@ int MPIR_Info_get_impl(MPID_Info *info_ptr, const char *key, int valuelen, char 
 
     while (curr_ptr) {
         if (!strncmp(curr_ptr->key, key, MPI_MAX_INFO_KEY)) {
-            err = MPIU_Strncpy(value, curr_ptr->value, valuelen+1);
+            err = MPL_strncpy(value, curr_ptr->value, valuelen+1);
             /* +1 because the MPI Standard says "In C, valuelen
              * (passed to MPI_Info_get) should be one less than the
              * amount of allocated space to allow for the null
@@ -93,14 +93,14 @@ Output Parameters:
 int MPI_Info_get(MPI_Info info, const char *key, int valuelen, char *value,
 		 int *flag)
 {
-    MPID_Info *info_ptr=0;
+    MPIR_Info *info_ptr=0;
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_INFO_GET);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_INFO_GET);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_INFO_GET);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_INFO_GET);
     
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -114,7 +114,7 @@ int MPI_Info_get(MPI_Info info, const char *key, int valuelen, char *value,
 #   endif /* HAVE_ERROR_CHECKING */
     
     /* Convert MPI object handles to object pointers */
-    MPID_Info_get_ptr( info, info_ptr );
+    MPIR_Info_get_ptr( info, info_ptr );
     
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -124,7 +124,7 @@ int MPI_Info_get(MPI_Info info, const char *key, int valuelen, char *value,
 	    int keylen;
 	    
             /* Validate info_ptr */
-            MPID_Info_valid_ptr( info_ptr, mpi_errno );
+            MPIR_Info_valid_ptr( info_ptr, mpi_errno );
             if (mpi_errno) goto fn_fail;
 	    
 	    /* Check key */
@@ -151,7 +151,7 @@ int MPI_Info_get(MPI_Info info, const char *key, int valuelen, char *value,
     if (mpi_errno) goto fn_fail;
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_INFO_GET);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_INFO_GET);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

@@ -52,7 +52,7 @@ static int MPIR_Reduce_scatter_block_noncomm (
     int recvcount,
     MPI_Datatype datatype,
     MPI_Op op,
-    MPID_Comm *comm_ptr,
+    MPIR_Comm *comm_ptr,
     MPIR_Errflag_t *errflag )
 {
     int mpi_errno = MPI_SUCCESS;
@@ -69,7 +69,7 @@ static int MPIR_Reduce_scatter_block_noncomm (
     void *tmp_buf0;
     void *tmp_buf1;
     void *result_ptr;
-    MPIU_CHKLMEM_DECL(3);
+    MPIR_CHKLMEM_DECL(3);
 
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
 
@@ -81,15 +81,15 @@ static int MPIR_Reduce_scatter_block_noncomm (
     }
 
     /* begin error checking */
-    MPIU_Assert(pof2 == comm_size); /* FIXME this version only works for power of 2 procs */
+    MPIR_Assert(pof2 == comm_size); /* FIXME this version only works for power of 2 procs */
     /* end error checking */
 
     /* size of a block (count of datatype per block, NOT bytes per block) */
     block_size = recvcount;
     total_count = block_size * comm_size;
 
-    MPIU_CHKLMEM_MALLOC(tmp_buf0, void *, true_extent * total_count, mpi_errno, "tmp_buf0");
-    MPIU_CHKLMEM_MALLOC(tmp_buf1, void *, true_extent * total_count, mpi_errno, "tmp_buf1");
+    MPIR_CHKLMEM_MALLOC(tmp_buf0, void *, true_extent * total_count, mpi_errno, "tmp_buf0");
+    MPIR_CHKLMEM_MALLOC(tmp_buf1, void *, true_extent * total_count, mpi_errno, "tmp_buf1");
     /* adjust for potential negative lower bound in datatype */
     tmp_buf0 = (void *)((char*)tmp_buf0 - true_lb);
     tmp_buf1 = (void *)((char*)tmp_buf1 - true_lb);
@@ -159,7 +159,7 @@ static int MPIR_Reduce_scatter_block_noncomm (
         send_offset = recv_offset;
     }
 
-    MPIU_Assert(size == recvcount);
+    MPIR_Assert(size == recvcount);
 
     /* copy the reduced data to the recvbuf */
     result_ptr = (char *)(buf0_was_inout ? tmp_buf0 : tmp_buf1) + recv_offset * true_extent;
@@ -168,7 +168,7 @@ static int MPIR_Reduce_scatter_block_noncomm (
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     
 fn_exit:
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     /* --BEGIN ERROR HANDLING-- */
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
@@ -239,7 +239,7 @@ int MPIR_Reduce_scatter_block_intra (
     int recvcount, 
     MPI_Datatype datatype, 
     MPI_Op op, 
-    MPID_Comm *comm_ptr,
+    MPIR_Comm *comm_ptr,
     MPIR_Errflag_t *errflag )
 {
     int   rank, comm_size, i;
@@ -255,16 +255,22 @@ int MPIR_Reduce_scatter_block_intra (
     int pof2, old_i, newrank, received;
     MPI_Datatype sendtype, recvtype;
     int nprocs_completed, tmp_mask, tree_root, is_commutative;
-    MPID_Op *op_ptr;
-    MPID_THREADPRIV_DECL;
-    MPIU_CHKLMEM_DECL(5);
+    MPIR_Op *op_ptr;
+    MPIR_CHKLMEM_DECL(5);
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
 
     /* set op_errno to 0. stored in perthread structure */
-    MPID_THREADPRIV_GET;
-    MPID_THREADPRIV_FIELD(op_errno) = 0;
+    {
+        MPIR_Per_thread_t *per_thread = NULL;
+        int err = 0;
+
+        MPID_THREADPRIV_KEY_GET_ADDR(MPIR_ThreadInfo.isThreaded, MPIR_Per_thread_key,
+                                     MPIR_Per_thread, per_thread, &err);
+        MPIR_Assert(err == 0);
+        per_thread->op_errno = 0;
+    }
 
     if (recvcount == 0) {
         goto fn_exit;
@@ -277,14 +283,14 @@ int MPIR_Reduce_scatter_block_intra (
         is_commutative = 1;
     }
     else {
-        MPID_Op_get_ptr(op, op_ptr);
-        if (op_ptr->kind == MPID_OP_USER_NONCOMMUTE)
+        MPIR_Op_get_ptr(op, op_ptr);
+        if (op_ptr->kind == MPIR_OP_KIND__USER_NONCOMMUTE)
             is_commutative = 0;
         else
             is_commutative = 1;
     }
 
-    MPIU_CHKLMEM_MALLOC(disps, int *, comm_size * sizeof(int), mpi_errno, "disps");
+    MPIR_CHKLMEM_MALLOC(disps, int *, comm_size * sizeof(int), mpi_errno, "disps");
 
     total_count = comm_size*recvcount;
     for (i=0; i<comm_size; i++) {
@@ -294,24 +300,21 @@ int MPIR_Reduce_scatter_block_intra (
     MPID_Datatype_get_size_macro(datatype, type_size);
     nbytes = total_count * type_size;
     
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER( comm_ptr );
-
     /* total_count*extent eventually gets malloced. it isn't added to
      * a user-passed in buffer */
-    MPIU_Ensure_Aint_fits_in_pointer(total_count * MPIR_MAX(true_extent, extent));
+    MPIR_Ensure_Aint_fits_in_pointer(total_count * MPL_MAX(true_extent, extent));
 
     if ((is_commutative) && (nbytes < MPIR_CVAR_REDSCAT_COMMUTATIVE_LONG_MSG_SIZE)) {
         /* commutative and short. use recursive halving algorithm */
 
         /* allocate temp. buffer to receive incoming data */
-        MPIU_CHKLMEM_MALLOC(tmp_recvbuf, void *, total_count*(MPIR_MAX(true_extent,extent)), mpi_errno, "tmp_recvbuf");
+        MPIR_CHKLMEM_MALLOC(tmp_recvbuf, void *, total_count*(MPL_MAX(true_extent,extent)), mpi_errno, "tmp_recvbuf");
         /* adjust for potential negative lower bound in datatype */
         tmp_recvbuf = (void *)((char*)tmp_recvbuf - true_lb);
             
         /* need to allocate another temporary buffer to accumulate
            results because recvbuf may not be big enough */
-        MPIU_CHKLMEM_MALLOC(tmp_results, void *, total_count*(MPIR_MAX(true_extent,extent)), mpi_errno, "tmp_results");
+        MPIR_CHKLMEM_MALLOC(tmp_results, void *, total_count*(MPL_MAX(true_extent,extent)), mpi_errno, "tmp_results");
         /* adjust for potential negative lower bound in datatype */
         tmp_results = (void *)((char*)tmp_results - true_lb);
         
@@ -385,8 +388,8 @@ int MPIR_Reduce_scatter_block_intra (
                have their result calculated by the process to their
                right (rank+1). */
 
-            MPIU_CHKLMEM_MALLOC(newcnts, int *, pof2*sizeof(int), mpi_errno, "newcnts");
-            MPIU_CHKLMEM_MALLOC(newdisps, int *, pof2*sizeof(int), mpi_errno, "newdisps");
+            MPIR_CHKLMEM_MALLOC(newcnts, int *, pof2*sizeof(int), mpi_errno, "newcnts");
+            MPIR_CHKLMEM_MALLOC(newdisps, int *, pof2*sizeof(int), mpi_errno, "newdisps");
             
             for (i=0; i<pof2; i++) {
                 /* what does i map to in the old ranking? */
@@ -525,7 +528,7 @@ int MPIR_Reduce_scatter_block_intra (
         }
         
         /* allocate temporary buffer to store incoming data */
-        MPIU_CHKLMEM_MALLOC(tmp_recvbuf, void *, recvcount*(MPIR_MAX(true_extent,extent))+1, mpi_errno, "tmp_recvbuf");
+        MPIR_CHKLMEM_MALLOC(tmp_recvbuf, void *, recvcount*(MPL_MAX(true_extent,extent))+1, mpi_errno, "tmp_recvbuf");
         /* adjust for potential negative lower bound in datatype */
         tmp_recvbuf = (void *)((char*)tmp_recvbuf - true_lb);
         
@@ -627,13 +630,13 @@ int MPIR_Reduce_scatter_block_intra (
             /* noncommutative and non-pof2, use recursive doubling. */
 
             /* need to allocate temporary buffer to receive incoming data*/
-            MPIU_CHKLMEM_MALLOC(tmp_recvbuf, void *, total_count*(MPIR_MAX(true_extent,extent)), mpi_errno, "tmp_recvbuf");
+            MPIR_CHKLMEM_MALLOC(tmp_recvbuf, void *, total_count*(MPL_MAX(true_extent,extent)), mpi_errno, "tmp_recvbuf");
             /* adjust for potential negative lower bound in datatype */
             tmp_recvbuf = (void *)((char*)tmp_recvbuf - true_lb);
 
             /* need to allocate another temporary buffer to accumulate
                results */
-            MPIU_CHKLMEM_MALLOC(tmp_results, void *, total_count*(MPIR_MAX(true_extent,extent)), mpi_errno, "tmp_results");
+            MPIR_CHKLMEM_MALLOC(tmp_results, void *, total_count*(MPL_MAX(true_extent,extent)), mpi_errno, "tmp_results");
             /* adjust for potential negative lower bound in datatype */
             tmp_results = (void *)((char*)tmp_results - true_lb);
 
@@ -803,19 +806,26 @@ int MPIR_Reduce_scatter_block_intra (
                         mpi_errno = MPIR_Reduce_local_impl(
                                           tmp_recvbuf, tmp_results, blklens[0],
                                           datatype, op); 
+                        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+
                         mpi_errno = MPIR_Reduce_local_impl( 
                                           ((char *)tmp_recvbuf + dis[1]*extent),
                                           ((char *)tmp_results + dis[1]*extent),
                                           blklens[1], datatype, op); 
+                        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
                     }
                     else {
                         mpi_errno = MPIR_Reduce_local_impl( 
                                         tmp_results, tmp_recvbuf, blklens[0],
                                         datatype, op); 
+                        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+
                         mpi_errno = MPIR_Reduce_local_impl( 
                                         ((char *)tmp_results + dis[1]*extent),
                                         ((char *)tmp_recvbuf + dis[1]*extent),
                                         blklens[1], datatype, op); 
+                        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+
                         /* copy result back into tmp_results */
                         mpi_errno = MPIR_Localcopy(tmp_recvbuf, 1, recvtype, 
                                                    tmp_results, 1, recvtype);
@@ -839,13 +849,18 @@ int MPIR_Reduce_scatter_block_intra (
     }
 
 fn_exit:
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
 
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT( comm_ptr );
+    {
+        MPIR_Per_thread_t *per_thread = NULL;
+        int err = 0;
 
-    if (MPID_THREADPRIV_FIELD(op_errno)) 
-	mpi_errno = MPID_THREADPRIV_FIELD(op_errno);
+        MPID_THREADPRIV_KEY_GET_ADDR(MPIR_ThreadInfo.isThreaded, MPIR_Per_thread_key,
+                                     MPIR_Per_thread, per_thread, &err);
+        MPIR_Assert(err == 0);
+        if (per_thread->op_errno)
+            mpi_errno = per_thread->op_errno;
+    }
 
     /* --BEGIN ERROR HANDLING-- */
     if (mpi_errno_ret)
@@ -871,7 +886,7 @@ int MPIR_Reduce_scatter_block_inter (
     int recvcount, 
     MPI_Datatype datatype, 
     MPI_Op op, 
-    MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag )
+    MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag )
 {
 /* Intercommunicator Reduce_scatter_block.
    We first do an intercommunicator reduce to rank 0 on left group,
@@ -883,8 +898,8 @@ int MPIR_Reduce_scatter_block_inter (
     int mpi_errno_ret = MPI_SUCCESS;
     MPI_Aint true_extent, true_lb = 0, extent;
     void *tmp_buf=NULL;
-    MPID_Comm *newcomm_ptr = NULL;
-    MPIU_CHKLMEM_DECL(1);
+    MPIR_Comm *newcomm_ptr = NULL;
+    MPIR_CHKLMEM_DECL(1);
 
     rank = comm_ptr->rank;
     local_size = comm_ptr->local_size;
@@ -898,7 +913,7 @@ int MPIR_Reduce_scatter_block_inter (
         MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
         MPID_Datatype_get_extent_macro(datatype, extent);
 
-        MPIU_CHKLMEM_MALLOC(tmp_buf, void *, total_count*(MPIR_MAX(extent,true_extent)), mpi_errno, "tmp_buf");
+        MPIR_CHKLMEM_MALLOC(tmp_buf, void *, total_count*(MPL_MAX(extent,true_extent)), mpi_errno, "tmp_buf");
 
         /* adjust for potential negative lower bound in datatype */
         tmp_buf = (void *)((char*)tmp_buf - true_lb);
@@ -955,11 +970,11 @@ int MPIR_Reduce_scatter_block_inter (
 
     /* Get the local intracommunicator */
     if (!comm_ptr->local_comm)
-	MPIR_Setup_intercomm_localcomm( comm_ptr );
+	MPII_Setup_intercomm_localcomm( comm_ptr );
 
     newcomm_ptr = comm_ptr->local_comm;
 
-    mpi_errno = MPIR_Scatter_impl(tmp_buf, recvcount, datatype, recvbuf,
+    mpi_errno = MPID_Scatter(tmp_buf, recvcount, datatype, recvbuf,
                                   recvcount, datatype, 0, newcomm_ptr, errflag);
     if (mpi_errno) {
         /* for communication errors, just record the error but continue */
@@ -969,7 +984,7 @@ int MPIR_Reduce_scatter_block_inter (
     }
     
  fn_exit:
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     /* --BEGIN ERROR HANDLING-- */
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
@@ -992,11 +1007,11 @@ int MPIR_Reduce_scatter_block_inter (
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Reduce_scatter_block(const void *sendbuf, void *recvbuf, 
                               int recvcount, MPI_Datatype datatype,
-                              MPI_Op op, MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+                              MPI_Op op, MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
         
-    if (comm_ptr->comm_kind == MPID_INTRACOMM) {
+    if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
         /* intracommunicator */
         mpi_errno = MPIR_Reduce_scatter_block_intra(sendbuf, recvbuf, recvcount, datatype, op, comm_ptr, errflag);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -1023,7 +1038,7 @@ int MPIR_Reduce_scatter_block(const void *sendbuf, void *recvbuf,
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Reduce_scatter_block_impl(const void *sendbuf, void *recvbuf, 
                                    int recvcount, MPI_Datatype datatype,
-                                   MPI_Op op, MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+                                   MPI_Op op, MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
         
@@ -1033,7 +1048,7 @@ int MPIR_Reduce_scatter_block_impl(const void *sendbuf, void *recvbuf,
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 	/* --END USEREXTENSION-- */
     } else {
-        if (comm_ptr->comm_kind == MPID_INTRACOMM) {
+        if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
             /* intracommunicator */
             mpi_errno = MPIR_Reduce_scatter_block_intra(sendbuf, recvbuf, recvcount, datatype, op, comm_ptr, errflag);
             if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -1091,14 +1106,14 @@ int MPI_Reduce_scatter_block(const void *sendbuf, void *recvbuf,
                              MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_REDUCE_SCATTER_BLOCK);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_REDUCE_SCATTER_BLOCK);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_COLL_FUNC_ENTER(MPID_STATE_MPI_REDUCE_SCATTER_BLOCK);
+    MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_REDUCE_SCATTER_BLOCK);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -1112,17 +1127,17 @@ int MPI_Reduce_scatter_block(const void *sendbuf, void *recvbuf,
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPID_Datatype *datatype_ptr = NULL;
-            MPID_Op *op_ptr = NULL;
+	    MPIR_Datatype *datatype_ptr = NULL;
+            MPIR_Op *op_ptr = NULL;
 	    
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
             MPIR_ERRTEST_COUNT(recvcount,mpi_errno);
@@ -1130,14 +1145,14 @@ int MPI_Reduce_scatter_block(const void *sendbuf, void *recvbuf,
 	    MPIR_ERRTEST_DATATYPE(datatype, "datatype", mpi_errno);
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr( datatype_ptr, mpi_errno );
+                MPIR_Datatype_valid_ptr( datatype_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                 MPID_Datatype_committed_ptr( datatype_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
             }
 
             MPIR_ERRTEST_RECVBUF_INPLACE(recvbuf, recvcount, mpi_errno);
-            if (comm_ptr->comm_kind == MPID_INTERCOMM) {
+            if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) {
                 MPIR_ERRTEST_SENDBUF_INPLACE(sendbuf, recvcount, mpi_errno);
             } else if (sendbuf != MPI_IN_PLACE && recvcount != 0)
                 MPIR_ERRTEST_ALIAS_COLL(sendbuf, recvbuf, mpi_errno)
@@ -1149,8 +1164,8 @@ int MPI_Reduce_scatter_block(const void *sendbuf, void *recvbuf,
 
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
             if (HANDLE_GET_KIND(op) != HANDLE_KIND_BUILTIN) {
-                MPID_Op_get_ptr(op, op_ptr);
-                MPID_Op_valid_ptr( op_ptr, mpi_errno );
+                MPIR_Op_get_ptr(op, op_ptr);
+                MPIR_Op_valid_ptr( op_ptr, mpi_errno );
             }
             if (HANDLE_GET_KIND(op) == HANDLE_KIND_BUILTIN) {
                 mpi_errno = 
@@ -1164,14 +1179,14 @@ int MPI_Reduce_scatter_block(const void *sendbuf, void *recvbuf,
 
     /* ... body of routine ...  */
 
-    mpi_errno = MPIR_Reduce_scatter_block_impl(sendbuf, recvbuf, recvcount, 
+    mpi_errno = MPID_Reduce_scatter_block(sendbuf, recvbuf, recvcount,
                                           datatype, op, comm_ptr, &errflag);
     if (mpi_errno) goto fn_fail;
 
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_COLL_FUNC_EXIT(MPID_STATE_MPI_REDUCE_SCATTER_BLOCK);
+    MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_REDUCE_SCATTER_BLOCK);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

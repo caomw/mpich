@@ -11,21 +11,21 @@
 /* This is the utility file for datatypes that contains the basic datatype 
    items and storage management.  It also contains a temporary routine
    that is used by ROMIO to test to see if datatypes are contiguous */
-#ifndef MPID_DATATYPE_PREALLOC 
-#define MPID_DATATYPE_PREALLOC 8
+#ifndef MPIR_DATATYPE_PREALLOC
+#define MPIR_DATATYPE_PREALLOC 8
 #endif
 
 /* Preallocated datatype objects */
-MPID_Datatype MPID_Datatype_builtin[MPID_DATATYPE_N_BUILTIN + 1] = { {0} };
-MPID_Datatype MPID_Datatype_direct[MPID_DATATYPE_PREALLOC] = { {0} };
-MPIU_Object_alloc_t MPID_Datatype_mem = { 0, 0, 0, 0, MPID_DATATYPE, 
-			      sizeof(MPID_Datatype), MPID_Datatype_direct,
-					  MPID_DATATYPE_PREALLOC};
+MPIR_Datatype MPIR_Datatype_builtin[MPIR_DATATYPE_N_BUILTIN + 1] = { {0} };
+MPIR_Datatype MPIR_Datatype_direct[MPIR_DATATYPE_PREALLOC] = { {0} };
+MPIR_Object_alloc_t MPIR_Datatype_mem = { 0, 0, 0, 0, MPIR_DATATYPE,
+			      sizeof(MPIR_Datatype), MPIR_Datatype_direct,
+					  MPIR_DATATYPE_PREALLOC};
 
 static int MPIR_Datatype_finalize(void *dummy );
-static int MPIR_DatatypeAttrFinalizeCallback(void *dummy );
+static int datatype_attr_finalize_cb(void *dummy );
 
-/* Call this routine to associate a MPID_Datatype with each predefined 
+/* Call this routine to associate a MPIR_Datatype with each predefined
    datatype.  We do this with lazy initialization because many MPI 
    programs do not require anything except the predefined datatypes, and
    all of the necessary information about those is stored within the
@@ -147,10 +147,10 @@ int MPIR_Datatype_init(void)
 {
     int i;
     int mpi_errno = MPI_SUCCESS;
-    MPID_Datatype *ptr;
+    MPIR_Datatype *ptr;
 
-    MPIU_Assert(MPID_Datatype_mem.initialized == 0);
-    MPIU_Assert(MPID_DATATYPE_PREALLOC >= 5);
+    MPIR_Assert(MPIR_Datatype_mem.initialized == 0);
+    MPIR_Assert(MPIR_DATATYPE_PREALLOC >= 5);
 
     for (i=0; mpi_pairtypes[i] != (MPI_Datatype) -1; ++i) {
         /* types based on 'long long' and 'long double', may be disabled at
@@ -168,14 +168,14 @@ int MPIR_Datatype_init(void)
         /* we use the _unsafe version because we are still in MPI_Init, before
          * multiple threads are permitted and possibly before support for
          * critical sections is entirely setup */
-        ptr = (MPID_Datatype *)MPIU_Handle_obj_alloc_unsafe( &MPID_Datatype_mem );
+        ptr = (MPIR_Datatype *)MPIR_Handle_obj_alloc_unsafe( &MPIR_Datatype_mem );
 
-        MPIU_Assert(ptr);
-        MPIU_Assert(ptr->handle == mpi_pairtypes[i]);
+        MPIR_Assert(ptr);
+        MPIR_Assert(ptr->handle == mpi_pairtypes[i]);
         /* this is a redundant alternative to the previous statement */
-        MPIU_Assert((void *) ptr == (void *) (MPID_Datatype_direct + HANDLE_INDEX(mpi_pairtypes[i])));
+        MPIR_Assert((void *) ptr == (void *) (MPIR_Datatype_direct + HANDLE_INDEX(mpi_pairtypes[i])));
 
-        mpi_errno = MPID_Type_create_pairtype(mpi_pairtypes[i], (MPID_Datatype *) ptr);
+        mpi_errno = MPID_Type_create_pairtype(mpi_pairtypes[i], (MPIR_Datatype *) ptr);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
 
@@ -193,7 +193,7 @@ fn_fail:
 static int MPIR_Datatype_finalize(void *dummy ATTRIBUTE((unused)) )
 {
     int i;
-    MPID_Datatype *dptr;
+    MPIR_Datatype *dptr;
 
     for (i=0; mpi_pairtypes[i] != (MPI_Datatype) -1; i++) {
 	if (mpi_pairtypes[i] != MPI_DATATYPE_NULL) {
@@ -217,7 +217,7 @@ int MPIR_Datatype_builtin_fillin(void)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
-    MPID_Datatype *dptr;
+    MPIR_Datatype *dptr;
     MPI_Datatype  d = MPI_DATATYPE_NULL;
     static int is_init = 0;
 
@@ -229,7 +229,7 @@ int MPIR_Datatype_builtin_fillin(void)
     }
 
     if (!is_init) { 
-	for (i=0; i<MPID_DATATYPE_N_BUILTIN; i++) {
+	for (i=0; i<MPIR_DATATYPE_N_BUILTIN; i++) {
 	    /* Compute the index from the value of the handle */
 	    d = mpi_dtypes[i];
 	    if (d == -1) {
@@ -243,8 +243,8 @@ int MPIR_Datatype_builtin_fillin(void)
 	    
 	    MPID_Datatype_get_ptr(d,dptr);
 	    /* --BEGIN ERROR HANDLING-- */
-	    if (dptr < MPID_Datatype_builtin || 
-		dptr > MPID_Datatype_builtin + MPID_DATATYPE_N_BUILTIN)
+	    if (dptr < MPIR_Datatype_builtin ||
+		dptr > MPIR_Datatype_builtin + MPIR_DATATYPE_N_BUILTIN)
 		{
 		    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS,
 						     MPIR_ERR_FATAL, FCNAME,
@@ -255,11 +255,11 @@ int MPIR_Datatype_builtin_fillin(void)
 		}
 	    /* --END ERROR HANDLING-- */
 	    
-	    /* dptr will point into MPID_Datatype_builtin */
+	    /* dptr will point into MPIR_Datatype_builtin */
 	    dptr->handle	   = d;
 	    dptr->is_permanent = 1;
 	    dptr->is_contig	   = 1;
-	    MPIU_Object_set_ref( dptr, 1 );
+	    MPIR_Object_set_ref( dptr, 1 );
 	    MPID_Datatype_get_size_macro(mpi_dtypes[i], dptr->size);
 	    dptr->extent	   = dptr->size;
 	    dptr->ub	   = dptr->size;
@@ -284,7 +284,7 @@ int MPIR_Datatype_builtin_fillin(void)
 /* This will eventually be removed once ROMIO knows more about MPICH */
 void MPIR_Datatype_iscontig(MPI_Datatype datatype, int *flag)
 {
-    MPID_Datatype *datatype_ptr;
+    MPIR_Datatype *datatype_ptr;
     if (HANDLE_GET_KIND(datatype) == HANDLE_KIND_BUILTIN)
         *flag = 1;
     else  {
@@ -295,13 +295,13 @@ void MPIR_Datatype_iscontig(MPI_Datatype datatype, int *flag)
 
 /* If an attribute is added to a predefined type, we free the attributes 
    in Finalize */
-static int MPIR_DatatypeAttrFinalizeCallback(void *dummy ATTRIBUTE((unused)) )
+static int datatype_attr_finalize_cb(void *dummy ATTRIBUTE((unused)) )
 {
-    MPID_Datatype *dtype;
+    MPIR_Datatype *dtype;
     int i, mpi_errno=MPI_SUCCESS;
 
-    for (i=0; i<MPID_DATATYPE_N_BUILTIN; i++) {
-	dtype = &MPID_Datatype_builtin[i];
+    for (i=0; i<MPIR_DATATYPE_N_BUILTIN; i++) {
+	dtype = &MPIR_Datatype_builtin[i];
 	if (dtype && MPIR_Process.attr_free && dtype->attributes) {
 	    mpi_errno = MPIR_Process.attr_free( dtype->handle, 
 						&dtype->attributes );
@@ -311,14 +311,14 @@ static int MPIR_DatatypeAttrFinalizeCallback(void *dummy ATTRIBUTE((unused)) )
     return mpi_errno;
 }
 
-void MPIR_DatatypeAttrFinalize( void )
+void MPII_Datatype_attr_finalize( void )
 {
     static int called=0;
 
     /* FIXME: This needs to be make thread safe */
     if (!called) {
 	called = 1;
-	MPIR_Add_finalize(MPIR_DatatypeAttrFinalizeCallback, 0, 
+	MPIR_Add_finalize(datatype_attr_finalize_cb, 0,
 			  MPIR_FINALIZE_CALLBACK_PRIO-1);
     }
 }

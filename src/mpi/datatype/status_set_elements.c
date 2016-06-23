@@ -53,18 +53,18 @@ int MPI_Status_set_elements(MPI_Status *status, MPI_Datatype datatype,
 			    int count)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_STATUS_SET_ELEMENTS);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_STATUS_SET_ELEMENTS);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_STATUS_SET_ELEMENTS);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_STATUS_SET_ELEMENTS);
     
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPID_Datatype *datatype_ptr = NULL;
+	    MPIR_Datatype *datatype_ptr = NULL;
 
 	    MPIR_ERRTEST_COUNT(count,mpi_errno);
 	    MPIR_ERRTEST_ARGNULL(status,"status",mpi_errno);
@@ -72,7 +72,7 @@ int MPI_Status_set_elements(MPI_Status *status, MPI_Datatype datatype,
 
             /* Validate datatype_ptr */
 	    MPID_Datatype_get_ptr( datatype, datatype_ptr );
-            MPID_Datatype_valid_ptr( datatype_ptr, mpi_errno );
+            MPIR_Datatype_valid_ptr( datatype_ptr, mpi_errno );
 	    /* If datatype_ptr is not valid, it will be reset to null */
             if (mpi_errno) goto fn_fail;
         }
@@ -88,7 +88,7 @@ int MPI_Status_set_elements(MPI_Status *status, MPI_Datatype datatype,
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_STATUS_SET_ELEMENTS);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_STATUS_SET_ELEMENTS);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

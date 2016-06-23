@@ -4,8 +4,10 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-#if !defined(MPICH_MPIDPOST_H_INCLUDED)
-#define MPICH_MPIDPOST_H_INCLUDED
+#if !defined(MPIDPOST_H_INCLUDED)
+#define MPIDPOST_H_INCLUDED
+
+#include "mpid_coll.h"
 
 /* FIXME: mpidpost.h is included by mpiimpl.h .  However, mpiimpl.h should 
    refer only to the ADI3 prototypes and should never include prototypes 
@@ -56,7 +58,7 @@ void MPIDI_CH3_Progress_start(MPID_Progress_state * state);
   make progress on outstanding communication requests.
 
   Input Parameters:
-. state - pointer to the same MPID_Progress_state object passed to 
+. state - pointer to the same MPID_Progress_state object passed to
   MPIDI_CH3_Progress_start
 
   Return value:
@@ -80,7 +82,7 @@ int MPIDI_CH3_Progress_wait(MPID_Progress_state * state);
   MPIDI_CH3_Progress_end - Mark the end of a progress epoch.
   
   Input Parameters:
-. state - pointer to the same MPID_Progress_state object passed to 
+. state - pointer to the same MPID_Progress_state object passed to
   MPIDI_CH3_Progress_start
 
   Return value:
@@ -121,16 +123,16 @@ int MPIDI_CH3_Progress_poke(void);
 int MPIDI_CH3_Open_port(char *port_name);
 
 int MPIDI_CH3_Comm_spawn_multiple(int count, char ** commands, char *** argvs,
-				  int * maxprocs, MPID_Info ** info_ptrs, 
+				  int * maxprocs, MPIR_Info ** info_ptrs,
 				  int root,
-                                  MPID_Comm * comm_ptr, MPID_Comm ** intercomm,
+                                  MPIR_Comm * comm_ptr, MPIR_Comm ** intercomm,
 				  int * errcodes);
 
-int MPIDI_CH3_Comm_accept(char * port_name, int root, MPID_Comm * comm_ptr, 
-			  MPID_Comm ** newcomm); 
+int MPIDI_CH3_Comm_accept(char * port_name, int root, MPIR_Comm * comm_ptr,
+			  MPIR_Comm ** newcomm);
 
-int MPIDI_CH3_Comm_connect(char * port_name, int root, MPID_Comm * comm_ptr, 
-			   MPID_Comm ** newcomm);
+int MPIDI_CH3_Comm_connect(char * port_name, int root, MPIR_Comm * comm_ptr,
+			   MPIR_Comm ** newcomm);
 
 
 /* Include definitions from the channel which require items defined by this 
@@ -138,7 +140,7 @@ int MPIDI_CH3_Comm_connect(char * port_name, int root, MPID_Comm * comm_ptr,
    (mpiimpl.h). */
 #include "mpidi_ch3_post.h"
 
-#include "mpid_datatype.h"
+#include "mpidu_datatype.h"
 
 /*
  * Request utility macros (public - can be used in MPID macros)
@@ -152,11 +154,11 @@ int MPIDI_CH3_Comm_connect(char * port_name, int root, MPID_Comm * comm_ptr,
    from the channel level? */
 /* The above comment is accurate, although we do not currently have any channels
  * that do this.  Memory barriers are included in fine-grained multithreaded
- * versions of the MPID_cc_incr/decr macros. */
+ * versions of the MPIR_cc_incr/decr macros. */
 #define MPIDI_CH3U_Request_decrement_cc(req_, incomplete_)   \
-    MPID_cc_decr((req_)->cc_ptr, incomplete_)
+    MPIR_cc_decr((req_)->cc_ptr, incomplete_)
 #define MPIDI_CH3U_Request_increment_cc(req_, was_incomplete_)   \
-    MPID_cc_incr((req_)->cc_ptr, was_incomplete_)
+    MPIR_cc_incr((req_)->cc_ptr, was_incomplete_)
 
 /*
  * Device level request management macros
@@ -173,14 +175,14 @@ int MPIDI_CH3_Comm_connect(char * port_name, int root, MPID_Comm * comm_ptr,
 #define MPID_Progress_poke()		     MPIDI_CH3_Progress_poke()
 
 /* Dynamic process support */
-int MPID_GPID_GetAllInComm( MPID_Comm *comm_ptr, int local_size, 
-			    MPID_Gpid local_gpids[], int *singlePG );
-int MPID_GPID_Get( MPID_Comm *comm_ptr, int rank, MPID_Gpid *gpid );
-int MPID_GPID_ToLpidArray( int size, MPID_Gpid gpid[], int lpid[] );
-int MPID_Create_intercomm_from_lpids( MPID_Comm *newcomm_ptr,
+int MPID_GPID_GetAllInComm( MPIR_Comm *comm_ptr, int local_size,
+			    MPIR_Gpid local_gpids[], int *singlePG );
+int MPID_GPID_Get( MPIR_Comm *comm_ptr, int rank, MPIR_Gpid *gpid );
+int MPID_GPID_ToLpidArray( int size, MPIR_Gpid gpid[], int lpid[] );
+int MPID_Create_intercomm_from_lpids( MPIR_Comm *newcomm_ptr,
 			    int size, const int lpids[] );
-int MPID_PG_ForwardPGInfo( MPID_Comm *peer_ptr, MPID_Comm *comm_ptr, 
-			   int nPGids, const MPID_Gpid gpids[],
+int MPID_PG_ForwardPGInfo( MPIR_Comm *peer_ptr, MPIR_Comm *comm_ptr,
+			   int nPGids, const MPIR_Gpid gpids[],
 			   int root );
 /* PG_ForwardPGInfo is used as the implementation of the intercomm-create
    hook that is needed with dynamic processes because of limitations
@@ -189,7 +191,7 @@ int MPID_PG_ForwardPGInfo( MPID_Comm *peer_ptr, MPID_Comm *comm_ptr,
      MPID_PG_ForwardPGInfo(_p,_c,_np,_gp,_r)
 
 /* communicator hooks */
-int MPIDI_CH3I_Comm_create_hook(struct MPID_Comm *);
-int MPIDI_CH3I_Comm_destroy_hook(struct MPID_Comm *);
+int MPIDI_CH3I_Comm_create_hook(struct MPIR_Comm *);
+int MPIDI_CH3I_Comm_destroy_hook(struct MPIR_Comm *);
 
-#endif /* !defined(MPICH_MPIDPOST_H_INCLUDED) */
+#endif /* !defined(MPIDPOST_H_INCLUDED) */

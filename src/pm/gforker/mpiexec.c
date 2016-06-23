@@ -84,11 +84,11 @@
 #include "env.h"
 #include "simple_pmiutil.h"
 
-/* We can't use mpimem.h, because the memory routines are no longer available
+/* We can't use mpir_mem.h, because the memory routines are no longer available
    as utility routines, and instead now import properties from the device 
    and other parts of the code */
-/* mpimem.h contains prototypes for MPIU_Strncpy etc. */
-/* #include "mpimem.h" */
+/* mpir_mem.h contains prototypes for MPL_strncpy etc. */
+/* #include "mpir_mem.h" */
 
 typedef struct { PMISetup pmiinfo; IOLabelSetup labelinfo; } SetupInfo;
 
@@ -161,7 +161,7 @@ int main( int argc, char *argv[], char *envp[] )
        init, allowing an MPI process to contact a waiting mpiexec that 
        would serve as a process manager.  This option is not implemented */
     if (getenv("MPIEXEC_USE_PORT")) {
-	s.pmiinfo.portName = (char *)MPIU_Malloc( 1024 );
+	s.pmiinfo.portName = (char *)MPL_malloc( 1024 );
 	if (!s.pmiinfo.portName) {
 	    MPL_error_printf( "Failed to allocate storage for portName" );
 	}
@@ -310,7 +310,7 @@ int mypreamble( void *data, ProcessState *pState )
 	ranks[0] = 0;
 	for (i=0; i<size; i++) {
 	    MPL_snprintf( digits, sizeof(digits), "%d,", i );
-	    MPIU_Strnapp( ranks, digits, sizeof(ranks) );
+	    MPL_strnapp( ranks, digits, sizeof(ranks) );
 	}
 	/* Remove the trailing comma */
 	if (size > 0) 

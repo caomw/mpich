@@ -19,11 +19,12 @@
 #include "mpl.h"
 #include "mpichconf.h"
 #include "mpi.h"
-#include "mpierror.h"
-#include "mpierrs.h"
-#include "mpimem.h"
-#include "mpidbg.h"
-#include "mpiutil.h"
+#include "mpir_err.h"
+#include "mpir_mem.h"
+#include "mpir_strerror.h"
+#include "mpir_type_defs.h"
+#include "mpir_assert.h"
+#include "mpir_pointers.h"
 
 #ifdef USE_NT_SOCK
 
@@ -146,7 +147,7 @@ static inline int MPIU_SOCKW_Bind_port_range(
     int mpi_errno = MPI_SUCCESS;
     int done = 0;
 
-    MPIU_Assert(sin);
+    MPIR_Assert(sin);
 
     for(cur_port = low_port; cur_port <= high_port; cur_port++){
         (sin)->sin_port = htons(cur_port);
@@ -224,7 +225,7 @@ static inline int MPIU_SOCKW_Connect(
             MPI_ERR_OTHER, "**sock_connect", "**sock_connect %s %d",
             MPIU_OSW_Strerror(err), err);
 
-        MPIU_Assert(is_pending);
+        MPIR_Assert(is_pending);
         *is_pending = 1;
     }
 fn_exit:
@@ -264,7 +265,7 @@ static inline int MPIU_SOCKW_Readv(MPIU_SOCKW_Sockfd_t sock,
     int err;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(nb_rd_ptr);
+    MPIR_Assert(nb_rd_ptr);
     if(WSARecv(sock, iov, iov_cnt, (LPDWORD )nb_rd_ptr, &flags, NULL, NULL)
         == SOCKET_ERROR){
         err = MPIU_OSW_Get_errno();
@@ -441,9 +442,9 @@ static inline void MPIU_SOCKW_Waitset_curindex_inc_(MPIU_SOCKW_Waitset_hnd_t wai
 static inline void MPIU_SOCKW_Waitset_expand_(MPIU_SOCKW_Waitset_hnd_t waitset_hnd,
     int *index_ptr)
 {
-    MPIU_UNREFERENCED_ARG(index_ptr);
+    MPL_UNREFERENCED_ARG(index_ptr);
     (waitset_hnd)->nfds++;
-    MPIU_Assert((waitset_hnd)->nfds < FD_SETSIZE);
+    MPIR_Assert((waitset_hnd)->nfds < FD_SETSIZE);
 }
 
 
@@ -483,10 +484,10 @@ static inline int MPIU_SOCKW_Timeval_hnd_init(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(hnd_ptr);
+    MPIR_Assert(hnd_ptr);
 
     *hnd_ptr = (MPIU_SOCKW_Timeval_hnd_t)
-                MPIU_Malloc(sizeof(MPIU_SOCKW_Timeval_t_));
+                MPL_malloc(sizeof(MPIU_SOCKW_Timeval_t_));
     MPIR_ERR_CHKANDJUMP1( !(*hnd_ptr), mpi_errno, MPI_ERR_OTHER,
         "**nomem", "**nomem %s", "handle to timeval");
 
@@ -508,7 +509,7 @@ static inline int MPIU_SOCKW_Timeval_hnd_set(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Timeval_hnd_is_init_(hnd));
+    MPIR_Assert(MPIU_SOCKW_Timeval_hnd_is_init_(hnd));
 
     hnd->tv_sec = tv_msec/1000;
     hnd->tv_usec = (tv_msec % 1000) * 1000;
@@ -525,10 +526,10 @@ static inline int MPIU_SOCKW_Timeval_hnd_finalize(
 {
     int mpi_errno = MPI_SUCCESS;
     
-    MPIU_Assert(hnd_ptr);
+    MPIR_Assert(hnd_ptr);
 
     if(MPIU_SOCKW_Timeval_hnd_is_init_(*hnd_ptr)){
-        MPIU_Free(*hnd_ptr);
+        MPL_free(*hnd_ptr);
     }
     *hnd_ptr = NULL;
 
@@ -559,14 +560,14 @@ static inline int MPIU_SOCKW_Waitset_hnd_init(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(hnd_ptr);
-    MPIU_Assert(nfds <= FD_SETSIZE);
+    MPIR_Assert(hnd_ptr);
+    MPIR_Assert(nfds <= FD_SETSIZE);
 
     if(nfds <= 0){
         nfds = FD_SETSIZE;
     }
 
-    *hnd_ptr = (MPIU_SOCKW_Waitset_hnd_t) MPIU_Malloc(
+    *hnd_ptr = (MPIU_SOCKW_Waitset_hnd_t) MPL_malloc(
             sizeof(MPIU_SOCKW_Waitset_));
 
     MPIR_ERR_CHKANDJUMP1(!(*hnd_ptr), mpi_errno, MPI_ERR_OTHER,
@@ -585,7 +586,7 @@ static inline int MPIU_SOCKW_Waitset_hnd_init(
 
     /* FIXME: Cheating - Expand dynamically */
     (*hnd_ptr)->fdset = (MPIU_SOCKW_Waitset_sock_hnd_ *)
-        MPIU_Malloc(FD_SETSIZE * sizeof(MPIU_SOCKW_Waitset_sock_hnd_));
+        MPL_malloc(FD_SETSIZE * sizeof(MPIU_SOCKW_Waitset_sock_hnd_));
 
     MPIR_ERR_CHKANDJUMP1(!((*hnd_ptr)->fdset), mpi_errno, MPI_ERR_OTHER,
         "**nomem", "**nomem %s", "fdset array in waitSet");
@@ -605,11 +606,11 @@ static inline int MPIU_SOCKW_Waitset_hnd_finalize(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(hnd_ptr);
+    MPIR_Assert(hnd_ptr);
 
     if(MPIU_SOCKW_Waitset_hnd_is_init_(*hnd_ptr)){
-        MPIU_Free((*hnd_ptr)->fdset);
-        MPIU_Free(*hnd_ptr);
+        MPL_free((*hnd_ptr)->fdset);
+        MPL_free(*hnd_ptr);
     }
 
     *hnd_ptr = NULL;
@@ -634,8 +635,8 @@ static inline int MPIU_SOCKW_Waitset_wait(
     int nfds=0;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(hnd));
-    MPIU_Assert(MPIU_SOCKW_Timeval_hnd_is_init_(timeout));
+    MPIR_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(hnd));
+    MPIR_Assert(MPIU_SOCKW_Timeval_hnd_is_init_(timeout));
 
     MPIU_SOCKW_Waitset_curindex_reset_(hnd);
     FD_ZERO(&(hnd->tmp_read_fds));
@@ -717,8 +718,8 @@ static inline int MPIU_SOCKW_Waitset_get_nxt_sock_with_evnt(
     int i;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
-    MPIU_Assert(sock_hnd_ptr);
+    MPIR_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
+    MPIR_Assert(sock_hnd_ptr);
 
     *sock_hnd_ptr = NULL;
 
@@ -750,17 +751,17 @@ static inline int MPIU_SOCKW_Waitset_add_sock(
     int index= 0;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
-    MPIU_Assert(sock_hnd_ptr);
+    MPIR_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
+    MPIR_Assert(sock_hnd_ptr);
 
     *sock_hnd_ptr = NULL;
 
     index = waitset_hnd->fdset_index;
     if(index >= waitset_hnd->nfds){
         index = MPIU_SOCKW_Waitset_freeindex_get_(waitset_hnd);
-        /* FIXME: Try not to use MPIU_Assert(). Utils should not depend
+        /* FIXME: Try not to use MPIR_Assert(). Utils should not depend
          * on a device impl of assert */
-        MPIU_Assert(index != MPIU_SOCKW_WAITSET_CURINDEX_INVALID_);
+        MPIR_Assert(index != MPIU_SOCKW_WAITSET_CURINDEX_INVALID_);
     }
     else{
         waitset_hnd->fdset_index++;
@@ -798,8 +799,8 @@ static inline int MPIU_SOCKW_Waitset_set_sock(
     MPIU_SOCKW_Sockfd_t sock;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
-    MPIU_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
+    MPIR_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
+    MPIR_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
 
     sock = sock_hnd->sockfd;
     if((flag & MPIU_SOCKW_FLAG_WAITON_RD) && 
@@ -832,8 +833,8 @@ static inline int MPIU_SOCKW_Waitset_clr_sock(
     MPIU_SOCKW_Sockfd_t sock;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
-    MPIU_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
+    MPIR_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
+    MPIR_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
 
     sock = sock_hnd->sockfd;
     if((flag & MPIU_SOCKW_FLAG_WAITON_RD) && 
@@ -867,9 +868,9 @@ static inline int MPIU_SOCKW_Waitset_rem_sock(
     MPIU_SOCKW_Sockfd_t sock;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
-    MPIU_Assert(sock_hnd_ptr);
-    MPIU_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(*sock_hnd_ptr));
+    MPIR_Assert(MPIU_SOCKW_Waitset_hnd_is_init_(waitset_hnd));
+    MPIR_Assert(sock_hnd_ptr);
+    MPIR_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(*sock_hnd_ptr));
 
     sock = (*sock_hnd_ptr)->sockfd;
     if(FD_ISSET(sock, &(waitset_hnd->read_fds))){
@@ -903,8 +904,8 @@ static inline int MPIU_SOCKW_Waitset_sock_hnd_get_sockfd(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
-    MPIU_Assert(sockfd_ptr);
+    MPIR_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
+    MPIR_Assert(sockfd_ptr);
 
     *sockfd_ptr = sock_hnd->sockfd;
 
@@ -920,8 +921,8 @@ static inline int MPIU_SOCKW_Waitset_sock_hnd_get_user_ptr(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
-    MPIU_Assert(userp_ptr);
+    MPIR_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
+    MPIR_Assert(userp_ptr);
 
     *userp_ptr = sock_hnd->user_ptr;
 
@@ -937,7 +938,7 @@ static inline int MPIU_SOCKW_Waitset_sock_hnd_set_user_ptr(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
+    MPIR_Assert(MPIU_SOCKW_Waitset_sock_hnd_is_init_(sock_hnd));
 
     sock_hnd->user_ptr = user_ptr;
 

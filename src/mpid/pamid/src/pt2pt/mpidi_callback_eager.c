@@ -76,7 +76,7 @@ MPIDI_RecvCB(pami_context_t    context,
   MPID_assert(_msginfo != NULL);
   MPID_assert(msginfo_size == sizeof(MPIDI_MsgInfo));
 
-  MPID_Request * rreq = NULL;
+  MPIR_Request * rreq = NULL;
   source=PAMIX_Endpoint_query(sender);
 
   /* -------------------- */
@@ -109,7 +109,7 @@ MPIDI_RecvCB(pami_context_t    context,
       MPID_NSTAT(mpid_statp->earlyArrivals);
 #endif
       MPIU_THREAD_CS_EXIT(MSGQUEUE,0);
-      MPID_Request *newreq = MPIDI_Request_create2();
+      MPIR_Request *newreq = MPIDI_Request_create2();
       MPID_assert(newreq != NULL);
       if (TOKEN_FLOW_CONTROL_ON)
         {
@@ -125,7 +125,7 @@ MPIDI_RecvCB(pami_context_t    context,
         newreq->mpid.uebuflen = sndlen;
         if (!(TOKEN_FLOW_CONTROL_ON))
           {
-            newreq->mpid.uebuf = MPIU_Malloc(sndlen);
+            newreq->mpid.uebuf = MPL_malloc(sndlen);
             newreq->mpid.uebuf_malloc = mpiuMalloc ;
           }
         else
@@ -152,7 +152,7 @@ MPIDI_RecvCB(pami_context_t    context,
       if (unlikely(rreq == NULL))
       {
         MPIDI_Callback_process_unexp(newreq, context, msginfo, sndlen, sender, sndbuf, recv, msginfo->isSync);
-        int completed = MPID_Request_is_complete(newreq);
+        int completed = MPIR_Request_is_complete(newreq);
         if (TOKEN_FLOW_CONTROL_ON)
           {
             #if TOKEN_FLOW_CONTROL
@@ -162,7 +162,7 @@ MPIDI_RecvCB(pami_context_t    context,
             #endif
           }
         MPIU_THREAD_CS_EXIT(MSGQUEUE,0);
-        if (completed) MPID_Request_release(newreq);
+        if (completed) MPIR_Request_free(newreq);
         goto fn_exit_eager;
       }
       else
@@ -224,7 +224,7 @@ MPIDI_RecvCB(pami_context_t    context,
   /*  Calculate message length for reception.  */
   /* ----------------------------------------- */
   unsigned dt_contig, dt_size;
-  MPID_Datatype *dt_ptr;
+  MPIDU_Datatype*dt_ptr;
   MPI_Aint dt_true_lb;
   MPIDI_Datatype_get_info(rreq->mpid.userbufcount,
                           rreq->mpid.datatype,
@@ -276,7 +276,7 @@ MPIDI_RecvCB(pami_context_t    context,
         {
           if (!TOKEN_FLOW_CONTROL_ON)
             {
-              rreq->mpid.uebuf    = MPIU_Malloc(sndlen);
+              rreq->mpid.uebuf    = MPL_malloc(sndlen);
               rreq->mpid.uebuf_malloc = mpiuMalloc;
             }
           else

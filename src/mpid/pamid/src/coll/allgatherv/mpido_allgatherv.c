@@ -59,7 +59,7 @@ int MPIDO_Allgatherv_allreduce(const void *sendbuf,
 			       MPI_Aint recv_true_lb,
 			       size_t send_size,
 			       size_t recv_size,
-			       MPID_Comm * comm_ptr,
+                               MPIR_Comm * comm_ptr,
                                int *mpierrno)
 {
   int start, rc, i;
@@ -87,7 +87,7 @@ int MPIDO_Allgatherv_allreduce(const void *sendbuf,
   if ( buffer_sum <= MAX_ALLGATHERV_ALLREDUCE_BUFFER_SIZE &&
        (send_size & 0x3)==0 && (recv_size & 0x3)==0)  
   {
-    double *tmprbuf = (double *)MPIU_Malloc(buffer_sum*2);
+    double *tmprbuf = (double *)MPL_malloc(buffer_sum*2);
     if (tmprbuf == NULL)
       goto direct_algo; /*skip int to fp conversion and go to direct
 			  algo*/
@@ -119,7 +119,7 @@ int MPIDO_Allgatherv_allreduce(const void *sendbuf,
     for(i = start/sizeof(int); i < buffer_sum/sizeof(int); ++i) 
       sibuf[i] = (int)tmprbuf[i];
 
-    MPIU_Free(tmprbuf);
+    MPL_free(tmprbuf);
     return rc;
   }
 
@@ -171,14 +171,14 @@ int MPIDO_Allgatherv_bcast(const void *sendbuf,
 			   MPI_Aint recv_true_lb,
 			   size_t send_size,
 			   size_t recv_size,
-			   MPID_Comm * comm_ptr,
+                           MPIR_Comm * comm_ptr,
                            int *mpierrno)
 {
    const int rank = comm_ptr->rank;
    TRACE_ERR("Entering MPIDO_Allgatherv_bcast\n");
   int i, rc=MPI_ERR_INTERN;
   MPI_Aint extent;
-  MPID_Datatype_get_extent_macro(recvtype, extent);
+  MPIDU_Datatype_get_extent_macro(recvtype, extent);
 
   if (sendbuf != MPI_IN_PLACE)
   {
@@ -230,7 +230,7 @@ int MPIDO_Allgatherv_alltoall(const void *sendbuf,
 			      MPI_Aint recv_true_lb,
 			      size_t send_size,
 			      size_t recv_size,
-			      MPID_Comm * comm_ptr,
+                              MPIR_Comm * comm_ptr,
                               int *mpierrno)
 {
    TRACE_ERR("Entering MPIDO_Allgatherv_alltoallv\n");
@@ -293,7 +293,7 @@ MPIDO_Allgatherv(const void *sendbuf,
 		 const int *recvcounts,
 		 const int *displs,
 		 MPI_Datatype recvtype,
-		 MPID_Comm * comm_ptr,
+                 MPIR_Comm * comm_ptr,
                  int *mpierrno)
 {
 #ifndef HAVE_PAMI_IN_PLACE
@@ -307,7 +307,7 @@ MPIDO_Allgatherv(const void *sendbuf,
   /* function pointer to be used to point to approperiate algorithm */
 
   /* Check the nature of the buffers */
-  MPID_Datatype *dt_null = NULL;
+  MPIDU_Datatype*dt_null = NULL;
   MPI_Aint send_true_lb  = 0;
   MPI_Aint recv_true_lb  = 0;
   size_t   send_size     = 0;
@@ -374,15 +374,15 @@ MPIDO_Allgatherv(const void *sendbuf,
     if(MPIDI_Process.cuda_aware_support_on)
     {
        MPI_Aint sdt_extent,rdt_extent;
-       MPID_Datatype_get_extent_macro(sendtype, sdt_extent);
-       MPID_Datatype_get_extent_macro(recvtype, rdt_extent);
+       MPIDU_Datatype_get_extent_macro(sendtype, sdt_extent);
+       MPIDU_Datatype_get_extent_macro(recvtype, rdt_extent);
        char *scbuf = NULL;
        char *rcbuf = NULL;
        int is_send_dev_buf = MPIDI_cuda_is_device_buf(sendbuf);
        int is_recv_dev_buf = MPIDI_cuda_is_device_buf(recvbuf);
        if(is_send_dev_buf)
        {
-         scbuf = MPIU_Malloc(sdt_extent * sendcount);
+         scbuf = MPL_malloc(sdt_extent * sendcount);
          cudaError_t cudaerr = CudaMemcpy(scbuf, sendbuf, sdt_extent * sendcount, cudaMemcpyDeviceToHost);
          if (cudaSuccess != cudaerr)
            fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
@@ -404,7 +404,7 @@ MPIDO_Allgatherv(const void *sendbuf,
            }
          }
          rtotal_buf = (highest_displs+highest_recvcount)*rdt_extent;
-         rcbuf = MPIU_Malloc(rtotal_buf);
+         rcbuf = MPL_malloc(rtotal_buf);
          if(sendbuf == MPI_IN_PLACE)
          {
            cudaError_t cudaerr = CudaMemcpy(rcbuf, recvbuf, rtotal_buf, cudaMemcpyDeviceToHost);
@@ -417,13 +417,13 @@ MPIDO_Allgatherv(const void *sendbuf,
        else
          rcbuf = recvbuf;
        int cuda_res =  MPIR_Allgatherv(scbuf, sendcount, sendtype, rcbuf, recvcounts, displs, recvtype, comm_ptr, mpierrno);
-       if(is_send_dev_buf)MPIU_Free(scbuf);
+       if(is_send_dev_buf)MPL_free(scbuf);
        if(is_recv_dev_buf)
          {
            cudaError_t cudaerr = CudaMemcpy(recvbuf, rcbuf, rtotal_buf, cudaMemcpyHostToDevice);
            if (cudaSuccess != cudaerr)
              fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
-           MPIU_Free(rcbuf);
+           MPL_free(rcbuf);
          }
        return cuda_res;
     }
@@ -552,7 +552,7 @@ MPIDO_Allgatherv(const void *sendbuf,
           if(my_md->check_correct.values.rangeminmax)
            {
              MPI_Aint data_true_lb;
-             MPID_Datatype *data_ptr;
+             MPIDU_Datatype*data_ptr;
              int data_size, data_contig;
              MPIDI_Datatype_get_info(sendcount, sendtype, data_contig, data_size, data_ptr, data_true_lb); 
              if((my_md->range_lo <= data_size) &&
@@ -599,8 +599,8 @@ MPIDO_Allgatherv(const void *sendbuf,
       if(unlikely(verbose))
       {
          unsigned long long int threadID;
-         MPIU_Thread_id_t tid;
-         MPIU_Thread_self(&tid);
+         MPL_thread_id_t tid;
+         MPL_thread_self(&tid);
          threadID = (unsigned long long int)tid;
          fprintf(stderr,"<%llx> Using protocol %s for allgatherv on %u\n", 
                  threadID,
@@ -677,7 +677,7 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
 		 const int *recvcounts,
 		 const int *displs,
 		 MPI_Datatype recvtype,
-		 MPID_Comm * comm_ptr,
+                 MPIR_Comm * comm_ptr,
                  int *mpierrno)
 {
 #ifndef HAVE_PAMI_IN_PLACE
@@ -690,7 +690,7 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
    TRACE_ERR("Entering MPIDO_Allgatherv_optimized\n");
   /* function pointer to be used to point to approperiate algorithm */
   /* Check the nature of the buffers */
-  MPID_Datatype *dt_null = NULL;
+  MPIDU_Datatype*dt_null = NULL;
   MPI_Aint send_true_lb  = 0;
   MPI_Aint recv_true_lb  = 0;
   size_t   send_size     = 0;
@@ -769,7 +769,7 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
       scount = send_size;
       if(!snd_data_contig)
    {
-        snd_noncontig_buff = MPIU_Malloc(send_size);
+        snd_noncontig_buff = MPL_malloc(send_size);
         sbuf = snd_noncontig_buff;
         if(snd_noncontig_buff == NULL)
    {
@@ -792,8 +792,8 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
     totalrecvcount = recvcounts[0];
     recvcontinuous = displs[0] == 0? 1 : 0 ;
     int i;
-    precvdispls = lrecvdispls = MPIU_Malloc(size*sizeof(int));
-    precvcounts = lrecvcounts = MPIU_Malloc(size*sizeof(int));
+    precvdispls = lrecvdispls = MPL_malloc(size*sizeof(int));
+    precvcounts = lrecvcounts = MPL_malloc(size*sizeof(int));
     lrecvdispls[0]= 0;
     lrecvcounts[0]= rcvtypelen * recvcounts[0];
     for(i=1; i<size; ++i)
@@ -808,7 +808,7 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
     TRACE_ERR("Pack receive rcv_contig %zu, recvok %zd, totalrecvcount %zu, recvcontinuous %zu, rcvtypelen %zu, recv_size %zu\n",
               (size_t)rcv_data_contig, (size_t)recvok, (size_t)totalrecvcount, (size_t)recvcontinuous,(size_t)rcvtypelen, (size_t)recv_size);
 
-    rcv_noncontig_buff = MPIU_Malloc(recv_size);
+    rcv_noncontig_buff = MPL_malloc(recv_size);
     rbuf = rcv_noncontig_buff;
     if(rcv_noncontig_buff == NULL)
     {
@@ -818,7 +818,7 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
     if(inplace)
     {
       size_t extent;
-      MPID_Datatype_get_extent_macro(recvtype,extent);
+      MPIDU_Datatype_get_extent_macro(recvtype,extent);
       MPIR_Localcopy(recvbuf + displs[rank]*extent, recvcounts[rank], recvtype,
                      rcv_noncontig_buff + precvdispls[rank], precvcounts[rank],MPI_CHAR);
       scount = precvcounts[rank];
@@ -862,7 +862,7 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
     {
       size_t extent;
       int i;
-      MPID_Datatype_get_extent_macro(recvtype,extent);
+      MPIDU_Datatype_get_extent_macro(recvtype,extent);
       for(i=0; i<size; ++i)
       {
         char* scbuf = (char*)rcv_noncontig_buff+ precvdispls[i];
@@ -875,11 +875,11 @@ MPIDO_Allgatherv_simple(const void *sendbuf,
                   (size_t)extent, (size_t)i,(size_t)displs[i],(size_t)i,(size_t)recvcounts[i],(size_t)displs[i], *(int*)rcbuf);
       }
     }
-    MPIU_Free(rcv_noncontig_buff);
+    MPL_free(rcv_noncontig_buff);
   }
-  if(!snd_data_contig)  MPIU_Free(snd_noncontig_buff);
-  if(lrecvdispls) MPIU_Free(lrecvdispls);
-  if(lrecvcounts) MPIU_Free(lrecvcounts);
+  if(!snd_data_contig)  MPL_free(snd_noncontig_buff);
+  if(lrecvdispls) MPL_free(lrecvdispls);
+  if(lrecvcounts) MPL_free(lrecvcounts);
 
    return MPI_SUCCESS;
 }
@@ -890,7 +890,7 @@ MPIDO_CSWrapper_allgatherv(pami_xfer_t *allgatherv,
                            void        *comm)
 {
    int mpierrno = 0;
-   MPID_Comm   *comm_ptr = (MPID_Comm*)comm;
+   MPIR_Comm   *comm_ptr = (MPIR_Comm*)comm;
    MPI_Datatype sendtype, recvtype;
    void *sbuf;
    MPIDI_coll_check_in_place(allgatherv->cmd.xfer_allgatherv_int.sndbuf, &sbuf);

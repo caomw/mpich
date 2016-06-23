@@ -1,3 +1,9 @@
+/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
+/*
+ *  (C) 2014 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
+
 #include "hcoll.h"
 
 static int hcoll_initialized = 0;
@@ -15,6 +21,10 @@ int hcoll_enable_iallgather = 1;
 int hcoll_enable_iallreduce = 1;
 int hcoll_comm_attr_keyval = MPI_KEYVAL_INVALID;
 int world_comm_destroying = 0;
+
+#if defined(MPL_USE_DBG_LOGGING)
+MPL_dbg_class MPIR_DBG_HCOLL;
+#endif /* MPL_USE_DBG_LOGGING */
 
 #undef FUNCNAME
 #define FUNCNAME hcoll_destroy
@@ -47,7 +57,7 @@ static int hcoll_comm_attr_del_fn(MPI_Comm comm, int keyval, void *attr_val, voi
         envar = getenv("HCOLL_ENABLE_" #nameEnv); \
         if (NULL != envar) { \
             hcoll_enable_##name = atoi(envar); \
-            MPIU_DBG_MSG_D(CH3_OTHER, VERBOSE, "HCOLL_ENABLE_" #nameEnv " = %d\n", hcoll_enable_##name); \
+            MPL_DBG_MSG_D(MPIR_DBG_HCOLL, VERBOSE, "HCOLL_ENABLE_" #nameEnv " = %d\n", hcoll_enable_##name); \
         } \
     } while (0)
 
@@ -67,6 +77,11 @@ int hcoll_initialize(void)
     if (0 == hcoll_enable) {
         goto fn_exit;
     }
+
+#if defined(MPL_USE_DBG_LOGGING)
+    MPIR_DBG_HCOLL = MPL_dbg_class_alloc("HCOLL", "hcoll");
+#endif /* MPL_USE_DBG_LOGGING */
+
     hcoll_rte_fns_setup();
     /*set INT_MAX/2 as tag_base here by the moment.
      * Need to think more about it.
@@ -117,14 +132,14 @@ int hcoll_initialize(void)
 #define INSTALL_COLL_WRAPPER(check_name, name) \
     if (hcoll_enable_##check_name && (NULL != hcoll_collectives.coll_##check_name)) { \
         comm_ptr->coll_fns->name      = hcoll_##name; \
-        MPIU_DBG_MSG(CH3_OTHER,VERBOSE, #name " wrapper installed"); \
+        MPL_DBG_MSG(MPIR_DBG_HCOLL,VERBOSE, #name " wrapper installed"); \
     }
 
 #undef FUNCNAME
 #define FUNCNAME hcoll_comm_create
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int hcoll_comm_create(MPID_Comm * comm_ptr, void *param)
+int hcoll_comm_create(MPIR_Comm * comm_ptr, void *param)
 {
     int mpi_errno;
     int num_ranks;
@@ -146,13 +161,13 @@ int hcoll_comm_create(MPID_Comm * comm_ptr, void *param)
         goto fn_exit;
     }
     num_ranks = comm_ptr->local_size;
-    if ((MPID_INTRACOMM != comm_ptr->comm_kind) || (2 > num_ranks)) {
+    if ((MPIR_COMM_KIND__INTRACOMM != comm_ptr->comm_kind) || (2 > num_ranks)) {
         comm_ptr->hcoll_priv.is_hcoll_init = 0;
         goto fn_exit;
     }
     comm_ptr->hcoll_priv.hcoll_context = hcoll_create_context((rte_grp_handle_t) comm_ptr);
     if (NULL == comm_ptr->hcoll_priv.hcoll_context) {
-        MPIU_DBG_MSG(CH3_OTHER, VERBOSE, "Couldn't create hcoll context.");
+        MPL_DBG_MSG(MPIR_DBG_HCOLL, VERBOSE, "Couldn't create hcoll context.");
         goto fn_fail;
     }
     mpi_errno =
@@ -161,16 +176,16 @@ int hcoll_comm_create(MPID_Comm * comm_ptr, void *param)
     if (mpi_errno) {
         hcoll_destroy_context(comm_ptr->hcoll_priv.hcoll_context,
                               (rte_grp_handle_t) comm_ptr, &context_destroyed);
-        MPIU_Assert(context_destroyed);
+        MPIR_Assert(context_destroyed);
         comm_ptr->hcoll_priv.is_hcoll_init = 0;
         MPIR_ERR_POP(mpi_errno);
     }
     comm_ptr->hcoll_priv.hcoll_origin_coll_fns = comm_ptr->coll_fns;
-    comm_ptr->coll_fns = (MPID_Collops *) MPIU_Malloc(sizeof(MPID_Collops));
-    memset(comm_ptr->coll_fns, 0, sizeof(MPID_Collops));
+    comm_ptr->coll_fns = (MPIR_Collops *) MPL_malloc(sizeof(MPIR_Collops));
+    memset(comm_ptr->coll_fns, 0, sizeof(MPIR_Collops));
     if (comm_ptr->hcoll_priv.hcoll_origin_coll_fns != 0) {
         memcpy(comm_ptr->coll_fns, comm_ptr->hcoll_priv.hcoll_origin_coll_fns,
-               sizeof(MPID_Collops));
+               sizeof(MPIR_Collops));
     }
     INSTALL_COLL_WRAPPER(barrier, Barrier);
     INSTALL_COLL_WRAPPER(bcast, Bcast);
@@ -192,7 +207,7 @@ int hcoll_comm_create(MPID_Comm * comm_ptr, void *param)
 #define FUNCNAME hcoll_comm_destroy
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int hcoll_comm_destroy(MPID_Comm * comm_ptr, void *param)
+int hcoll_comm_destroy(MPIR_Comm * comm_ptr, void *param)
 {
     int mpi_errno;
     int context_destroyed;
@@ -211,7 +226,7 @@ int hcoll_comm_destroy(MPID_Comm * comm_ptr, void *param)
     context_destroyed = 0;
     if ((NULL != comm_ptr) && (0 != comm_ptr->hcoll_priv.is_hcoll_init)) {
         if (NULL != comm_ptr->coll_fns) {
-            MPIU_Free(comm_ptr->coll_fns);
+            MPL_free(comm_ptr->coll_fns);
         }
         comm_ptr->coll_fns = comm_ptr->hcoll_priv.hcoll_origin_coll_fns;
         hcoll_destroy_context(comm_ptr->hcoll_priv.hcoll_context,

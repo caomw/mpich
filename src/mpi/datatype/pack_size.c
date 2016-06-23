@@ -77,15 +77,15 @@ int MPI_Pack_size(int incount,
 		  int *size)
 {
 #ifdef HAVE_ERROR_CHECKING
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
 #endif
     int mpi_errno = MPI_SUCCESS;
     MPI_Aint size_x = MPI_UNDEFINED;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_PACK_SIZE);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_PACK_SIZE);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_PACK_SIZE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_PACK_SIZE);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -101,16 +101,16 @@ int MPI_Pack_size(int incount,
 #   ifdef HAVE_ERROR_CHECKING
     {
         /* Convert MPI object handles to object pointers */
-        MPID_Comm_get_ptr( comm, comm_ptr );
+        MPIR_Comm_get_ptr( comm, comm_ptr );
 
         MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Datatype *datatype_ptr = NULL;
+            MPIR_Datatype *datatype_ptr = NULL;
 
 	    MPIR_ERRTEST_COUNT(incount, mpi_errno);
 	    MPIR_ERRTEST_ARGNULL(size, "size", mpi_errno);
 	    
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno) goto fn_fail;
 	    
 	    MPIR_ERRTEST_DATATYPE(datatype, "datatype", mpi_errno);
@@ -118,7 +118,7 @@ int MPI_Pack_size(int incount,
 	    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
 	    {
 		MPID_Datatype_get_ptr(datatype, datatype_ptr);
-		MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+		MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
 		MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno) goto fn_fail;
 	    }
@@ -130,14 +130,14 @@ int MPI_Pack_size(int incount,
     /* ... body of routine ... */
 
     MPIR_Pack_size_impl(incount, datatype, &size_x);
-    MPIU_Assign_trunc(*size, size_x, int);
+    MPIR_Assign_trunc(*size, size_x, int);
 
     /* ... end of body of routine ... */
 
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_PACK_SIZE);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_PACK_SIZE);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

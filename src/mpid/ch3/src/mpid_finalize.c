@@ -18,9 +18,9 @@
 int MPID_Finalize(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_FINALIZE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_FINALIZE);
 
     /*
      * Wait for all posted receives to complete.  For now we are not doing 
@@ -140,19 +140,19 @@ int MPID_Finalize(void)
 	p = MPIDI_CH3U_SRBuf_pool;
 	while (p) {
 	    pNext = p->next;
-	    MPIU_Free(p);
+	    MPL_free(p);
 	    p = pNext;
 	}
     }
 
     MPIDI_RMA_finalize();
     
-    MPIU_Free(MPIDI_failed_procs_string);
+    MPL_free(MPIDI_failed_procs_string);
 
     MPIDU_Ftb_finalize();
 
  fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_FINALIZE);
     return mpi_errno;
  fn_fail:
     goto fn_exit;

@@ -90,7 +90,7 @@ int MPIR_Exscan (
     int count,
     MPI_Datatype datatype,
     MPI_Op op,
-    MPID_Comm *comm_ptr,
+    MPIR_Comm *comm_ptr,
     MPIR_Errflag_t *errflag )
 {
     MPI_Status status;
@@ -100,26 +100,31 @@ int MPIR_Exscan (
     int mask, dst, is_commutative, flag; 
     MPI_Aint true_extent, true_lb, extent;
     void *partial_scan, *tmp_buf;
-    MPID_Op *op_ptr;
-    MPIU_CHKLMEM_DECL(2);
-    MPID_THREADPRIV_DECL;
+    MPIR_Op *op_ptr;
+    MPIR_CHKLMEM_DECL(2);
     
     if (count == 0) return MPI_SUCCESS;
-
-    MPID_THREADPRIV_GET;
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
     
     /* set op_errno to 0. stored in perthread structure */
-    MPID_THREADPRIV_FIELD(op_errno) = 0;
+    {
+        MPIR_Per_thread_t *per_thread = NULL;
+        int err = 0;
+
+        MPID_THREADPRIV_KEY_GET_ADDR(MPIR_ThreadInfo.isThreaded, MPIR_Per_thread_key,
+                                     MPIR_Per_thread, per_thread, &err);
+        MPIR_Assert(err == 0);
+        per_thread->op_errno = 0;
+    }
 
     if (HANDLE_GET_KIND(op) == HANDLE_KIND_BUILTIN) {
         is_commutative = 1;
     }
     else {
-        MPID_Op_get_ptr(op, op_ptr);
-        if (op_ptr->kind == MPID_OP_USER_NONCOMMUTE)
+        MPIR_Op_get_ptr(op, op_ptr);
+        if (op_ptr->kind == MPIR_OP_KIND__USER_NONCOMMUTE)
             is_commutative = 0;
         else
             is_commutative = 1;
@@ -130,21 +135,18 @@ int MPIR_Exscan (
 
     MPID_Datatype_get_extent_macro( datatype, extent );
 
-    MPIU_CHKLMEM_MALLOC(partial_scan, void *, (count*(MPIR_MAX(true_extent,extent))), mpi_errno, "partial_scan");
+    MPIR_CHKLMEM_MALLOC(partial_scan, void *, (count*(MPL_MAX(true_extent,extent))), mpi_errno, "partial_scan");
     /* adjust for potential negative lower bound in datatype */
     partial_scan = (void *)((char*)partial_scan - true_lb);
 
     /* need to allocate temporary buffer to store incoming data*/
-    MPIU_CHKLMEM_MALLOC(tmp_buf, void *, (count*(MPIR_MAX(true_extent,extent))), mpi_errno, "tmp_buf");
+    MPIR_CHKLMEM_MALLOC(tmp_buf, void *, (count*(MPL_MAX(true_extent,extent))), mpi_errno, "tmp_buf");
     /* adjust for potential negative lower bound in datatype */
     tmp_buf = (void *)((char*)tmp_buf - true_lb);
 
     mpi_errno = MPIR_Localcopy((sendbuf == MPI_IN_PLACE ? (const void *)recvbuf : sendbuf), count, datatype,
                                partial_scan, count, datatype);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER( comm_ptr );
 
     flag = 0;
     mask = 0x1;
@@ -212,14 +214,20 @@ int MPIR_Exscan (
         mask <<= 1;
     }
 
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT( comm_ptr );
+    {
+        MPIR_Per_thread_t *per_thread = NULL;
+        int err = 0;
 
-    if (MPID_THREADPRIV_FIELD(op_errno)) 
-	mpi_errno = MPID_THREADPRIV_FIELD(op_errno);
+        MPID_THREADPRIV_KEY_GET_ADDR(MPIR_ThreadInfo.isThreaded, MPIR_Per_thread_key,
+                                     MPIR_Per_thread, per_thread, &err);
+        MPIR_Assert(err == 0);
+
+        if (per_thread->op_errno)
+            mpi_errno = per_thread->op_errno;
+    }
 
 fn_exit:
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     else if (*errflag != MPIR_ERR_NONE)
@@ -238,7 +246,7 @@ fn_fail:
 #define FUNCNAME MPIR_Exscan_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Exscan_impl(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+int MPIR_Exscan_impl(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -304,14 +312,14 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datat
                MPI_Op op, MPI_Comm comm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_EXSCAN);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_EXSCAN);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_COLL_FUNC_ENTER(MPID_STATE_MPI_EXSCAN);
+    MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_EXSCAN);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -325,18 +333,18 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datat
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPID_Datatype *datatype_ptr = NULL;
-            MPID_Op *op_ptr = NULL;
+	    MPIR_Datatype *datatype_ptr = NULL;
+            MPIR_Op *op_ptr = NULL;
             int rank;
 	    
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
             MPIR_ERRTEST_COMM_INTRA(comm_ptr, mpi_errno);
@@ -346,7 +354,7 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datat
 	    
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr( datatype_ptr, mpi_errno );
+                MPIR_Datatype_valid_ptr( datatype_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                 MPID_Datatype_committed_ptr( datatype_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -363,8 +371,8 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datat
 
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
             if (HANDLE_GET_KIND(op) != HANDLE_KIND_BUILTIN) {
-                MPID_Op_get_ptr(op, op_ptr);
-                MPID_Op_valid_ptr( op_ptr, mpi_errno );
+                MPIR_Op_get_ptr(op, op_ptr);
+                MPIR_Op_valid_ptr( op_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
             }
             if (HANDLE_GET_KIND(op) == HANDLE_KIND_BUILTIN) {
@@ -382,13 +390,13 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datat
 
     /* ... body of routine ...  */
 
-    mpi_errno = MPIR_Exscan_impl(sendbuf, recvbuf, count, datatype, op, comm_ptr, &errflag);
+    mpi_errno = MPID_Exscan(sendbuf, recvbuf, count, datatype, op, comm_ptr, &errflag);
     if (mpi_errno) goto fn_fail;
 
     /* ... end of body of routine ... */
     
   fn_exit:    
-    MPID_MPI_COLL_FUNC_EXIT(MPID_STATE_MPI_EXSCAN);
+    MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_EXSCAN);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

@@ -36,7 +36,7 @@ int MPIDO_Bcast(void *buffer,
                 int count,
                 MPI_Datatype datatype,
                 int root,
-                MPID_Comm *comm_ptr,
+                MPIR_Comm *comm_ptr,
                 int *mpierrno)
 {
    TRACE_ERR("in mpido_bcast\n");
@@ -46,8 +46,8 @@ int MPIDO_Bcast(void *buffer,
         *noncontig_buff = NULL;
    volatile unsigned active = 1;
    MPI_Aint data_true_lb = 0;
-   MPID_Datatype *data_ptr;
-   MPID_Segment segment;
+   MPIDU_Datatype*data_ptr;
+   MPIDU_Segment segment;
    MPIDI_Post_coll_t bcast_post;
    const struct MPIDI_Comm* const mpid = &(comm_ptr->mpid);
    const int rank = comm_ptr->rank;
@@ -112,7 +112,7 @@ int MPIDO_Bcast(void *buffer,
 
    if(!data_contig)
    {
-      noncontig_buff = MPIU_Malloc(data_size);
+      noncontig_buff = MPL_malloc(data_size);
       data_buffer = noncontig_buff;
       if(noncontig_buff == NULL)
       {
@@ -122,8 +122,8 @@ int MPIDO_Bcast(void *buffer,
       if(rank == root)
       {
          DLOOP_Offset last = data_size;
-         MPID_Segment_init(buffer, count, datatype, &segment, 0);
-         MPID_Segment_pack(&segment, 0, &last, noncontig_buff);
+         MPIDU_Segment_init(buffer, count, datatype, &segment, 0);
+         MPIDU_Segment_pack(&segment, 0, &last, noncontig_buff);
       }
    }
 
@@ -241,8 +241,8 @@ int MPIDO_Bcast(void *buffer,
    if(unlikely(verbose))
    {
       unsigned long long int threadID;
-      MPIU_Thread_id_t tid;
-      MPIU_Thread_self(&tid);
+      MPL_thread_id_t tid;
+      MPL_thread_self(&tid);
       threadID = (unsigned long long int)tid;
       fprintf(stderr,"<%llx> Using protocol %s for bcast on %u\n", 
               threadID,
@@ -260,7 +260,7 @@ int MPIDO_Bcast(void *buffer,
       if(rank != root)
          MPIR_Localcopy(noncontig_buff, data_size, MPI_CHAR,
                         buffer,         count,     datatype);
-      MPIU_Free(noncontig_buff);
+      MPL_free(noncontig_buff);
    }
 
    TRACE_ERR("leaving bcast\n");
@@ -272,7 +272,7 @@ int MPIDO_Bcast_simple(void *buffer,
                 int count,
                 MPI_Datatype datatype,
                 int root,
-                MPID_Comm *comm_ptr,
+                MPIR_Comm *comm_ptr,
                 int *mpierrno)
 {
    TRACE_ERR("Entering MPIDO_Bcast_optimized\n");
@@ -282,8 +282,8 @@ int MPIDO_Bcast_simple(void *buffer,
         *noncontig_buff = NULL;
    volatile unsigned active = 1;
    MPI_Aint data_true_lb = 0;
-   MPID_Datatype *data_ptr;
-   MPID_Segment segment;
+   MPIDU_Datatype*data_ptr;
+   MPIDU_Segment segment;
    MPIDI_Post_coll_t bcast_post;
    const struct MPIDI_Comm* const mpid = &(comm_ptr->mpid);
    const int rank = comm_ptr->rank;
@@ -325,7 +325,7 @@ int MPIDO_Bcast_simple(void *buffer,
 
    if(!data_contig)
    {
-      noncontig_buff = MPIU_Malloc(data_size);
+      noncontig_buff = MPL_malloc(data_size);
       data_buffer = noncontig_buff;
       if(noncontig_buff == NULL)
       {
@@ -335,8 +335,8 @@ int MPIDO_Bcast_simple(void *buffer,
       if(rank == root)
       {
          DLOOP_Offset last = data_size;
-         MPID_Segment_init(buffer, count, datatype, &segment, 0);
-         MPID_Segment_pack(&segment, 0, &last, noncontig_buff);
+         MPIDU_Segment_init(buffer, count, datatype, &segment, 0);
+         MPIDU_Segment_pack(&segment, 0, &last, noncontig_buff);
       }
    }
 
@@ -363,7 +363,7 @@ int MPIDO_Bcast_simple(void *buffer,
       if(rank != root)
          MPIR_Localcopy(noncontig_buff, data_size, MPI_CHAR,
                         buffer,         count,     datatype);
-      MPIU_Free(noncontig_buff);
+      MPL_free(noncontig_buff);
    }
 
    TRACE_ERR("Exiting MPIDO_Bcast_optimized\n");
@@ -376,7 +376,7 @@ MPIDO_CSWrapper_bcast(pami_xfer_t *bcast,
                       void        *comm)
 {
    int mpierrno = 0;
-   MPID_Comm   *comm_ptr = (MPID_Comm*)comm;
+   MPIR_Comm   *comm_ptr = (MPIR_Comm*)comm;
    MPI_Datatype type;
    int rc = MPIDI_Dtpami_to_dtmpi(  bcast->cmd.xfer_broadcast.type,
                                    &type,

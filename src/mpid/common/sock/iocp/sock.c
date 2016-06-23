@@ -34,7 +34,7 @@ typedef struct sock_buffer
 #endif
     int iovlen;
     int index;
-    MPIU_Size_t total;
+    size_t total;
     MPIDU_Sock_progress_update_func_t progress_update;
 } sock_buffer;
 
@@ -97,7 +97,7 @@ static void translate_error(int error, char *msg, char *prepend)
     if (num_bytes == 0)
     {
 	if (prepend != NULL)
-	    MPIU_Strncpy(msg, prepend, 1024);
+	    MPL_strncpy(msg, prepend, 1024);
 	else
 	    *msg = '\0';
     }
@@ -415,9 +415,9 @@ int MPIDU_Sock_init()
     char *szNum, *szRange;
     WSADATA wsaData;
     int err;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_INIT);
 
     if (g_init_called)
     {
@@ -425,7 +425,7 @@ int MPIDU_Sock_init()
 	/*printf("sock init %d\n", g_init_called);fflush(stdout);*/
 	/*
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
 	return mpi_errno;
 	*/
 	return MPI_SUCCESS;
@@ -435,7 +435,7 @@ int MPIDU_Sock_init()
     if ((err = WSAStartup(MAKEWORD(2, 0), &wsaData)) != 0)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**wsasock", "**wsasock %s %d", get_error_string(err), err);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
 	return mpi_errno;
     }
 
@@ -482,7 +482,7 @@ int MPIDU_Sock_init()
     g_init_called = 1;
     /*printf("sock init %d\n", g_init_called);fflush(stdout);*/
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_INIT);
     return MPI_SUCCESS;
 }
 
@@ -494,13 +494,13 @@ int MPIDU_Sock_finalize()
 {
     int mpi_errno;
     sock_state_t *iter;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_FINALIZE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_FINALIZE);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_FINALIZE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_FINALIZE);
 	return mpi_errno;
     }
     g_init_called--;
@@ -525,7 +525,7 @@ int MPIDU_Sock_finalize()
 	}
 	WSACleanup();
     }
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_FINALIZE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_FINALIZE);
     return MPI_SUCCESS;
 }
 
@@ -553,13 +553,13 @@ static int already_used_or_add(char *host, socki_host_name_t **list)
     }
 
     /* the host has not been used so add a node for it */
-    iter = (socki_host_name_t*)MPIU_Malloc(sizeof(socki_host_name_t));
+    iter = (socki_host_name_t*)MPL_malloc(sizeof(socki_host_name_t));
     if (!iter)
     {
 	/* if out of memory then treat it as not found */
 	return 0;
     }
-    MPIU_Strncpy(iter->host, host, 256);
+    MPL_strncpy(iter->host, host, 256);
 
     /* insert new hosts at the end of the list */
     if (trailer != NULL)
@@ -587,7 +587,7 @@ static void socki_free_host_list(socki_host_name_t *list)
     {
 	iter = list;
 	list = list->next;
-	MPIU_Free(iter);
+	MPL_free(iter);
     }
 }
 
@@ -670,15 +670,15 @@ static int socki_get_host_list(char *hostname, socki_host_name_t **listp)
 int MPIDU_Sock_hostname_to_host_description(char *hostname, char *host_description, int len)
 {
     int mpi_errno = MPI_SUCCESS;
-    int str_errno = MPIU_STR_SUCCESS;
+    int str_errno = MPL_STR_SUCCESS;
     socki_host_name_t *iter, *list = NULL;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
 	return mpi_errno;
     }
 
@@ -692,8 +692,8 @@ int MPIDU_Sock_hostname_to_host_description(char *hostname, char *host_descripti
     iter = list;
     while (iter)
     {
-        MPIU_DBG_PRINTF(("adding host: %s\n", iter->host));
-        str_errno = MPIU_Str_add_string(&host_description, &len, iter->host);
+        MPL_DBG_MSG_S(MPIR_DBG_OTHER,TERSE,"adding host: %s\n", iter->host);
+        str_errno = MPL_str_add_string(&host_description, &len, iter->host);
         MPIR_ERR_CHKANDJUMP(str_errno, mpi_errno, MPIDU_SOCK_ERR_NOMEM, "**desc_len");
 
         iter = iter->next;
@@ -702,7 +702,7 @@ int MPIDU_Sock_hostname_to_host_description(char *hostname, char *host_descripti
  fn_exit:
     socki_free_host_list(list);
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_HOSTNAME_TO_HOST_DESCRIPTION);
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -719,23 +719,23 @@ int MPIDU_Sock_get_host_description(int myRank,
     char hostname[100];
     DWORD length = 100;
     char *env;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
 
-    MPIU_UNREFERENCED_ARG(myRank);
+    MPL_UNREFERENCED_ARG(myRank);
 
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
 	return mpi_errno;
     }
 
     env = getenv("MPICH_INTERFACE_HOSTNAME");
     if (env != NULL && *env != '\0')
     {
-	MPIU_Strncpy(hostname, env, sizeof(hostname));
+	MPL_strncpy(hostname, env, sizeof(hostname));
     }
     else
     {
@@ -745,7 +745,7 @@ int MPIDU_Sock_get_host_description(int myRank,
 	{
 	    mpi_errno = WSAGetLastError();
 	    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**sock_gethost", "**sock_gethost %s %d", get_error_string(mpi_errno), mpi_errno);
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
 	    return mpi_errno;
 	}
     }
@@ -756,7 +756,7 @@ int MPIDU_Sock_get_host_description(int myRank,
 	mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER, "**fail", 0);
     }
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_GET_HOST_DESCRIPTION);
     return mpi_errno;
 }
 
@@ -768,25 +768,25 @@ int MPIDU_Sock_create_set(MPIDU_Sock_set_t * set)
 {
     int mpi_errno;
     HANDLE port;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_CREATE_SET);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_CREATE_SET);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_CREATE_SET);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_CREATE_SET);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_CREATE_SET);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_CREATE_SET);
 	return mpi_errno;
     }
     port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, g_num_cp_threads);
     if (port != NULL)
     {
 	*set = port;
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_CREATE_SET);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_CREATE_SET);
 	return MPI_SUCCESS;
     }
     mpi_errno = GetLastError();
     mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**iocp", "**iocp %s %d", get_error_string(mpi_errno), mpi_errno);
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_CREATE_SET);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_CREATE_SET);
     return mpi_errno;
 }
 
@@ -797,13 +797,13 @@ int MPIDU_Sock_create_set(MPIDU_Sock_set_t * set)
 int MPIDU_Sock_destroy_set(MPIDU_Sock_set_t set)
 {
     int mpi_errno;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
 	return mpi_errno;
     }
     if (!CloseHandle(set))
@@ -812,14 +812,14 @@ int MPIDU_Sock_destroy_set(MPIDU_Sock_set_t set)
 	if (mpi_errno == ERROR_INVALID_HANDLE)
 	{
 	    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_BAD_SET, "**bad_set", 0);
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
 	    return mpi_errno;
 	}
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s %d", get_error_string(mpi_errno), mpi_errno);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
 	return mpi_errno;
     }
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_DESTROY_SET);
     return MPI_SUCCESS;
 }
 
@@ -833,22 +833,22 @@ int MPIDU_Sock_native_to_sock(MPIDU_Sock_set_t set, MPIDU_SOCK_NATIVE_FD fd, voi
     /*int ret_val;*/
     sock_state_t *sock_state;
     /*u_long optval;*/
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
 	return mpi_errno;
     }
 
     /* setup the structures */
-    sock_state = (sock_state_t*)MPIU_Malloc(sizeof(sock_state_t));
+    sock_state = (sock_state_t*)MPL_malloc(sizeof(sock_state_t));
     if (sock_state == NULL)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_NOMEM, "**nomem", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
 	return mpi_errno;
     }
     init_state_struct(sock_state);
@@ -870,14 +870,14 @@ int MPIDU_Sock_native_to_sock(MPIDU_Sock_set_t set, MPIDU_SOCK_NATIVE_FD fd, voi
     if (CreateIoCompletionPort((HANDLE)sock_state->sock, set, (ULONG_PTR)sock_state, g_num_cp_threads) == NULL)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_NOMEM, "**nomem", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
 	return mpi_errno;
     }
 
     *sock_ptr = sock_state;
 
     /*printf("native socket %d\n", sock_state->sock);fflush(stdout);*/
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_NATIVE_TO_SOCK);
     return MPI_SUCCESS;
 }
 
@@ -891,38 +891,38 @@ int MPIDU_Sock_listen(MPIDU_Sock_set_t set, void * user_ptr, int * port, MPIDU_S
     char host[100];
     sock_state_t * listen_state, **listener_copies;
     int i;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_LISTEN);
-    MPIDI_STATE_DECL(MPID_STATE_MEMCPY);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_LISTEN);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MEMCPY);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_LISTEN);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_LISTEN);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
 	return mpi_errno;
     }
 
-    listen_state = (sock_state_t*)MPIU_Malloc(sizeof(sock_state_t));
+    listen_state = (sock_state_t*)MPL_malloc(sizeof(sock_state_t));
     init_state_struct(listen_state);
     mpi_errno = easy_create_ranged(&listen_state->listen_sock, *port, INADDR_ANY);
     if (mpi_errno != MPI_SUCCESS)
     {
 	mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**sock_create", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
 	return mpi_errno;
     }
     if (listen(listen_state->listen_sock, SOMAXCONN) == SOCKET_ERROR)
     {
 	mpi_errno = WSAGetLastError();
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**listen", "**listen %s %d", get_error_string(mpi_errno), mpi_errno);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
 	return mpi_errno;
     }
     if (CreateIoCompletionPort((HANDLE)listen_state->listen_sock, set, (ULONG_PTR)listen_state, g_num_cp_threads) == NULL)
     {
 	mpi_errno = GetLastError();
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**iocp", "**iocp %s %d", get_error_string(mpi_errno), mpi_errno);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
 	return mpi_errno;
     }
     easy_get_sock_info(listen_state->listen_sock, host, port);
@@ -933,13 +933,13 @@ int MPIDU_Sock_listen(MPIDU_Sock_set_t set, void * user_ptr, int * port, MPIDU_S
     /* post the accept(s) last to make sure the listener state structure is completely initialized before
        a completion thread has the chance to satisfy the AcceptEx call */
 
-    listener_copies = (sock_state_t**)MPIU_Malloc(g_num_posted_accepts * sizeof(sock_state_t*));
+    listener_copies = (sock_state_t**)MPL_malloc(g_num_posted_accepts * sizeof(sock_state_t*));
     for (i=0; i<g_num_posted_accepts; i++)
     {
-	listener_copies[i] = (sock_state_t*)MPIU_Malloc(sizeof(sock_state_t));
-	MPIDI_FUNC_ENTER(MPID_STATE_MEMCPY);
+	listener_copies[i] = (sock_state_t*)MPL_malloc(sizeof(sock_state_t));
+	MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MEMCPY);
 	memcpy(listener_copies[i], listen_state, sizeof(*listen_state));
-	MPIDI_FUNC_EXIT(MPID_STATE_MEMCPY);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MEMCPY);
 	if (i > 0)
 	{
 	    listener_copies[i]->next = listener_copies[i-1];
@@ -947,18 +947,18 @@ int MPIDU_Sock_listen(MPIDU_Sock_set_t set, void * user_ptr, int * port, MPIDU_S
 	mpi_errno = post_next_accept(listener_copies[i]);
 	if (mpi_errno != MPI_SUCCESS)
 	{
-	    MPIU_Free(listener_copies);
+	    MPL_free(listener_copies);
 	    mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**post_accept", 0);
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
 	    return mpi_errno;
 	}
     }
     listen_state->list = listener_copies[g_num_posted_accepts-1];
-    MPIU_Free(listener_copies);
+    MPL_free(listener_copies);
 
     *sock = listen_state;
     /*printf("listening socket %d\n", listen_state->listen_sock);fflush(stdout);*/
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_LISTEN);
     return MPI_SUCCESS;
 }
 
@@ -974,22 +974,22 @@ int MPIDU_Sock_accept(MPIDU_Sock_t listener_sock, MPIDU_Sock_set_t set, void * u
     u_long optval;
     int len;
     sock_state_t *accept_state, *iter;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_ACCEPT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_ACCEPT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_ACCEPT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_ACCEPT);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
 	return mpi_errno;
     }
 
-    accept_state = MPIU_Malloc(sizeof(sock_state_t));
+    accept_state = MPL_malloc(sizeof(sock_state_t));
     if (accept_state == NULL)
     {
 	*sock = NULL;
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_NOMEM, "**nomem", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
 	return mpi_errno;
     }
     init_state_struct(accept_state);
@@ -1003,7 +1003,7 @@ int MPIDU_Sock_accept(MPIDU_Sock_t listener_sock, MPIDU_Sock_set_t set, void * u
     if (iter == NULL)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**sock_nop_accept", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
 	return mpi_errno;
     }
     accept_state->sock = iter->sock;
@@ -1012,7 +1012,7 @@ int MPIDU_Sock_accept(MPIDU_Sock_t listener_sock, MPIDU_Sock_set_t set, void * u
     {
 	*sock = NULL;
 	mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**post_accept", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
 	return mpi_errno;
     }
 
@@ -1059,7 +1059,7 @@ int MPIDU_Sock_accept(MPIDU_Sock_t listener_sock, MPIDU_Sock_set_t set, void * u
     {
 	mpi_errno = GetLastError();
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**iocp", "**iocp %s %d", get_error_string(mpi_errno), mpi_errno);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
 	return mpi_errno;
     }
 
@@ -1068,7 +1068,7 @@ int MPIDU_Sock_accept(MPIDU_Sock_t listener_sock, MPIDU_Sock_set_t set, void * u
     *sock = accept_state;
 
     /*printf("accepted socket %d\n", accept_state->sock);fflush(stdout);*/
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_ACCEPT);
     return MPI_SUCCESS;
 }
 
@@ -1126,7 +1126,7 @@ static unsigned int GetMask(char *pszMask)
 int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_description, int port, MPIDU_Sock_t * sock)
 {
     int mpi_errno;
-    int str_errno = MPIU_STR_SUCCESS;
+    int str_errno = MPL_STR_SUCCESS;
     struct hostent *lphost;
     struct sockaddr_in sockAddr;
     sock_state_t *connect_state;
@@ -1139,36 +1139,36 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
     char *pEnv, *token;
     unsigned int nNicNet=0, nNicMask=0;
     int use_subnet = 0;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 	return mpi_errno;
     }
     if (strlen(host_description) > SOCKI_DESCRIPTION_LENGTH)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_NOMEM, "**nomem", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 	return mpi_errno;
     }
 
     memset(&sockAddr,0,sizeof(sockAddr));
 
     /* setup the structures */
-    connect_state = (sock_state_t*)MPIU_Malloc(sizeof(sock_state_t));
+    connect_state = (sock_state_t*)MPL_malloc(sizeof(sock_state_t));
     init_state_struct(connect_state);
     connect_state->cur_host = connect_state->host_description;
-    MPIU_Strncpy(connect_state->host_description, host_description, SOCKI_DESCRIPTION_LENGTH);
+    MPL_strncpy(connect_state->host_description, host_description, SOCKI_DESCRIPTION_LENGTH);
 
     /* create a socket */
     mpi_errno = easy_create(&connect_state->sock, ADDR_ANY, INADDR_ANY);
     if (mpi_errno != MPI_SUCCESS)
     {
 	mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_create", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 	return mpi_errno;
     }
 
@@ -1176,7 +1176,7 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
     pEnv = getenv("MPICH_NETMASK");
     if (pEnv != NULL)
     {
-	MPIU_Strncpy(pszNetMask, pEnv, 50);
+	MPL_strncpy(pszNetMask, pEnv, 50);
 	token = strtok(pszNetMask, "/");
 	if (token != NULL)
 	{
@@ -1193,21 +1193,21 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
     while (!connected)
     {
 	host[0] = '\0';
-	str_errno = MPIU_Str_get_string(&connect_state->cur_host, host, 100);
+	str_errno = MPL_str_get_string(&connect_state->cur_host, host, 100);
 	/*printf("got <%s> out of <%s>\n", host, connect_state->host_description);fflush(stdout);*/
-	if (str_errno != MPIU_STR_SUCCESS)
+	if (str_errno != MPL_STR_SUCCESS)
 	{
-	    if (str_errno == MPIU_STR_NOMEM)
+	    if (str_errno == MPL_STR_NOMEM)
 		mpi_errno = MPIR_Err_create_code(connect_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_NOMEM, "**nomem", 0);
 	    else
 		mpi_errno = MPIR_Err_create_code(connect_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %d", mpi_errno);
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 	    return mpi_errno;
 	}
 	if (host[0] == '\0')
 	{
 	    mpi_errno = MPIR_Err_create_code(connect_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**sock_connect", "**sock_connect %s %d %s %d", connect_state->host_description, port, "exhausted all endpoints", -1);
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 	    return mpi_errno;
 	}
 
@@ -1224,7 +1224,7 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
 		mpi_errno = WSAGetLastError();
 		connect_errno = MPIR_Err_create_code(connect_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**gethostbyname", "**gethostbyname %s %d", get_error_string(mpi_errno), mpi_errno);
 		/*
-		MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+		MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 		return mpi_errno;
 		*/
 		continue;
@@ -1255,7 +1255,7 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
 		{
 		    connect_errno = MPIR_Err_create_code(connect_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_connect", "**sock_connect %s %d %s %d", host, port, get_error_string(error), error);
 		    /*
-		    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+		    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 		    return mpi_errno;
 		    */
 		    /* This code assumes that all errors other than WSAECONNREFUSED and WSAETIMEDOUT should not cause a connection retry */
@@ -1271,7 +1271,7 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
 		    error = WSAGetLastError();
 		    connect_errno = MPIR_Err_create_code(connect_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_connect", "**sock_connect %s %d %s %d", host, port, get_error_string(error), error);
 		    /*
-		    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+		    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 		    return mpi_errno;
 		    */
 		    break;
@@ -1283,7 +1283,7 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
 		    /* Warning: Loss of information.  We have two error stacks, one in connect_errno and the other in mpi_errno, that cannot be joined given the current error code interface. */
 		    /*connect_errno = MPIR_Err_create_code(connect_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_create", 0);*/
 		    mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_create", 0);
-		    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+		    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 		    return mpi_errno;
 		}
 		random_time = (int)((double)rand() / (double)RAND_MAX * 250.0);
@@ -1312,7 +1312,7 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
     {
 	mpi_errno = GetLastError();
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**iocp", "**iocp %s %d", get_error_string(mpi_errno), mpi_errno);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
 	return mpi_errno;
     }
 
@@ -1324,7 +1324,7 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
     *sock = connect_state;
 
     /*printf("connected socket %d\n", connect_state->sock);fflush(stdout);*/
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CONNECT);
     return MPI_SUCCESS;
 }
 
@@ -1335,23 +1335,23 @@ int MPIDU_Sock_post_connect(MPIDU_Sock_set_t set, void * user_ptr, char * host_d
 int MPIDU_Sock_set_user_ptr(MPIDU_Sock_t sock, void * user_ptr)
 {
     int mpi_errno;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
 	return mpi_errno;
     }
     if (sock == NULL)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_BAD_SOCK, "**bad_sock", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
 	return mpi_errno;
     }
     sock->user_ptr = user_ptr;
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_SET_USER_PTR);
     return MPI_SUCCESS;
 }
 
@@ -1363,27 +1363,27 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
 {
     int mpi_errno;
     SOCKET s, *sp;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	return mpi_errno;
     }
 
     if (sock == NULL)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_BAD_SOCK, "**nullptr", "**nullptr %s", "sock");
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	return mpi_errno;
     }
     if (sock->closing)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**pctwice", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	return mpi_errno;
     }
 
@@ -1403,22 +1403,22 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
 	    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_BAD_SOCK, "**bad_listenersock", 0);
 	else
 	    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_BAD_SOCK, "**bad_sock", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	return mpi_errno;
     }
 
     if (sock->pending_operations != 0)
     {
-	/*MPIU_Assert(sock->state != 0);*/ /* The state can be 0 if the operation was aborted */
+	/*MPIR_Assert(sock->state != 0);*/ /* The state can be 0 if the operation was aborted */
 #ifdef MPICH_DBG_OUTPUT
 	if (sock->state & SOCKI_CONNECTING)
-	    MPIU_DBG_PRINTF(("sock_post_close(%d) called while sock is connecting.\n", MPIDU_Sock_get_sock_id(sock)));
+	    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_post_close(%d) called while sock is connecting.\n", MPIDU_Sock_get_sock_id(sock));
 	if (sock->state & SOCKI_READING)
 	{
 	    int i, n = 0;
 	    for (i=0; i<sock->read.iovlen; i++)
 		n += sock->read.iov[i].MPL_IOV_LEN;
-	    MPIU_DBG_PRINTF(("sock_post_close(%d) called while sock is reading: %d bytes out of %d, index %d, iovlen %d.\n",
+	    MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"sock_post_close(%d) called while sock is reading: %d bytes out of %d, index %d, iovlen %d.\n",
 		MPIDU_Sock_get_sock_id(sock), sock->read.total, n, sock->read.index, sock->read.iovlen));
 	}
 	if (sock->state & SOCKI_WRITING)
@@ -1426,13 +1426,13 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
 	    int i, n = 0;
 	    for (i=0; i<sock->write.iovlen; i++)
 		n += sock->write.iov[i].MPL_IOV_LEN;
-	    MPIU_DBG_PRINTF(("sock_post_close(%d) called while sock is writing: %d bytes out of %d, index %d, iovlen %d.\n",
+	    MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"sock_post_close(%d) called while sock is writing: %d bytes out of %d, index %d, iovlen %d.\n",
 		MPIDU_Sock_get_sock_id(sock), sock->write.total, n, sock->write.index, sock->write.iovlen));
 	}
 	fflush(stdout);
 #endif
 	/*
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	return SOCK_ERR_OP_IN_PROGRESS;
 	*/
 	/* posting a close cancels all outstanding operations */
@@ -1454,17 +1454,17 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
 	    {
 		mpi_errno = WSAGetLastError();
 		mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-		MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+		MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 		return mpi_errno;
 	    }
 	    *sp = INVALID_SOCKET;
 	    if (!PostQueuedCompletionStatus(sock->set, 0, (ULONG_PTR)sock, NULL))
 	    {
 		mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_BAD_SOCK, "**fail", "**fail %d", GetLastError());
-		MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+		MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 		return mpi_errno;
 	    }
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	    return MPI_SUCCESS;
 	}
     }
@@ -1484,7 +1484,7 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
 	}
 	if (mpi_errno == MPI_SUCCESS)
 	{
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	    return MPI_SUCCESS;
 	}
     }
@@ -1496,7 +1496,7 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
 	{
 	    mpi_errno = WSAGetLastError();
 	    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	    return mpi_errno;
 	}
     }
@@ -1506,7 +1506,7 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
     {
 	mpi_errno = WSAGetLastError();
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	return mpi_errno;
 
     }
@@ -1514,10 +1514,10 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
     if (!PostQueuedCompletionStatus(sock->set, 0, (ULONG_PTR)sock, NULL))
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_BAD_SOCK, "**fail", "**fail %d", GetLastError());
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
 	return mpi_errno;
     }
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_CLOSE);
     return MPI_SUCCESS;
 }
 
@@ -1525,18 +1525,18 @@ int MPIDU_Sock_post_close(MPIDU_Sock_t sock)
 #define FUNCNAME MPIDU_Sock_post_read
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDU_Sock_post_read(MPIDU_Sock_t sock, void * buf, MPIU_Size_t minbr, MPIU_Size_t maxbr,
+int MPIDU_Sock_post_read(MPIDU_Sock_t sock, void * buf, size_t minbr, size_t maxbr,
                          MPIDU_Sock_progress_update_func_t fn)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_READ);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_READ);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_POST_READ);
-    MPIU_UNREFERENCED_ARG(maxbr);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_POST_READ);
+    MPL_UNREFERENCED_ARG(maxbr);
     sock->read.tiov.MPL_IOV_BUF = (MPL_IOV_BUF_CAST)buf;
     sock->read.tiov.MPL_IOV_LEN = minbr;
     mpi_errno = MPIDU_Sock_post_readv(sock, &sock->read.tiov, 1, fn);
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_READ);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_READ);
     return mpi_errno;
 }
 
@@ -1553,16 +1553,16 @@ int MPIDU_Sock_post_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_Soc
     int i;
 #endif
     DWORD flags = 0;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_READV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_READV);
 #ifdef USE_SOCK_IOV_COPY
-    MPIDI_STATE_DECL(MPID_STATE_MEMCPY);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MEMCPY);
 #endif
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_POST_READV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_POST_READV);
     if (!g_init_called)
     {
 	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_INIT, "**sock_init", 0);
-	MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_READV);
+	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_READV);
 	return mpi_errno;
     }
     /*sock->rt1 = PMPI_Wtime();*/
@@ -1571,9 +1571,9 @@ int MPIDU_Sock_post_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_Soc
 	iov_n--;
     sock->read.total = 0;
 #ifdef USE_SOCK_IOV_COPY
-    MPIDI_FUNC_ENTER(MPID_STATE_MEMCPY);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MEMCPY);
     memcpy(sock->read.iov, iov, sizeof(MPL_IOV) * n);
-    MPIDI_FUNC_EXIT(MPID_STATE_MEMCPY);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MEMCPY);
 #else
     sock->read.iov = iov;
 #endif
@@ -1584,7 +1584,7 @@ int MPIDU_Sock_post_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_Soc
 #ifdef MPICH_DBG_OUTPUT
     for (i=0; i<iov_n; i++)
     {
-	MPIU_DBG_PRINTF(("sock_post_readv - iov[%d].len = %d\n", i, iov[i].MPL_IOV_LEN));
+	MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"sock_post_readv - iov[%d].len = %d\n", i, iov[i].MPL_IOV_LEN));
     }
 #endif
     for (iter=0; iter<10; iter++)
@@ -1605,7 +1605,7 @@ int MPIDU_Sock_post_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_Soc
 	    WSABUF tmp;
 	    tmp.buf = sock->read.iov[0].buf;
 	    tmp.len = sock->read.iov[0].len;
-	    MPIU_Assert(tmp.len > 0);
+	    MPIR_Assert(tmp.len > 0);
 	    while (mpi_errno == WSAENOBUFS)
 	    {
 		/*printf("[%d] receiving %d bytes\n", __LINE__, tmp.len);fflush(stdout);*/
@@ -1643,7 +1643,7 @@ int MPIDU_Sock_post_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_Soc
 	sock->pending_operations++;
     else
 	sock->state &= ~SOCKI_READING;
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_READV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_READV);
     return mpi_errno;
 }
 
@@ -1651,17 +1651,17 @@ int MPIDU_Sock_post_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_Soc
 #define FUNCNAME MPIDU_Sock_post_write
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDU_Sock_post_write(MPIDU_Sock_t sock, void * buf, MPIU_Size_t min, MPIU_Size_t max, MPIDU_Sock_progress_update_func_t fn)
+int MPIDU_Sock_post_write(MPIDU_Sock_t sock, void * buf, size_t min, size_t max, MPIDU_Sock_progress_update_func_t fn)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_WRITE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_WRITE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_POST_WRITE);
-    MPIU_UNREFERENCED_ARG(max);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_POST_WRITE);
+    MPL_UNREFERENCED_ARG(max);
     sock->write.tiov.MPL_IOV_BUF = (MPL_IOV_BUF_CAST)buf;
     sock->write.tiov.MPL_IOV_LEN = min;
     mpi_errno = MPIDU_Sock_post_writev(sock, &sock->write.tiov, 1, fn);
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_WRITE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_WRITE);
     return mpi_errno;
 }
 
@@ -1676,18 +1676,18 @@ int MPIDU_Sock_post_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_So
 #ifdef MPICH_DBG_OUTPUT
     int i;
 #endif
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_WRITEV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_POST_WRITEV);
 #ifdef USE_SOCK_IOV_COPY
-    MPIDI_STATE_DECL(MPID_STATE_MEMCPY);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MEMCPY);
 #endif
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_POST_WRITEV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_POST_WRITEV);
     /*sock->wt1 = PMPI_Wtime();*/
     sock->write.total = 0;
 #ifdef USE_SOCK_IOV_COPY
-    MPIDI_FUNC_ENTER(MPID_STATE_MEMCPY);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MEMCPY);
     memcpy(sock->write.iov, iov, sizeof(MPL_IOV) * iov_n);
-    MPIDI_FUNC_EXIT(MPID_STATE_MEMCPY);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MEMCPY);
 #else
     sock->write.iov = iov;
 #endif
@@ -1698,7 +1698,7 @@ int MPIDU_Sock_post_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_So
 #ifdef MPICH_DBG_OUTPUT
     for (i=0; i<iov_n; i++)
     {
-	MPIU_DBG_PRINTF(("sock_post_writev - iov[%d].len = %d\n", i, iov[i].MPL_IOV_LEN));
+	MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"sock_post_writev - iov[%d].len = %d\n", i, iov[i].MPL_IOV_LEN));
     }
 #endif
     for (iter=0; iter<10; iter++)
@@ -1755,7 +1755,7 @@ int MPIDU_Sock_post_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIDU_So
 	sock->pending_operations++;
     else
 	sock->state &= ~SOCKI_WRITING;
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_POST_WRITEV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_POST_WRITEV);
     return mpi_errno;
 }
 
@@ -1772,28 +1772,28 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
     OVERLAPPED *ovl;
     DWORD dwFlags = 0;
     char error_msg[1024];
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_WAIT);
-    MPIDI_STATE_DECL(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_WAIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_WAIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_WAIT);
 
     for (;;) 
     {
 #if defined(MPICH_IS_THREADED)
-#       if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_GLOBAL)
+#       if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__GLOBAL)
 	{
             int err;
 	    /* Release the lock so that other threads may make progress while this thread waits for something to do */
-	    MPIU_DBG_MSG(THREAD,TYPICAL,"Exit global critical section");
-	    MPIU_THREAD_CHECK_BEGIN;
+	    MPL_DBG_MSG(MPIR_DBG_OTHER,TYPICAL,"Exit global critical section");
+	    MPIR_THREAD_CHECK_BEGIN;
 	    MPID_Thread_mutex_unlock(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
-	    MPIU_THREAD_CHECK_END;
+	    MPIR_THREAD_CHECK_END;
 	}
 #       else
 #           error selected multi-threaded implementation is not supported
 #       endif
 #endif
-	MPIDI_FUNC_ENTER(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
+	MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
 	/* initialize to NULL so we can compare the output of GetQueuedCompletionStatus */
 	sock = NULL;
 	ovl = NULL;
@@ -1803,16 +1803,16 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 	{
 	    /*t2 = PMPI_Wtime();*/
 	    /*printf("[%d] GetQueuedCompletionStatus took %.3f seconds for sock: %d\n", getpid(), t2-t1, sock->sock);*/
-	    MPIDI_FUNC_EXIT(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
 #if defined(MPICH_IS_THREADED)
-#           if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_GLOBAL)
+#           if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__GLOBAL)
 	    {
                 int err;
 		/* Reaquire the lock before processing any of the information returned from GetQueuedCompletionStatus */
-		MPIU_DBG_MSG(THREAD,TYPICAL,"Enter global critical section");
-		MPIU_THREAD_CHECK_BEGIN;
+		MPL_DBG_MSG(MPIR_DBG_OTHER,TYPICAL,"Enter global critical section");
+		MPIR_THREAD_CHECK_BEGIN;
 		MPID_Thread_mutex_lock(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
-		MPIU_THREAD_CHECK_END;
+		MPIR_THREAD_CHECK_END;
 	    }
 #           else
 #               error selected multi-threaded implementation is not supported
@@ -1840,12 +1840,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			{
 			    mpi_errno = WSAGetLastError();
 			    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return mpi_errno;
 			}
 			sock->sock = INVALID_SOCKET;
 		    }
-		    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+		    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 		    return MPI_SUCCESS;
 		}
 		if (ovl == &sock->read.ovl)
@@ -1855,7 +1855,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			/*sock->rt2 = PMPI_Wtime();*/
 			/*printf("[%d] time from post_read  to op_read : %.3f - sock %d\n", getpid(), sock->rt2 - sock->rt1, sock->sock);*/
 			/* socket closed */
-			MPIU_DBG_PRINTF(("sock_wait readv returning %d bytes and EOF\n", sock->read.total));
+			MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait readv returning %d bytes and EOF\n", sock->read.total);
 			/*printf("sock_wait readv returning %d bytes and EOF\n", sock->read.total);*/
 			out->op_type = MPIDU_SOCK_OP_READ;
 			out->num_bytes = sock->read.total;
@@ -1865,13 +1865,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			sock->state &= ~SOCKI_READING; /* remove the SOCKI_READING bit */
 			if (sock->closing && sock->pending_operations == 0)
 			{
-			    MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock)));
+			    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock));
 			    FlushFileBuffers((HANDLE)sock->sock);
 			    if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 			    {
 				mpi_errno = WSAGetLastError();
 				mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return mpi_errno;
 			    }
 			    /*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -1879,15 +1879,15 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    {
 				mpi_errno = WSAGetLastError();
 				mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return mpi_errno;
 			    }
 			    sock->sock = INVALID_SOCKET;
 			}
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPI_SUCCESS;
 		    }
-		    MPIU_DBG_PRINTF(("sock_wait readv update: %d bytes\n", num_bytes));
+		    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait readv update: %d bytes\n", num_bytes);
 		    sock->read.total += num_bytes;
 		    while (num_bytes)
 		    {
@@ -1909,7 +1909,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 		    {
 			/*sock->rt2 = PMPI_Wtime();*/
 			/*printf("[%d] time from post_read  to op_read : %.3f - sock %d\n", getpid(), sock->rt2 - sock->rt1, sock->sock);*/
-			MPIU_DBG_PRINTF(("sock_wait readv %d bytes\n", sock->read.total));
+			MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait readv %d bytes\n", sock->read.total);
 			out->op_type = MPIDU_SOCK_OP_READ;
 			out->num_bytes = sock->read.total;
 			out->error = MPI_SUCCESS;
@@ -1918,13 +1918,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			sock->state &= ~SOCKI_READING; /* remove the SOCKI_READING bit */
 			if (sock->closing && sock->pending_operations == 0)
 			{
-			    MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock)));
+			    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock));
 			    FlushFileBuffers((HANDLE)sock->sock);
 			    if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 			    {
 				mpi_errno = WSAGetLastError();
 				mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return mpi_errno;
 			    }
 			    /*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -1932,12 +1932,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    {
 				mpi_errno = WSAGetLastError();
 				mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return mpi_errno;
 			    }
 			    sock->sock = INVALID_SOCKET;
 			}
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPI_SUCCESS;
 		    }
 		    /* make the user upcall */
@@ -1961,13 +1961,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    sock->state &= ~SOCKI_READING;
 			    if (sock->closing && sock->pending_operations == 0)
 			    {
-				MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock)));
+				MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock));
 				FlushFileBuffers((HANDLE)sock->sock);
 				if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				/*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -1975,12 +1975,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				sock->sock = INVALID_SOCKET;
 			    }
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
 			if (mpi_errno == WSAENOBUFS)
@@ -2021,13 +2021,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    sock->state &= ~SOCKI_READING;
 			    if (sock->closing && sock->pending_operations == 0)
 			    {
-				MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock)));
+				MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock));
 				FlushFileBuffers((HANDLE)sock->sock);
 				if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				/*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -2035,12 +2035,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				sock->sock = INVALID_SOCKET;
 			    }
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
 		    }
@@ -2059,13 +2059,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			sock->state ^= SOCKI_CONNECTING; /* remove the SOCKI_CONNECTING bit */
 			if (sock->closing && sock->pending_operations == 0)
 			{
-			    MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after connect completed.\n", MPIDU_Sock_get_sock_id(sock)));
+			    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after connect completed.\n", MPIDU_Sock_get_sock_id(sock));
 			    FlushFileBuffers((HANDLE)sock->sock);
 			    if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 			    {
 				mpi_errno = WSAGetLastError();
 				mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return mpi_errno;
 			    }
 			    /*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -2073,12 +2073,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    {
 				mpi_errno = WSAGetLastError();
 				mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return mpi_errno;
 			    }
 			    sock->sock = INVALID_SOCKET;
 			}
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPI_SUCCESS;
 		    }
 		    else
@@ -2088,7 +2088,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    /*sock->wt2 = PMPI_Wtime();*/
 			    /*printf("[%d] time from post_write to op_write: %.3f - sock %d\n", getpid(), sock->wt2 - sock->wt1, sock->sock);*/
 			    /* socket closed */
-			    MPIU_DBG_PRINTF(("sock_wait writev returning %d bytes and EOF\n", sock->write.total));
+			    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait writev returning %d bytes and EOF\n", sock->write.total);
 			    out->op_type = MPIDU_SOCK_OP_WRITE;
 			    out->num_bytes = sock->write.total;
 			    /*printf("sock_wait writev returning %d bytes and EOF\n", sock->write.total);*/
@@ -2098,13 +2098,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    sock->state &= ~SOCKI_WRITING; /* remove the SOCKI_WRITING bit */
 			    if (sock->closing && sock->pending_operations == 0)
 			    {
-				MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov write completed.\n", MPIDU_Sock_get_sock_id(sock)));
+				MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov write completed.\n", MPIDU_Sock_get_sock_id(sock));
 				FlushFileBuffers((HANDLE)sock->sock);
 				if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				/*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -2112,21 +2112,21 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				sock->sock = INVALID_SOCKET;
 			    }
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
-			MPIU_DBG_PRINTF(("sock_wait: write update, total = %d + %d = %d\n", sock->write.total, num_bytes, sock->write.total + num_bytes));
+			MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"sock_wait: write update, total = %d + %d = %d\n", sock->write.total, num_bytes, sock->write.total + num_bytes));
 			sock->write.total += num_bytes;
 			while (num_bytes)
 			{
 			    if (sock->write.iov[sock->write.index].MPL_IOV_LEN <= num_bytes)
 			    {
-				/*MPIU_DBG_PRINTF(("sock_wait: write.index %d, len %d\n", sock->write.index, 
+				/*MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"sock_wait: write.index %d, len %d\n", sock->write.index,
 				sock->write.iov[sock->write.index].MPL_IOV_LEN));*/
 				num_bytes -= sock->write.iov[sock->write.index].MPL_IOV_LEN;
 				sock->write.index++;
@@ -2134,7 +2134,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    }
 			    else
 			    {
-				/*MPIU_DBG_PRINTF(("sock_wait: partial data written [%d].len = %d, num_bytes = %d\n", sock->write.index,
+				/*MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"sock_wait: partial data written [%d].len = %d, num_bytes = %d\n", sock->write.index,
 				sock->write.iov[sock->write.index].MPL_IOV_LEN, num_bytes));*/
 				sock->write.iov[sock->write.index].MPL_IOV_LEN -= num_bytes;
 				sock->write.iov[sock->write.index].MPL_IOV_BUF = (MPL_IOV_BUF_CAST)(
@@ -2148,7 +2148,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    /*printf("[%d] time from post_write to op_write: %.3f - sock %d\n", getpid(), sock->wt2 - sock->wt1, sock->sock);*/
 			    if (sock->write.total > 0)
 			    {
-				MPIU_DBG_PRINTF(("sock_wait wrotev %d bytes\n", sock->write.total));
+				MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait wrotev %d bytes\n", sock->write.total);
 			    }
 			    out->op_type = MPIDU_SOCK_OP_WRITE;
 			    out->num_bytes = sock->write.total;
@@ -2158,13 +2158,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    sock->state &= ~SOCKI_WRITING; /* remove the SOCKI_WRITING bit */
 			    if (sock->closing && sock->pending_operations == 0)
 			    {
-				MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov write completed.\n", MPIDU_Sock_get_sock_id(sock)));
+				MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov write completed.\n", MPIDU_Sock_get_sock_id(sock));
 				FlushFileBuffers((HANDLE)sock->sock);
 				if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				/*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -2172,19 +2172,19 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				{
 				    mpi_errno = WSAGetLastError();
 				    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				    return mpi_errno;
 				}
 				sock->sock = INVALID_SOCKET;
 			    }
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
 			/* make the user upcall */
 			if (sock->write.progress_update != NULL)
 			    sock->write.progress_update(num_bytes, sock->user_ptr);
 			/* post a write of the remaining data */
-			MPIU_DBG_PRINTF(("sock_wait: posting write of the remaining data, vec size %d\n", sock->write.iovlen));
+			MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: posting write of the remaining data, vec size %d\n", sock->write.iovlen);
 			if (WSASend(sock->sock, sock->write.iov, sock->write.iovlen, &sock->write.num_bytes, 0, &sock->write.ovl, NULL) == SOCKET_ERROR)
 			{
 			    mpi_errno = WSAGetLastError();
@@ -2201,13 +2201,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				sock->state &= ~SOCKI_WRITING;
 				if (sock->closing && sock->pending_operations == 0)
 				{
-				    MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock)));
+				    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock));
 				    FlushFileBuffers((HANDLE)sock->sock);
 				    if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 				    {
 					mpi_errno = WSAGetLastError();
 					mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-					MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+					MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 					return mpi_errno;
 				    }
 				    /*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -2215,12 +2215,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				    {
 					mpi_errno = WSAGetLastError();
 					mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-					MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+					MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 					return mpi_errno;
 				    }
 				    sock->sock = INVALID_SOCKET;
 				}
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return MPI_SUCCESS;
 			    }
 			    if (mpi_errno == WSAENOBUFS)
@@ -2258,13 +2258,13 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				sock->state &= ~SOCKI_WRITING;
 				if (sock->closing && sock->pending_operations == 0)
 				{
-				    MPIU_DBG_PRINTF(("sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock)));
+				    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_wait: closing socket(%d) after iov read completed.\n", MPIDU_Sock_get_sock_id(sock));
 				    FlushFileBuffers((HANDLE)sock->sock);
 				    if (shutdown(sock->sock, SD_BOTH) == SOCKET_ERROR)
 				    {
 					mpi_errno = WSAGetLastError();
 					mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**shutdown", "**shutdown %s %d", get_error_string(mpi_errno), mpi_errno);
-					MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+					MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 					return mpi_errno;
 				    }
 				    /*printf("closing socket %d\n", sock->sock);fflush(stdout);*/
@@ -2272,12 +2272,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				    {
 					mpi_errno = WSAGetLastError();
 					mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-					MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+					MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 					return mpi_errno;
 				    }
 				    sock->sock = INVALID_SOCKET;
 				}
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return MPI_SUCCESS;
 			    }
 			}
@@ -2291,7 +2291,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			{
 			    /*sock->rt2 = PMPI_Wtime();*/
 			    /*printf("[%d] time from post_read  to op_read : %.3f - sock %d\n", getpid(), sock->rt2 - sock->rt1, sock->sock);*/
-			    MPIU_DBG_PRINTF(("EOF with posted read on sock %d\n", sock->sock));
+			    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"EOF with posted read on sock %d\n", sock->sock);
 			    out->op_type = MPIDU_SOCK_OP_READ;
 			    out->num_bytes = sock->read.total;
 			    /*printf("sock_wait returning %d bytes and EOF\n", sock->read.total);*/
@@ -2299,14 +2299,14 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    out->user_ptr = sock->user_ptr;
 			    sock->state &= ~SOCKI_READING;
 			    sock->pending_operations--;
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
 			if ((sock->state & SOCKI_WRITING))/* && sock->sock != INVALID_SOCKET) */
 			{
 			    /*sock->wt2 = PMPI_Wtime();*/
 			    /*printf("[%d] time from post_write to op_write: %.3f - sock %d\n", getpid(), sock->wt2 - sock->wt1, sock->sock);*/
-			    MPIU_DBG_PRINTF(("EOF with posted write on sock %d\n", sock->sock));
+			    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"EOF with posted write on sock %d\n", sock->sock);
 			    out->op_type = MPIDU_SOCK_OP_WRITE;
 			    out->num_bytes = sock->write.total;
 			    /*printf("sock_wait returning %d bytes and EOF\n", sock->write.total);*/
@@ -2314,23 +2314,23 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    out->user_ptr = sock->user_ptr;
 			    sock->state &= ~SOCKI_WRITING;
 			    sock->pending_operations--;
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
-			MPIU_DBG_PRINTF(("ignoring EOF notification on unknown sock %d.\n", MPIDU_Sock_get_sock_id(sock)));
+			MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"ignoring EOF notification on unknown sock %d.\n", MPIDU_Sock_get_sock_id(sock));
 		    }
 
 		    if (sock->sock != INVALID_SOCKET)
 		    {
-			MPIU_DBG_PRINTF(("unmatched ovl: pending: %d, state = %d\n", sock->pending_operations, sock->state));
+			MPL_DBG_MSG_FMT(MPIR_DBG_OTHER,TERSE,(MPL_DBG_FDEST,"unmatched ovl: pending: %d, state = %d\n", sock->pending_operations, sock->state));
 			/*MPL_error_printf("In sock_wait(), returned overlapped structure does not match the current read or write ovl: 0x%x\n", ovl);*/
 			MPL_snprintf(error_msg, 1024, "In sock_wait(), returned overlapped structure does not match the current read or write ovl: 0x%p\n", ovl);
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", error_msg);
 		    }
 		    else
 		    {
-			MPIU_DBG_PRINTF(("ignoring notification on invalid sock.\n"));
+			MPL_DBG_MSG(MPIR_DBG_OTHER,TERSE,"ignoring notification on invalid sock.\n");
 		    }
 		}
 	    }
@@ -2340,7 +2340,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 		out->num_bytes = 0;
 		out->error = MPI_SUCCESS;
 		out->user_ptr = NULL;
-		MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+		MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 		return MPI_SUCCESS;
 	    }
 	    else if (sock->type == SOCKI_LISTENER)
@@ -2362,7 +2362,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			CloseHandle(sock->write.ovl.hEvent);
 			sock->read.ovl.hEvent = NULL;
 			sock->write.ovl.hEvent = NULL;
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPI_SUCCESS;
 		    }
 		    else
@@ -2384,42 +2384,42 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 		out->num_bytes = num_bytes;
 		out->error = MPI_SUCCESS;
 		out->user_ptr = sock->user_ptr;
-		MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+		MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 		return MPI_SUCCESS;
 	    }
 	    else
 	    {
 		/*MPL_error_printf("sock type is not a SOCKET or a LISTENER, it's %d\n", sock->type);*/
 		MPL_snprintf(error_msg, 1024, "sock type is not a SOCKET or a LISTENER, it's %d\n", sock->type);
-		MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+		MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 		return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", error_msg);
 	    }
 	}
 	else
 	{
 #if defined(MPICH_IS_THREADED)
-#           if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_GLOBAL)
+#           if (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__GLOBAL)
 	    {
                 int err;
 		/* Reaquire the lock before processing any of the information returned from GetQueuedCompletionStatus */
-		MPIU_DBG_MSG(THREAD,TYPICAL,"Enter global critical section");
-		MPIU_THREAD_CHECK_BEGIN;
+		MPL_DBG_MSG(MPIR_DBG_OTHER,TYPICAL,"Enter global critical section");
+		MPIR_THREAD_CHECK_BEGIN;
 		MPID_Thread_mutex_lock(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
-		MPIU_THREAD_CHECK_END;
+		MPIR_THREAD_CHECK_END;
 	    }
 #           else
 #               error selected multi-threaded implementation is not supported
 #           endif
 #endif
-	    /*MPIDI_FUNC_EXIT(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);*/ /* Maybe the logging will reset the last error? */
+	    /*MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);*/ /* Maybe the logging will reset the last error? */
 	    mpi_errno = GetLastError();
 	    /*t2 = PMPI_Wtime();*/
 	    /*printf("[%d] GetQueuedCompletionStatus took %.3f seconds for sock: %d\n", getpid(), t2-t1, sock != NULL ? sock->sock : 0);*/
-	    MPIDI_FUNC_EXIT(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_GETQUEUEDCOMPLETIONSTATUS);
 	    /* interpret error, return appropriate SOCK_ERR_... macro */
 	    if (mpi_errno == WAIT_TIMEOUT)
 	    {
-		MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+		MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 		return MPIDU_SOCK_ERR_TIMEOUT;
 	    }
 	    if (mpi_errno == ERROR_OPERATION_ABORTED)
@@ -2443,7 +2443,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				out->error = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", "Unable to re-post an aborted readv operation");
 				out->user_ptr = sock->user_ptr;
 				sock->state &= ~SOCKI_READING; /* remove the SOCKI_READING bit */
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return MPI_SUCCESS;
 			    }
 			}
@@ -2460,7 +2460,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				out->error = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", "Unable to re-post an aborted writev operation");
 				out->user_ptr = sock->user_ptr;
 				sock->state &= ~SOCKI_WRITING; /* remove the SOCKI_WRITING bit */
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return MPI_SUCCESS;
 			    }
 			}
@@ -2471,7 +2471,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    out->num_bytes = 0;
 			    out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", "Aborted socket operation");
 			    out->user_ptr = sock->user_ptr;
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
 		    }
@@ -2482,7 +2482,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			out->num_bytes = 0;
 			out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", "Aborted wakeup operation");
 			out->user_ptr = sock->user_ptr;
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPI_SUCCESS;
 		    }
 		    else if (sock->type == SOCKI_LISTENER)
@@ -2500,7 +2500,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 				out->num_bytes = 0;
 				out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", "Unable to re-post an aborted accept operation");
 				out->user_ptr = sock->user_ptr;
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return MPI_SUCCESS;
 			    }
 			}
@@ -2511,7 +2511,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    out->num_bytes = 0;
 			    out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", "Aborted unknown listener socket operation");
 			    out->user_ptr = sock->user_ptr;
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
 		    }
@@ -2522,19 +2522,19 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			out->num_bytes = 0;
 			out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s", "Aborted unknown socket operation");
 			out->user_ptr = sock->user_ptr;
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPI_SUCCESS;
 		    }
 		    continue;
 		}
 	    }
-	    MPIU_DBG_PRINTF(("GetQueuedCompletionStatus failed, GetLastError: %d\n", mpi_errno));
+	    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"GetQueuedCompletionStatus failed, GetLastError: %d\n", mpi_errno);
 	    if (sock != NULL)
 	    {
-		MPIU_DBG_PRINTF(("GetQueuedCompletionStatus failed, sock != null\n"));
+		MPL_DBG_MSG(MPIR_DBG_OTHER,TERSE,"GetQueuedCompletionStatus failed, sock != null\n");
 		if (sock->type == SOCKI_SOCKET)
 		{
-		    MPIU_DBG_PRINTF(("GetQueuedCompletionStatus failed, sock == SOCKI_SOCKET \n"));
+		    MPL_DBG_MSG(MPIR_DBG_OTHER,TERSE,"GetQueuedCompletionStatus failed, sock == SOCKI_SOCKET \n");
 		    if (sock->closing)
 		    {
 			/*sock->ct2 = PMPI_Wtime();*/
@@ -2547,7 +2547,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    {
 				mpi_errno = WSAGetLastError();
 				mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**closesocket", "**closesocket %s %d", get_error_string(mpi_errno), mpi_errno);
-				MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+				MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 				return mpi_errno;
 			    }
 			    sock->sock = INVALID_SOCKET;
@@ -2580,12 +2580,12 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 		    out->num_bytes = 0;
 		    out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s %d", get_error_string(mpi_errno), mpi_errno);
 		    out->user_ptr = sock->user_ptr;
-		    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+		    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 		    return MPI_SUCCESS;
 		}
 		if (sock->type == SOCKI_LISTENER)
 		{
-		    MPIU_DBG_PRINTF(("GetQueuedCompletionStatus failed, sock == SOCKI_LISTENER \n"));
+		    MPL_DBG_MSG(MPIR_DBG_OTHER,TERSE,"GetQueuedCompletionStatus failed, sock == SOCKI_LISTENER \n");
 		    /* this only works if the aborted operation is reported before the close is reported
 		       because the close will free the sock structure causing these dereferences bogus.
 		       I need to reference count the sock */
@@ -2609,7 +2609,7 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			    else
 				out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s %d", get_error_string(mpi_errno), mpi_errno);
 			    out->user_ptr = sock->user_ptr;
-			    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			    return MPI_SUCCESS;
 			}
 		    }
@@ -2620,19 +2620,19 @@ int MPIDU_Sock_wait(MPIDU_Sock_set_t set, int timeout, MPIDU_Sock_event_t * out)
 			out->num_bytes = 0;
 			out->error = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s %d", get_error_string(mpi_errno), mpi_errno);
 			out->user_ptr = sock->user_ptr;
-			MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+			MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 			return MPI_SUCCESS;
 		    }
 		}
 	    }
 
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
 	    return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s %d", get_error_string(mpi_errno), mpi_errno);
 	}
     }
     /* Unreachable code section - all sections exit/return before reaching this segment */
     /*
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WAIT);
     return MPI_SUCCESS;
     */
 }
@@ -2652,17 +2652,17 @@ int MPIDU_Sock_wakeup(MPIDU_Sock_set_t set)
 #define FUNCNAME MPIDU_Sock_read
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDU_Sock_read(MPIDU_Sock_t sock, void * buf, MPIU_Size_t len, MPIU_Size_t * num_read)
+int MPIDU_Sock_read(MPIDU_Sock_t sock, void * buf, size_t len, size_t * num_read)
 {
     int mpi_errno = MPI_SUCCESS;
     MPL_IOV iov;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_READ);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_READ);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_READ);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_READ);
     iov.buf = buf;
     iov.len = len;
     mpi_errno = MPIDU_Sock_readv(sock, &iov, 1, num_read);
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_READ);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_READ);
     return mpi_errno;
 }
 
@@ -2670,14 +2670,14 @@ int MPIDU_Sock_read(MPIDU_Sock_t sock, void * buf, MPIU_Size_t len, MPIU_Size_t 
 #define FUNCNAME MPIDU_Sock_readv
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDU_Sock_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIU_Size_t * num_read)
+int MPIDU_Sock_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, size_t * num_read)
 {
     int mpi_errno = MPI_SUCCESS;
     DWORD nFlags = 0;
     DWORD num_read_local;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_READV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_READV);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_READV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_READV);
 
     if (WSARecv(sock->sock, iov, iov_n, &num_read_local, &nFlags, NULL/*overlapped*/, NULL/*completion routine*/) == SOCKET_ERROR)
     {
@@ -2730,8 +2730,8 @@ int MPIDU_Sock_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIU_Size_t * 
     {
 	*num_read = num_read_local;
     }
-    MPIU_DBG_PRINTF(("sock_readv %d bytes\n", *num_read));
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_READV);
+    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_readv %d bytes\n", *num_read);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_READV);
     return mpi_errno;
 }
 
@@ -2739,17 +2739,17 @@ int MPIDU_Sock_readv(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIU_Size_t * 
 #define FUNCNAME MPIDU_Sock_write
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDU_Sock_write(MPIDU_Sock_t sock, void * buf, MPIU_Size_t len, MPIU_Size_t * num_written)
+int MPIDU_Sock_write(MPIDU_Sock_t sock, void * buf, size_t len, size_t * num_written)
 {
     int mpi_errno;
     MPL_IOV iov;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_WRITE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_WRITE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_WRITE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_WRITE);
     iov.len = len;
     iov.buf = buf;
     mpi_errno = MPIDU_Sock_writev(sock, &iov, 1, num_written);
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WRITE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WRITE);
     return MPI_SUCCESS;
 }
 
@@ -2757,13 +2757,13 @@ int MPIDU_Sock_write(MPIDU_Sock_t sock, void * buf, MPIU_Size_t len, MPIU_Size_t
 #define FUNCNAME MPIDU_Sock_writev
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDU_Sock_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIU_Size_t * num_written)
+int MPIDU_Sock_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, size_t * num_written)
 {
     int mpi_errno;
     DWORD num_written_local;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_WRITEV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_WRITEV);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_WRITEV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_WRITEV);
     if (WSASend(sock->sock, iov, iov_n, &num_written_local, 0, NULL/*overlapped*/, NULL/*completion routine*/) == SOCKET_ERROR)
     {
 	mpi_errno = WSAGetLastError();
@@ -2794,9 +2794,9 @@ int MPIDU_Sock_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIU_Size_t *
 	}
 	if (mpi_errno && (mpi_errno != WSAEWOULDBLOCK))
 	{
-	    MPIU_DBG_PRINTF(("WSASend failed: error %d\n", mpi_errno));
+	    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"WSASend failed: error %d\n", mpi_errno);
 	    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPIDU_SOCK_ERR_FAIL, "**fail", "**fail %s %d", get_error_string(mpi_errno), mpi_errno);
-	    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WRITEV);
+	    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WRITEV);
 	    return mpi_errno;
 	}
     }
@@ -2804,9 +2804,9 @@ int MPIDU_Sock_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIU_Size_t *
     {
 	*num_written = num_written_local;
     }
-    MPIU_DBG_PRINTF(("sock_writev %d bytes\n", *num_written));
+    MPL_DBG_MSG_D(MPIR_DBG_OTHER,TERSE,"sock_writev %d bytes\n", *num_written);
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_WRITEV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_WRITEV);
     return MPI_SUCCESS;
 }
 
@@ -2817,9 +2817,9 @@ int MPIDU_Sock_writev(MPIDU_Sock_t sock, MPL_IOV * iov, int iov_n, MPIU_Size_t *
 int MPIDU_Sock_get_sock_id(MPIDU_Sock_t sock)
 {
     int ret_val;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_SOCK_ID);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_SOCK_ID);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_GET_SOCK_ID);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_GET_SOCK_ID);
     if (sock == MPIDU_SOCK_INVALID_SOCK)
 	ret_val = -1;
     else
@@ -2829,7 +2829,7 @@ int MPIDU_Sock_get_sock_id(MPIDU_Sock_t sock)
 	else
 	    ret_val = (int)sock->sock;
     }
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_GET_SOCK_ID);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_GET_SOCK_ID);
     return ret_val;
 }
 
@@ -2840,11 +2840,11 @@ int MPIDU_Sock_get_sock_id(MPIDU_Sock_t sock)
 int MPIDU_Sock_get_sock_set_id(MPIDU_Sock_set_t set)
 {
     int ret_val;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_SOCK_SET_ID);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_SOCK_SET_ID);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_GET_SOCK_SET_ID);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_GET_SOCK_SET_ID);
     ret_val = PtrToInt(set);/*(int)set;*/
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_GET_SOCK_SET_ID);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_GET_SOCK_SET_ID);
     return ret_val;
 }
 
@@ -2854,66 +2854,66 @@ int MPIDU_Sock_get_sock_set_id(MPIDU_Sock_set_t set)
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDU_Sock_get_error_class_string(int error, char *error_string, int length)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_ERROR_CLASS_STRING);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_SOCK_GET_ERROR_CLASS_STRING);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDU_SOCK_GET_ERROR_CLASS_STRING);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_SOCK_GET_ERROR_CLASS_STRING);
     switch (MPIR_ERR_GET_CLASS(error))
     {
     case MPIDU_SOCK_ERR_FAIL:
-	MPIU_Strncpy(error_string, "generic socket failure", length);
+	MPL_strncpy(error_string, "generic socket failure", length);
 	break;
     case MPIDU_SOCK_ERR_INIT:
-	MPIU_Strncpy(error_string, "socket module not initialized", length);
+	MPL_strncpy(error_string, "socket module not initialized", length);
 	break;
     case MPIDU_SOCK_ERR_NOMEM:
-	MPIU_Strncpy(error_string, "not enough memory to complete the socket operation", length);
+	MPL_strncpy(error_string, "not enough memory to complete the socket operation", length);
 	break;
     case MPIDU_SOCK_ERR_BAD_SET:
-	MPIU_Strncpy(error_string, "invalid socket set", length);
+	MPL_strncpy(error_string, "invalid socket set", length);
 	break;
     case MPIDU_SOCK_ERR_BAD_SOCK:
-	MPIU_Strncpy(error_string, "invalid socket", length);
+	MPL_strncpy(error_string, "invalid socket", length);
 	break;
     case MPIDU_SOCK_ERR_BAD_HOST:
-	MPIU_Strncpy(error_string, "host description buffer not large enough", length);
+	MPL_strncpy(error_string, "host description buffer not large enough", length);
 	break;
     case MPIDU_SOCK_ERR_BAD_HOSTNAME:
-	MPIU_Strncpy(error_string, "invalid host name", length);
+	MPL_strncpy(error_string, "invalid host name", length);
 	break;
     case MPIDU_SOCK_ERR_BAD_PORT:
-	MPIU_Strncpy(error_string, "invalid port", length);
+	MPL_strncpy(error_string, "invalid port", length);
 	break;
     case MPIDU_SOCK_ERR_BAD_BUF:
-	MPIU_Strncpy(error_string, "invalid buffer", length);
+	MPL_strncpy(error_string, "invalid buffer", length);
 	break;
     case MPIDU_SOCK_ERR_BAD_LEN:
-	MPIU_Strncpy(error_string, "invalid length", length);
+	MPL_strncpy(error_string, "invalid length", length);
 	break;
     case MPIDU_SOCK_ERR_SOCK_CLOSED:
-	MPIU_Strncpy(error_string, "socket closed", length);
+	MPL_strncpy(error_string, "socket closed", length);
 	break;
     case MPIDU_SOCK_ERR_CONN_CLOSED:
-	MPIU_Strncpy(error_string, "socket connection closed", length);
+	MPL_strncpy(error_string, "socket connection closed", length);
 	break;
     case MPIDU_SOCK_ERR_CONN_FAILED:
-	MPIU_Strncpy(error_string, "socket connection failed", length);
+	MPL_strncpy(error_string, "socket connection failed", length);
 	break;
     case MPIDU_SOCK_ERR_INPROGRESS:
-	MPIU_Strncpy(error_string, "socket operation in progress", length);
+	MPL_strncpy(error_string, "socket operation in progress", length);
 	break;
     case MPIDU_SOCK_ERR_TIMEOUT:
-	MPIU_Strncpy(error_string, "socket operation timed out", length);
+	MPL_strncpy(error_string, "socket operation timed out", length);
 	break;
     case MPIDU_SOCK_ERR_INTR:
-	MPIU_Strncpy(error_string, "socket operation interrupted", length);
+	MPL_strncpy(error_string, "socket operation interrupted", length);
 	break;
     case MPIDU_SOCK_ERR_NO_NEW_SOCK:
-	MPIU_Strncpy(error_string, "no new connection available", length);
+	MPL_strncpy(error_string, "no new connection available", length);
 	break;
     default:
 	MPL_snprintf(error_string, length, "unknown socket error %d", error);
 	break;
     }
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDU_SOCK_GET_ERROR_CLASS_STRING);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDU_SOCK_GET_ERROR_CLASS_STRING);
     return MPI_SUCCESS;
 }

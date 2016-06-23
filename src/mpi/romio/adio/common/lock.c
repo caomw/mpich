@@ -19,7 +19,7 @@ int ADIOI_Set_lock(FDTYPE fd, int cmd, int type, ADIO_Offset offset, int whence,
     OVERLAPPED Overlapped;
     DWORD dwFlags;
 
-    ADIOI_UNREFERENCED_ARG(whence);
+    MPL_UNREFERENCED_ARG(whence);
 
     if (len == 0) return MPI_SUCCESS;
 
@@ -124,8 +124,8 @@ int ADIOI_Set_lock(FDTYPE fd, int cmd, int type, ADIO_Offset offset, int whence,
     errno = 0;
     do {
 	err = fcntl(fd, cmd, &lock);
-#ifdef USE_DBG_LOGGING
-/*      if (MPIU_DBG_SELECTED(ROMIO,TERSE)) */
+#ifdef MPL_USE_DBG_LOGGING
+/*      if (MPL_DBG_SELECTED(ROMIO,TERSE)) */
       {
         if (err && ((errno == EINTR) || (errno == EINPROGRESS)))
         {
@@ -179,7 +179,7 @@ int ADIOI_Set_lock(FDTYPE fd, int cmd, int type, ADIO_Offset offset, int whence,
 }
 #endif
 
-#if (defined(ROMIO_HFS) || defined(ROMIO_XFS))
+#if defined(ROMIO_XFS)
 int ADIOI_Set_lock64(FDTYPE fd, int cmd, int type, ADIO_Offset offset,
                      int whence,
 	             ADIO_Offset len) 

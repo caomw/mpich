@@ -21,7 +21,7 @@
  *        associated with win.                                          
  */
 #include "mpidi_onesided.h"
-#include "mpiinfo.h"
+#include "mpir_info.h"
 
 /**
  * \brief MPI-PAMI glue for MPI_WIN_GET_INFO function
@@ -30,7 +30,7 @@
  * \param[in] info_p_p         Info hint
  * \return MPI_SUCCESS
  */
-int MPIDI_Win_get_info(MPID_Win *win, MPID_Info **info_used) 
+int MPIDI_Win_get_info(MPIR_Win *win, MPIR_Info **info_used)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -90,13 +90,13 @@ int MPIDI_Win_get_info(MPID_Win *win, MPID_Info **info_used)
 
 
 int
-MPID_Win_get_info(MPID_Win     *win,
-                  MPID_Info   **info_p)
+MPID_Win_get_info(MPIR_Win     *win,
+                  MPIR_Info   **info_p)
 {
     int mpi_errno = MPI_SUCCESS;
 
     /* Allocate an empty info object */
-    mpi_errno = MPIU_Info_alloc(info_p);
+    mpi_errno = MPIR_Info_alloc(info_p);
     MPID_assert(mpi_errno == MPI_SUCCESS);
     mpi_errno = MPIDI_Win_get_info(win, info_p);
     MPID_assert(mpi_errno == MPI_SUCCESS);

@@ -36,7 +36,7 @@ int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype 
 int MPIR_Reduce_local_impl(const void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype, MPI_Op op)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Op *op_ptr;
+    MPIR_Op *op_ptr;
     MPI_User_function *uop;
 #ifdef HAVE_CXX_BINDING
     int is_cxx_uop = 0;
@@ -44,29 +44,35 @@ int MPIR_Reduce_local_impl(const void *inbuf, void *inoutbuf, int count, MPI_Dat
 #if defined(HAVE_FORTRAN_BINDING) && !defined(HAVE_FINT_IS_INT)
     int is_f77_uop = 0;
 #endif
-    MPID_THREADPRIV_DECL;
 
     if (count == 0) goto fn_exit;
 
-    MPID_THREADPRIV_GET;
-    MPID_THREADPRIV_FIELD(op_errno) = MPI_SUCCESS;
+    {
+        MPIR_Per_thread_t *per_thread = NULL;
+        int err = 0;
+
+        MPID_THREADPRIV_KEY_GET_ADDR(MPIR_ThreadInfo.isThreaded, MPIR_Per_thread_key,
+                                     MPIR_Per_thread, per_thread, &err);
+        MPIR_Assert(err == 0);
+        per_thread->op_errno = MPI_SUCCESS;
+    }
 
     if (HANDLE_GET_KIND(op) == HANDLE_KIND_BUILTIN) {
         /* get the function by indexing into the op table */
         uop = MPIR_OP_HDL_TO_FN(op);
     }
     else {
-        MPID_Op_get_ptr(op, op_ptr);
+        MPIR_Op_get_ptr(op, op_ptr);
 
 #ifdef HAVE_CXX_BINDING
-        if (op_ptr->language == MPID_LANG_CXX) {
+        if (op_ptr->language == MPIR_LANG__CXX) {
             uop = (MPI_User_function *) op_ptr->function.c_function;
             is_cxx_uop = 1;
         }
         else
 #endif
         {
-            if (op_ptr->language == MPID_LANG_C) {
+            if (op_ptr->language == MPIR_LANG__C) {
                 uop = (MPI_User_function *) op_ptr->function.c_function;
             }
             else {
@@ -90,7 +96,7 @@ int MPIR_Reduce_local_impl(const void *inbuf, void *inoutbuf, int count, MPI_Dat
         if (is_f77_uop) {
             MPI_Fint lcount = (MPI_Fint)count;
             MPI_Fint ldtype = (MPI_Fint)datatype;
-            MPIR_F77_User_function *uop_f77 = (MPIR_F77_User_function *)uop;
+            MPII_F77_User_function *uop_f77 = (MPII_F77_User_function *)uop;
 
             (*uop_f77)((void *) inbuf, inoutbuf, &lcount, &ldtype);
         }
@@ -103,8 +109,16 @@ int MPIR_Reduce_local_impl(const void *inbuf, void *inoutbuf, int count, MPI_Dat
     }
 
     /* --BEGIN ERROR HANDLING-- */
-    if (MPID_THREADPRIV_FIELD(op_errno))
-        mpi_errno = MPID_THREADPRIV_FIELD(op_errno);
+    {
+        MPIR_Per_thread_t *per_thread = NULL;
+        int err = 0;
+
+        MPID_THREADPRIV_KEY_GET_ADDR(MPIR_ThreadInfo.isThreaded, MPIR_Per_thread_key,
+                                     MPIR_Per_thread, per_thread, &err);
+        MPIR_Assert(err == 0);
+        if (per_thread->op_errno)
+            mpi_errno = per_thread->op_errno;
+    }
     /* --END ERROR HANDLING-- */
 
 fn_exit:
@@ -147,12 +161,12 @@ Output Parameters:
 int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype, MPI_Op op)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_REDUCE_LOCAL);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_REDUCE_LOCAL);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_COLL_FUNC_ENTER(MPID_STATE_MPI_REDUCE_LOCAL);
+    MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_REDUCE_LOCAL);
 
     /* Validate parameters */
 #   ifdef HAVE_ERROR_CHECKING
@@ -162,9 +176,9 @@ int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype 
             MPIR_ERRTEST_OP(op, mpi_errno);
 
             if (HANDLE_GET_KIND(op) != HANDLE_KIND_BUILTIN) {
-                MPID_Op *op_ptr;
-                MPID_Op_get_ptr(op, op_ptr);
-                MPID_Op_valid_ptr( op_ptr, mpi_errno );
+                MPIR_Op *op_ptr;
+                MPIR_Op_get_ptr(op, op_ptr);
+                MPIR_Op_valid_ptr( op_ptr, mpi_errno );
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
             }
             if (HANDLE_GET_KIND(op) == HANDLE_KIND_BUILTIN) {
@@ -189,7 +203,7 @@ int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype 
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_COLL_FUNC_EXIT(MPID_STATE_MPI_REDUCE_LOCAL);
+    MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_REDUCE_LOCAL);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

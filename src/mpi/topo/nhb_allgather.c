@@ -32,13 +32,13 @@ int MPI_Neighbor_allgather(const void *sendbuf, int sendcount, MPI_Datatype send
 #define FUNCNAME MPIR_Neighbor_allgather_default
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Neighbor_allgather_default(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPID_Comm *comm_ptr)
+int MPIR_Neighbor_allgather_default(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPIR_Comm *comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     MPI_Request req;
 
     /* just call the nonblocking version and wait on it */
-    mpi_errno = MPIR_Ineighbor_allgather_impl(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm_ptr, &req);
+    mpi_errno = MPID_Ineighbor_allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm_ptr, &req);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     mpi_errno = MPIR_Wait_impl(&req, MPI_STATUS_IGNORE);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -53,12 +53,12 @@ fn_fail:
 #define FUNCNAME MPIR_Neighbor_allgather_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Neighbor_allgather_impl(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPID_Comm *comm_ptr)
+int MPIR_Neighbor_allgather_impl(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPIR_Comm *comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Assert(comm_ptr->coll_fns != NULL);
-    MPIU_Assert(comm_ptr->coll_fns->Neighbor_allgather != NULL);
+    MPIR_Assert(comm_ptr->coll_fns != NULL);
+    MPIR_Assert(comm_ptr->coll_fns->Neighbor_allgather != NULL);
     mpi_errno = comm_ptr->coll_fns->Neighbor_allgather(sendbuf, sendcount, sendtype,
                                                        recvbuf, recvcount, recvtype,
                                                        comm_ptr);
@@ -103,11 +103,11 @@ Output Parameters:
 int MPI_Neighbor_allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_NEIGHBOR_ALLGATHER);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_NEIGHBOR_ALLGATHER);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_NEIGHBOR_ALLGATHER);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_NEIGHBOR_ALLGATHER);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -125,7 +125,7 @@ int MPI_Neighbor_allgather(const void *sendbuf, int sendcount, MPI_Datatype send
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -133,20 +133,20 @@ int MPI_Neighbor_allgather(const void *sendbuf, int sendcount, MPI_Datatype send
         MPID_BEGIN_ERROR_CHECKS
         {
             if (HANDLE_GET_KIND(sendtype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *sendtype_ptr = NULL;
+                MPIR_Datatype *sendtype_ptr = NULL;
                 MPID_Datatype_get_ptr(sendtype, sendtype_ptr);
-                MPID_Datatype_valid_ptr(sendtype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(sendtype_ptr, mpi_errno);
                 MPID_Datatype_committed_ptr(sendtype_ptr, mpi_errno);
             }
 
             if (HANDLE_GET_KIND(recvtype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *recvtype_ptr = NULL;
+                MPIR_Datatype *recvtype_ptr = NULL;
                 MPID_Datatype_get_ptr(recvtype, recvtype_ptr);
-                MPID_Datatype_valid_ptr(recvtype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(recvtype_ptr, mpi_errno);
                 MPID_Datatype_committed_ptr(recvtype_ptr, mpi_errno);
             }
 
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             /* TODO more checks may be appropriate (counts, in_place, buffer aliasing, etc) */
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
         }
@@ -156,13 +156,13 @@ int MPI_Neighbor_allgather(const void *sendbuf, int sendcount, MPI_Datatype send
 
     /* ... body of routine ...  */
 
-    mpi_errno = MPIR_Neighbor_allgather_impl(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm_ptr);
+    mpi_errno = MPID_Neighbor_allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm_ptr);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_NEIGHBOR_ALLGATHER);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_NEIGHBOR_ALLGATHER);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

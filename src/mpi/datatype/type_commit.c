@@ -74,12 +74,12 @@ Input Parameters:
 int MPI_Type_commit(MPI_Datatype *datatype)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_COMMIT);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_COMMIT);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_COMMIT);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_COMMIT);
     
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -98,13 +98,13 @@ int MPI_Type_commit(MPI_Datatype *datatype)
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Datatype *datatype_ptr = NULL;
+            MPIR_Datatype *datatype_ptr = NULL;
 
             /* Convert MPI object handles to object pointers */
             MPID_Datatype_get_ptr( *datatype, datatype_ptr );
 
             /* Validate datatype_ptr */
-            MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+            MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
             if (mpi_errno) goto fn_fail;
         }
         MPID_END_ERROR_CHECKS;
@@ -119,7 +119,7 @@ int MPI_Type_commit(MPI_Datatype *datatype)
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_COMMIT);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_COMMIT);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

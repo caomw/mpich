@@ -52,7 +52,7 @@ MPIDI_RecvShortCB(pami_context_t    context,
   MPID_assert(_msginfo != NULL);
 
   const MPIDI_MsgInfo *msginfo = (const MPIDI_MsgInfo *)_msginfo;
-  MPID_Request * rreq = NULL;
+  MPIR_Request * rreq = NULL;
   pami_task_t source;
 #if TOKEN_FLOW_CONTROL
   int          rettoks=0;
@@ -81,14 +81,14 @@ MPIDI_RecvShortCB(pami_context_t    context,
          MPID_NSTAT(mpid_statp->earlyArrivals);
 #endif
       MPIU_THREAD_CS_EXIT(MSGQUEUE,0);
-      MPID_Request *newreq = MPIDI_Request_create2();
+      MPIR_Request *newreq = MPIDI_Request_create2();
       MPID_assert(newreq != NULL);
       if (sndlen)
       {
         newreq->mpid.uebuflen = sndlen;
         if (!TOKEN_FLOW_CONTROL_ON)
           {
-            newreq->mpid.uebuf = MPIU_Malloc(sndlen);
+            newreq->mpid.uebuf = MPL_malloc(sndlen);
             newreq->mpid.uebuf_malloc = mpiuMalloc;
           }
         else
@@ -124,7 +124,7 @@ MPIDI_RecvShortCB(pami_context_t    context,
             #endif
           }
         MPIU_THREAD_CS_EXIT(MSGQUEUE,0);
-        MPID_Request_release(newreq);
+        MPIR_Request_free(newreq);
         goto fn_exit_short;
       }
       else
@@ -175,7 +175,7 @@ MPIDI_RecvShortCB(pami_context_t    context,
       goto fn_exit_short;
     }
 
-  size_t dt_size = rreq->mpid.userbufcount * MPID_Datatype_get_basic_size(rreq->mpid.datatype);
+  size_t dt_size = rreq->mpid.userbufcount * MPIDU_Datatype_get_basic_size(rreq->mpid.datatype);
 
   /* ----------------------------- */
   /*  Test for truncated message.  */

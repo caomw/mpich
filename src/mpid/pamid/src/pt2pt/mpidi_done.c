@@ -33,7 +33,7 @@ MPIDI_SendDoneCB(pami_context_t   context,
                  void           * clientdata,
                  pami_result_t    result)
 {
-  TRACE_SET_S_BIT((((MPID_Request *) clientdata)->mpid.partner_id),(((MPID_Request *) clientdata)->mpid.idx),fl.f.sendComp);
+  TRACE_SET_S_BIT((((MPIR_Request *) clientdata)->mpid.partner_id),(((MPIR_Request *) clientdata)->mpid.idx),fl.f.sendComp);
   MPIDI_SendDoneCB_inline(context,
                           clientdata,
                           result);
@@ -41,11 +41,11 @@ MPIDI_SendDoneCB(pami_context_t   context,
 
 
 static inline void
-MPIDI_RecvDoneCB_copy(MPID_Request * rreq)
+MPIDI_RecvDoneCB_copy(MPIR_Request * rreq)
 {
   int smpi_errno;
   MPID_assert(rreq->mpid.uebuf != NULL);
-  MPIDI_msg_sz_t _count=0;
+  intptr_t _count=0;
   MPIDI_Buffer_copy(rreq->mpid.uebuf,        /* source buffer */
                     rreq->mpid.uebuflen,
                     MPI_CHAR,
@@ -72,7 +72,7 @@ MPIDI_RecvDoneCB(pami_context_t   context,
                  void           * clientdata,
                  pami_result_t    result)
 {
-  MPID_Request * rreq = (MPID_Request*)clientdata;
+  MPIR_Request * rreq = (MPIR_Request*)clientdata;
   MPID_assert(rreq != NULL);
   switch (MPIDI_Request_getCA(rreq))
     {
@@ -93,7 +93,7 @@ MPIDI_RecvDoneCB(pami_context_t   context,
       }
     }
 #ifdef OUT_OF_ORDER_HANDLING
-  MPID_Request * oo_peer = rreq->mpid.oo_peer;
+  MPIR_Request * oo_peer = rreq->mpid.oo_peer;
   if (oo_peer) {
      MPIR_STATUS_SET_COUNT(oo_peer->status, MPIR_STATUS_GET_COUNT(rreq->status));
      MPIDI_Request_complete(oo_peer);
@@ -122,13 +122,13 @@ MPIDI_RecvDoneCB_mutexed(pami_context_t   context,
                          void           * clientdata,
                          pami_result_t    result)
 {
-  MPID_Request * rreq = (MPID_Request*)clientdata;
+  MPIR_Request * rreq = (MPIR_Request*)clientdata;
   MPIU_THREAD_CS_ENTER(MSGQUEUE, 0);
 
   MPIDI_RecvDoneCB(context, clientdata, result);
 
   MPIU_THREAD_CS_EXIT(MSGQUEUE, 0);
-  MPID_Request_release(rreq);
+  MPIR_Request_free(rreq);
 }
 
 
@@ -144,9 +144,9 @@ void MPIDI_Recvq_process_out_of_order_msgs(pami_task_t src, pami_context_t conte
    /* a recv is posted, then process the message.         */
    /*******************************************************/
    MPIDI_In_cntr_t *in_cntr;
-   MPID_Request *ooreq, *rreq, *prev_rreq;
+   MPIR_Request *ooreq, *rreq, *prev_rreq;
    pami_get_simple_t xferP;
-   MPIDI_msg_sz_t _count=0;
+   intptr_t _count=0;
    int matched;
    void * it;
 
@@ -182,7 +182,7 @@ void MPIDI_Recvq_process_out_of_order_msgs(pami_task_t src, pami_context_t conte
         /*  Calculate message length for reception.  */
         /* ----------------------------------------- */
         unsigned dt_contig, dt_size;
-        MPID_Datatype *dt_ptr;
+        MPIDU_Datatype*dt_ptr;
         MPI_Aint dt_true_lb;
         MPIDI_Datatype_get_info(rreq->mpid.userbufcount,
                                 rreq->mpid.datatype,
@@ -206,8 +206,8 @@ void MPIDI_Recvq_process_out_of_order_msgs(pami_task_t src, pami_context_t conte
         ooreq->mpid.datatype = rreq->mpid.datatype;
 	if (HANDLE_GET_KIND(ooreq->mpid.datatype) != HANDLE_KIND_BUILTIN)
           {
-            MPID_Datatype_get_ptr(ooreq->mpid.datatype, ooreq->mpid.datatype_ptr);
-            MPID_Datatype_add_ref(ooreq->mpid.datatype_ptr);
+            MPIDU_Datatype_get_ptr(ooreq->mpid.datatype, ooreq->mpid.datatype_ptr);
+            MPIDU_Datatype_add_ref(ooreq->mpid.datatype_ptr);
           }
 #ifdef QUEUE_BINARY_SEARCH_SUPPORT
         if(MPIDI_Process.queue_binary_search_support_on)
@@ -215,7 +215,7 @@ void MPIDI_Recvq_process_out_of_order_msgs(pami_task_t src, pami_context_t conte
         else
 #endif
           MPIDI_Recvq_remove(MPIDI_Recvq.unexpected, ooreq, ooreq->mpid.prev);
-	if (!MPID_cc_is_complete(&ooreq->cc)) {
+        if (!MPIR_cc_is_complete(&ooreq->cc)) {
 	  ooreq->mpid.oo_peer = rreq;
           MPIDI_RecvMsg_Unexp(ooreq, rreq->mpid.userbuf, rreq->mpid.userbufcount, rreq->mpid.datatype);
 	} else {
@@ -226,7 +226,7 @@ void MPIDI_Recvq_process_out_of_order_msgs(pami_task_t src, pami_context_t conte
           rreq->mpid.envelope.msginfo.MPIseqno = ooreq->mpid.envelope.msginfo.MPIseqno;
 	  MPIDI_Request_complete(rreq);
         }
-        MPID_Request_release(ooreq);
+        MPIR_Request_free(ooreq);
 
       } else {
         if (MPIDI_Request_getMatchSeq(ooreq) == (in_cntr->nMsgs+ 1))
@@ -246,10 +246,10 @@ void MPIDI_Recvq_process_out_of_order_msgs(pami_task_t src, pami_context_t conte
  * element from the queue and return in *request; else return NULL
  */
 int MPIDI_Search_recv_posting_queue(int src, int tag, int context_id,
-                                   MPID_Request **request, void** it )
+                                   MPIR_Request **request, void** it )
 {
-    MPID_Request * rreq;
-    MPID_Request * prev_rreq = NULL;
+    MPIR_Request * rreq;
+    MPIR_Request * prev_rreq = NULL;
 
     *request = NULL;
 #ifdef QUEUE_BINARY_SEARCH_SUPPORT

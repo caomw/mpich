@@ -64,14 +64,14 @@ struct MPID_NS_Handle {
    publishing.  */
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Create
-int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
+int MPID_NS_Create( const MPIR_Info *info_ptr, MPID_NS_Handle *handle_ptr )
 {
     static const char FCNAME[] = "MPID_NS_Create";
     const char *dirname;
     struct stat st;
     int        err, ret;
 
-    *handle_ptr = (MPID_NS_Handle)MPIU_Malloc( sizeof(struct MPID_NS_Handle) );
+    *handle_ptr = (MPID_NS_Handle)MPL_malloc( sizeof(struct MPID_NS_Handle) );
     /* --BEGIN ERROR HANDLING-- */
     if (!*handle_ptr) {
 	err = MPIR_Err_create_code( MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER, "**nomem", 0 );
@@ -92,8 +92,8 @@ int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
         }
     }
 
-    MPIU_Strncpy( (*handle_ptr)->dirname, dirname, MAXPATHLEN );
-    MPIU_Strnapp( (*handle_ptr)->dirname, "/.mpinamepub/", MAXPATHLEN );
+    MPL_strncpy( (*handle_ptr)->dirname, dirname, MAXPATHLEN );
+    MPL_strnapp( (*handle_ptr)->dirname, "/.mpinamepub/", MAXPATHLEN );
 
     /* Make the directory if necessary */
     /* FIXME : Determine if the directory exists before trying to create it */
@@ -112,7 +112,7 @@ int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
 
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Publish
-int MPID_NS_Publish( MPID_NS_Handle handle, const MPID_Info *info_ptr, 
+int MPID_NS_Publish( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                      const char service_name[], const char port[] )
 {
     static const char FCNAME[] = "MPID_NS_Publish";
@@ -122,13 +122,13 @@ int MPID_NS_Publish( MPID_NS_Handle handle, const MPID_Info *info_ptr,
 
     /* Determine file and directory name.  The file name is from
        the service name */
-    MPIU_Strncpy( filename, handle->dirname, MAXPATHLEN );
-    MPIU_Strnapp( filename, service_name, MAXPATHLEN );
+    MPL_strncpy( filename, handle->dirname, MAXPATHLEN );
+    MPL_strnapp( filename, service_name, MAXPATHLEN );
 
     /* Add the file name to the known files now, in case there is 
        a failure during open or writing */
     if (handle->nactive < MPID_MAX_NAMEPUB) {
-	handle->filenames[handle->nactive++] = MPIU_Strdup( filename );
+	handle->filenames[handle->nactive++] = MPL_strdup( filename );
     }
     else {
 	/* --BEGIN ERROR HANDLING-- */
@@ -194,7 +194,7 @@ int MPID_NS_Publish( MPID_NS_Handle handle, const MPID_Info *info_ptr,
 
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Lookup
-int MPID_NS_Lookup( MPID_NS_Handle handle, const MPID_Info *info_ptr,
+int MPID_NS_Lookup( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                     const char service_name[], char port[] )
 {
     FILE *fp;
@@ -206,8 +206,8 @@ int MPID_NS_Lookup( MPID_NS_Handle handle, const MPID_Info *info_ptr,
     
     /* Determine file and directory name.  The file name is from
        the service name */
-    MPIU_Strncpy( filename, handle->dirname, MAXPATHLEN );
-    MPIU_Strnapp( filename, service_name, MAXPATHLEN );
+    MPL_strncpy( filename, handle->dirname, MAXPATHLEN );
+    MPL_strnapp( filename, service_name, MAXPATHLEN );
 
     fp = fopen( filename, "r" );
     if (!fp) {
@@ -243,7 +243,7 @@ int MPID_NS_Lookup( MPID_NS_Handle handle, const MPID_Info *info_ptr,
 
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Unpublish
-int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPID_Info *info_ptr, 
+int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                        const char service_name[] )
 {
     static const char FCNAME[] = "MPID_NS_Unpublish";
@@ -254,8 +254,8 @@ int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPID_Info *info_ptr,
     /* Remove the file corresponding to the service name */
     /* Determine file and directory name.  The file name is from
        the service name */
-    MPIU_Strncpy( filename, handle->dirname, MAXPATHLEN );
-    MPIU_Strnapp( filename, service_name, MAXPATHLEN );
+    MPL_strncpy( filename, handle->dirname, MAXPATHLEN );
+    MPL_strnapp( filename, service_name, MAXPATHLEN );
 
     /* Find the filename from the list of published files */
     for (i=0; i<handle->nactive; i++) {
@@ -263,7 +263,7 @@ int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPID_Info *info_ptr,
 	    strcmp( filename, handle->filenames[i] ) == 0) {
 	    /* unlink the file only if we find it */
 	    unlink( filename );
-	    MPIU_Free( handle->filenames[i] );
+	    MPL_free( handle->filenames[i] );
 	    handle->filenames[i] = 0;
 	    break;
 	}
@@ -296,10 +296,10 @@ int MPID_NS_Free( MPID_NS_Handle *handle_ptr )
 	if (handle->filenames[i]) {
 	    /* Remove the file if it still exists */
 	    unlink( handle->filenames[i] );
-	    MPIU_Free( handle->filenames[i] );
+	    MPL_free( handle->filenames[i] );
 	}
     }
-    MPIU_Free( *handle_ptr );
+    MPL_free( *handle_ptr );
     *handle_ptr = 0;
 
     return 0;

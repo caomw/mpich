@@ -19,7 +19,7 @@
 #endif
 
 #include "mpichconf.h"
-#include "mpimem.h"
+#include "mpir_mem.h"
 
 #ifdef HAVE_GETLASTERROR
 #   define MPIU_OSW_Get_errno()   GetLastError()
@@ -38,19 +38,6 @@
     )
 #else
 #   define MPIU_OSW_Strerror(errno) strerror(errno)
-#endif
-
-#if defined (HAVE_QUERYPERFORMANCECOUNTER)
-/*
- * Returns size of uniqStr, 0 on error
- */
-static inline int MPIU_OSW_Get_uniq_str(char *str, int strlen)
-{
-    LARGE_INTEGER perfCnt;
-    QueryPerformanceCounter(&perfCnt);
-    return(MPL_snprintf(str, strlen, "MPICH_NEM_%d_%I64d", 
-            GetCurrentThreadId(), (perfCnt.QuadPart)));
-}
 #endif
 
 #ifdef HAVE_WINDOWS_H

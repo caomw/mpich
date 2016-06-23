@@ -25,7 +25,7 @@
 
 #include <mpidimpl.h>
 #include "../mpid_recvq.h"
-#include "mpid_datatype.h"
+#include "mpidu_datatype.h"
 /*#ifdef MPIDI_STATISTICS
   #include "../../include/mpidi_datatypes.h"
 #endif*/
@@ -139,13 +139,13 @@ MPIDI_Recv(void          * buf,
            MPI_Datatype    datatype,
            int             rank,
            int             tag,
-           MPID_Comm     * comm,
+           MPIR_Comm     * comm,
            int             context_offset,
            unsigned        is_blocking,
            MPI_Status    * status,
-           MPID_Request ** request)
+           MPIR_Request ** request)
 {
-  MPID_Request * rreq;
+  MPIR_Request * rreq;
   int found;
   int mpi_errno = MPI_SUCCESS;
 
@@ -166,7 +166,7 @@ MPIDI_Recv(void          * buf,
   /* find our request in the unexpected queue */
   /* or allocate one in the posted queue      */
   /* ---------------------------------------- */
-  MPID_Request *newreq = MPIDI_Request_create2();
+  MPIR_Request *newreq = MPIDI_Request_create2();
   MPIU_THREAD_CS_ENTER(MSGQUEUE,0);
 #ifndef OUT_OF_ORDER_HANDLING
   rreq = MPIDI_Recvq_FDU_or_AEP(newreq, rank,
@@ -234,8 +234,8 @@ MPIDI_Recv(void          * buf,
       /* ----------------------------------------------------------- */
       if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
         {
-          MPID_Datatype_get_ptr(datatype, rreq->mpid.datatype_ptr);
-          MPID_Datatype_add_ref(rreq->mpid.datatype_ptr);
+          MPIDU_Datatype_get_ptr(datatype, rreq->mpid.datatype_ptr);
+          MPIDU_Datatype_add_ref(rreq->mpid.datatype_ptr);
         }
       MPIU_THREAD_CS_EXIT(MSGQUEUE,0);
     }
@@ -245,7 +245,7 @@ MPIDI_Recv(void          * buf,
   if (status != MPI_STATUS_IGNORE)
     *status = rreq->status;
 #ifdef MPIDI_STATISTICS
-    if (!(MPID_cc_is_complete(&rreq->cc)))
+    if (!(MPIR_cc_is_complete(&rreq->cc)))
     {
         MPID_NSTAT(mpid_statp->recvWaitsComplete);
     }

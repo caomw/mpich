@@ -32,7 +32,7 @@ int MPI_Type_get_extent_x(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *exten
 #define FCNAME MPL_QUOTE(FUNCNAME)
 void MPIR_Type_get_extent_x_impl(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *extent)
 {
-    MPID_Datatype *datatype_ptr = NULL;
+    MPIR_Datatype *datatype_ptr = NULL;
 
     MPID_Datatype_get_ptr(datatype, datatype_ptr);
 
@@ -71,10 +71,10 @@ Output Parameters:
 int MPI_Type_get_extent_x(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *extent)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -98,9 +98,9 @@ int MPI_Type_get_extent_x(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *exten
         MPID_BEGIN_ERROR_CHECKS
         {
             if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
-                MPID_Datatype *datatype_ptr = NULL;
+                MPIR_Datatype *datatype_ptr = NULL;
                 MPID_Datatype_get_ptr(datatype, datatype_ptr);
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
             }
 
             /* TODO more checks may be appropriate (counts, in_place, buffer aliasing, etc) */
@@ -117,7 +117,7 @@ int MPI_Type_get_extent_x(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *exten
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

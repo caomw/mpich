@@ -237,12 +237,12 @@ MPID_Put(const void   *origin_addr,
          MPI_Aint      target_disp,
          int           target_count,
          MPI_Datatype  target_datatype,
-         MPID_Win     *win)
+         MPIR_Win     *win)
 {
   int mpi_errno = MPI_SUCCESS;
   int shm_locked=0;
   void * target_addr;
-  MPIDI_Win_request *req = MPIU_Calloc0(1, MPIDI_Win_request);
+  MPIDI_Win_request *req = MPL_calloc0(1, MPIDI_Win_request);
   req->win          = win;
   if(win->mpid.request_based != 1) 
     req->type         = MPIDI_WIN_REQUEST_PUT;
@@ -291,9 +291,9 @@ MPID_Put(const void   *origin_addr,
        (target_rank == MPI_PROC_NULL))
     {
       if(req->req_handle)
-       MPID_cc_set(req->req_handle->cc_ptr, 0);
+       MPIR_cc_set(req->req_handle->cc_ptr, 0);
       else
-       MPIU_Free(req);
+       MPL_free(req);
       return MPI_SUCCESS;
     }
 
@@ -319,12 +319,12 @@ MPID_Put(const void   *origin_addr,
        * portion of the request structure after decrementing the completion
        * counter.
        *
-       * See MPID_Request_release_inline()
+       * See MPID_Request_free_inline()
        */
        if(req->req_handle)
-         MPID_cc_set(req->req_handle->cc_ptr, 0);
+         MPIR_cc_set(req->req_handle->cc_ptr, 0);
        else
-         MPIU_Free(req);
+         MPL_free(req);
        return mpi_errno;
      }
   req->target.rank = target_rank;
@@ -345,7 +345,7 @@ MPID_Put(const void   *origin_addr,
   else
     {
       req->buffer_free = 1;
-      req->buffer      = MPIU_Malloc(req->origin.dt.size);
+      req->buffer      = MPL_malloc(req->origin.dt.size);
       MPID_assert(req->buffer != NULL);
 
       int mpi_errno = 0;
@@ -408,12 +408,12 @@ MPID_Put(const void   *origin_addr,
   }
   if ((MPIDI_Process.typed_onesided == 1) && (!req->target.dt.contig || !req->origin.dt.contig)) {
     /* We will use the PAMI_Rput_typed call so we need to make sure any MPI_Type_free before the context
-     * executes the put does not free the MPID_Datatype, which would also free the associated PAMI datatype which
-     * is still needed for communication -- decrement the ref in the callback to allow the MPID_Datatype
+     * executes the put does not free the MPIDU_Datatype, which would also free the associated PAMI datatype which
+     * is still needed for communication -- decrement the ref in the callback to allow the MPIR_Datatype
      * to be freed once the PAMI communication has completed.
      */
-    MPID_Datatype_add_ref(req->origin.dt.pointer);
-    MPID_Datatype_add_ref(req->target.dt.pointer);
+    MPIDU_Datatype_add_ref(req->origin.dt.pointer);
+    MPIDU_Datatype_add_ref(req->target.dt.pointer);
   }
   /* The pamid one-sided design requires context post in order to handle the
    * case where the number of pending rma operation exceeds the

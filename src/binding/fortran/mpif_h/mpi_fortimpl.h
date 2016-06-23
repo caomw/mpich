@@ -122,20 +122,7 @@
 
 /* mpi.h includes the definitions of MPI_Fint */
 #include "mpi.h"
-#include "mpiutil.h"
-
-/* Include prototypes of helper functions.
-   These include MPIR_Keyval_set_fortran, fortran90, and 
-   Grequest_set_lang_f77 */
-#include "mpi_f77interface.h"
-/* Include the attribute access routines that permit access to the 
-   attribute or its pointer, needed for cross-language access to attributes */
-#include "mpi_attr.h"
-
-/* mpi_lang.h - Prototypes for language specific routines. Currently used to
- * set keyval attribute callbacks
- */
-#include "mpi_lang.h"
+#include "mpiimpl.h"
 
 /* If there is no MPI I/O support, and we are still using MPIO_Request,
    make sure that one is defined */
@@ -156,8 +143,8 @@ typedef MPI_Aint MPI_FAint;
 /* Fortran logicals */
 /* The definitions for the Fortran logical values are also needed 
    by the reduction operations in mpi/coll/opland, oplor, and oplxor, 
-   so they are defined in src/include/mpi_fortlogical.h */
-#include "mpi_fortlogical.h"
+   so they are defined in src/include/mpii_fortlogical.h */
+#include "mpii_fortlogical.h"
 
 
 /* MPIR_F_MPI_BOTTOM is the address of the Fortran MPI_BOTTOM value */
@@ -220,10 +207,10 @@ typedef char *MPID_FCHAR_T;
 /* style: allow:malloc:1 sig:0 */
 /* style: allow:free:1 sig:0 */
 /* style: allow:calloc:1 sig:0 */
-#ifndef MPIU_Malloc
-#define MPIU_Malloc(a)    malloc((unsigned)(a))
-#define MPIU_Calloc(a,b)  calloc((unsigned)(a),(unsigned)(b))
-#define MPIU_Free(a)      free((void *)(a))
+#ifndef MPL_malloc
+#define MPL_malloc(a)    malloc((unsigned)(a))
+#define MPL_calloc(a,b)  calloc((unsigned)(a),(unsigned)(b))
+#define MPL_free(a)      free((void *)(a))
 #endif
 
 /* To avoid constant allocation/deallocation of temporary arrays, define

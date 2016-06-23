@@ -143,7 +143,7 @@ int MPIR_Datatype_init_names(void)
 #endif
     int mpi_errno = MPI_SUCCESS;
     int i;
-    MPID_Datatype *datatype_ptr = NULL;
+    MPIR_Datatype *datatype_ptr = NULL;
     static volatile int needsInit = 1;
 
     MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
@@ -167,8 +167,8 @@ int MPIR_Datatype_init_names(void)
 
 	    MPID_Datatype_get_ptr(mpi_names[i].dtype, datatype_ptr);
 
-	    if (datatype_ptr < MPID_Datatype_builtin ||
-		datatype_ptr > MPID_Datatype_builtin + MPID_DATATYPE_N_BUILTIN)
+	    if (datatype_ptr < MPIR_Datatype_builtin ||
+		datatype_ptr > MPIR_Datatype_builtin + MPIR_DATATYPE_N_BUILTIN)
 		{
 		    MPIR_ERR_SETFATALANDJUMP1(mpi_errno,MPI_ERR_INTERN,
 			      "**typeinitbadmem","**typeinitbadmem %d", i);
@@ -178,10 +178,10 @@ int MPIR_Datatype_init_names(void)
 			      "**typeinitfail", "**typeinitfail %d", i - 1);
 	    }
 
-	    MPIU_DBG_MSG_FMT(DATATYPE,VERBOSE,(MPIU_DBG_FDEST,
+	    MPL_DBG_MSG_FMT(MPIR_DBG_DATATYPE,VERBOSE,(MPL_DBG_FDEST,
 		   "mpi_names[%d].name = %p", i, mpi_names[i].name));
 
-	    MPIU_Strncpy(datatype_ptr->name, mpi_names[i].name,
+	    MPL_strncpy(datatype_ptr->name, mpi_names[i].name,
 			 MPI_MAX_OBJECT_NAME);
 	}
 	/* Handle the minloc/maxloc types */
@@ -196,7 +196,7 @@ int MPIR_Datatype_init_names(void)
 	    if (!datatype_ptr) {
 		MPIR_ERR_SETFATALANDJUMP(mpi_errno,MPI_ERR_INTERN, "**typeinitminmaxloc");
 	    }
-	    MPIU_Strncpy(datatype_ptr->name, mpi_maxloc_names[i].name,
+	    MPL_strncpy(datatype_ptr->name, mpi_maxloc_names[i].name,
 			 MPI_MAX_OBJECT_NAME);
 	}
         needsInit = 0;
@@ -238,13 +238,13 @@ int MPI_Type_get_name(MPI_Datatype datatype, char *type_name, int *resultlen)
 {
     static const char FCNAME[] = "MPI_Type_get_name";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Datatype *datatype_ptr = NULL;
+    MPIR_Datatype *datatype_ptr = NULL;
     static int setup = 0;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_GET_NAME);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_GET_NAME);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_GET_NAME);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_GET_NAME);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -270,7 +270,7 @@ int MPI_Type_get_name(MPI_Datatype datatype, char *type_name, int *resultlen)
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate datatype_ptr */
-            MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+            MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
             if (mpi_errno) goto fn_fail;
 	    /* If datatype_ptr is not valid, it will be reset to null */
 	    MPIR_ERRTEST_ARGNULL(type_name,"type_name", mpi_errno);
@@ -290,13 +290,13 @@ int MPI_Type_get_name(MPI_Datatype datatype, char *type_name, int *resultlen)
     }
 
     /* Include the null in MPI_MAX_OBJECT_NAME */
-    MPIU_Strncpy(type_name, datatype_ptr->name, MPI_MAX_OBJECT_NAME);
+    MPL_strncpy(type_name, datatype_ptr->name, MPI_MAX_OBJECT_NAME);
     *resultlen = (int) strlen(type_name);
 
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_GET_NAME);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_GET_NAME);
     return mpi_errno;
 
   fn_fail:

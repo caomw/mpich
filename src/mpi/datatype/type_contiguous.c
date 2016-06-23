@@ -34,7 +34,7 @@ int MPIR_Type_contiguous_impl(int count,
                               MPI_Datatype *newtype)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Datatype *new_dtp;
+    MPIR_Datatype *new_dtp;
     MPI_Datatype new_handle;
     
     mpi_errno = MPID_Type_contiguous(count,
@@ -55,7 +55,7 @@ int MPIR_Type_contiguous_impl(int count,
 
     if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
-    MPID_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*newtype, new_handle);
 
  fn_exit:
     return mpi_errno;
@@ -85,7 +85,7 @@ int MPIR_Type_contiguous_x_impl(MPI_Count count,
     /* truly stupendously large counts will overflow an integer with this math,
      * but that is a problem for a few decades from now.  Sorry, few decades
      * from now! */
-    MPIU_Assert(count/INT_MAX == (int)(count/INT_MAX));
+    MPIR_Assert(count/INT_MAX == (int)(count/INT_MAX));
     int c = (int)(count/INT_MAX); /* OK to cast until 'count' is 256 bits */
     int r = count%INT_MAX;
 
@@ -142,25 +142,25 @@ int MPI_Type_contiguous(int count,
 			MPI_Datatype *newtype)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_CONTIGUOUS);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TYPE_CONTIGUOUS);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_CONTIGUOUS);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TYPE_CONTIGUOUS);
 
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Datatype *datatype_ptr = NULL;
+            MPIR_Datatype *datatype_ptr = NULL;
 
 	    MPIR_ERRTEST_COUNT(count, mpi_errno);
             MPIR_ERRTEST_DATATYPE(oldtype, "datatype", mpi_errno);
 	    
             if (HANDLE_GET_KIND(oldtype) != HANDLE_KIND_BUILTIN) {
                 MPID_Datatype_get_ptr(oldtype, datatype_ptr);
-                MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
                 if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 	    }
         }
@@ -176,7 +176,7 @@ int MPI_Type_contiguous(int count,
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_CONTIGUOUS);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TYPE_CONTIGUOUS);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

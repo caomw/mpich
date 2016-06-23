@@ -13,7 +13,7 @@
 
 void ADIO_Close(ADIO_File fd, int *error_code)
 {
-    int i, j, k, combiner, myrank, err, is_contig;
+    int i, j, k, combiner, myrank, err;
     static char myname[] = "ADIO_CLOSE";
 
     if (fd->async_count) {
@@ -60,8 +60,8 @@ void ADIO_Close(ADIO_File fd, int *error_code)
 	ADIOI_Ftable[fd->fortran_handle] = MPI_FILE_NULL;
     }
 
-    if (fd->hints && fd->hints->ranklist) ADIOI_Free(fd->hints->ranklist);
-    if (fd->hints && fd->hints->cb_config_list) ADIOI_Free(fd->hints->cb_config_list);
+    if (fd->hints) ADIOI_Free(fd->hints->ranklist);
+    if (fd->hints) ADIOI_Free(fd->hints->cb_config_list);
 
     /* This BlueGene platform-specific free must be done in the common code
      * because the malloc's for these hint data structures are done at the
@@ -71,9 +71,9 @@ void ADIO_Close(ADIO_File fd, int *error_code)
      * ADIOI_GPFS_Close and re-open via ADIOI_GPFS_Open are done which results
      * in a double-free - ADIOI_GPFS_Open does not redo the SetInfo...  */
 #ifdef BGQPLATFORM
-    if (fd->hints && fd->hints->fs_hints.bg.bridgelist)
+    if (fd->hints)
       ADIOI_Free(fd->hints->fs_hints.bg.bridgelist);
-    if (fd->hints && fd->hints->fs_hints.bg.bridgelistnum)
+    if (fd->hints)
       ADIOI_Free(fd->hints->fs_hints.bg.bridgelistnum);
 #endif
 
@@ -81,21 +81,17 @@ void ADIO_Close(ADIO_File fd, int *error_code)
     if (fd->hints->cb_pfr == ADIOI_HINT_ENABLE) {
 	/* AAR, FSIZE, and User provided uniform File realms */
 	if (1) {
-	    ADIOI_Delete_flattened (fd->file_realm_types[0]);
 	    MPI_Type_free (&fd->file_realm_types[0]);
 	}
 	else {
 	    for (i=0; i<fd->hints->cb_nodes; i++) {
-		ADIOI_Datatype_iscontig(fd->file_realm_types[i], &is_contig);
-		if (!is_contig)
-		    ADIOI_Delete_flattened(fd->file_realm_types[i]);
 		MPI_Type_free (&fd->file_realm_types[i]);
 	    }
 	}
 	ADIOI_Free(fd->file_realm_st_offs);
 	ADIOI_Free(fd->file_realm_types);
     }
-    if (fd->hints) ADIOI_Free(fd->hints);
+    ADIOI_Free(fd->hints);
 
 
 
@@ -105,15 +101,12 @@ void ADIO_Close(ADIO_File fd, int *error_code)
     MPI_Type_get_envelope(fd->etype, &i, &j, &k, &combiner);
     if (combiner != MPI_COMBINER_NAMED) MPI_Type_free(&(fd->etype));
 
-    ADIOI_Datatype_iscontig(fd->filetype, &is_contig);
-    if (!is_contig) ADIOI_Delete_flattened(fd->filetype);
-
     MPI_Type_get_envelope(fd->filetype, &i, &j, &k, &combiner);
     if (combiner != MPI_COMBINER_NAMED) MPI_Type_free(&(fd->filetype));
 
     MPI_Info_free(&(fd->info));
 
-    if (fd->io_buf != NULL) ADIOI_Free(fd->io_buf);
+    ADIOI_Free(fd->io_buf);
     ADIOI_OneSidedCleanup(fd);
 
     /* memory for fd is freed in MPI_File_close */

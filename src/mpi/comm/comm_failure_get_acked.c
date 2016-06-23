@@ -56,14 +56,14 @@ Notes:
 int MPIX_Comm_failure_get_acked( MPI_Comm comm, MPI_Group *failedgrp )
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_Group *group_ptr;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPIX_COMM_FAILURE_GET_ACKED);
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_Group *group_ptr;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIX_COMM_FAILURE_GET_ACKED);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPIX_COMM_FAILURE_GET_ACKED);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIX_COMM_FAILURE_GET_ACKED);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -77,7 +77,7 @@ int MPIX_Comm_failure_get_acked( MPI_Comm comm, MPI_Group *failedgrp )
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     /* Validate parameters and objects(post conversion */
 #   ifdef HAVE_ERROR_CHECKING
@@ -85,7 +85,7 @@ int MPIX_Comm_failure_get_acked( MPI_Comm comm, MPI_Group *failedgrp )
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
             /* If comm_ptr is not valid, it will be reset to null */
             if (mpi_errno) goto fn_fail;
         }
@@ -101,7 +101,7 @@ int MPIX_Comm_failure_get_acked( MPI_Comm comm, MPI_Group *failedgrp )
     /* ... end of body of routine ... */
 
 fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPIX_COMM_FAILURE_GET_ACKED);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIX_COMM_FAILURE_GET_ACKED);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

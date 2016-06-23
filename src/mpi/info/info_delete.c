@@ -5,7 +5,7 @@
  */
 
 #include "mpiimpl.h"
-#include "mpiinfo.h"
+#include "mpir_info.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_Info_delete */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -47,13 +47,13 @@ int MPI_Info_delete( MPI_Info info, const char *key )
 {
     static const char FCNAME[] = "MPI_Info_delete";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Info *info_ptr=0, *prev_ptr, *curr_ptr;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_INFO_DELETE);
+    MPIR_Info *info_ptr=0, *prev_ptr, *curr_ptr;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_INFO_DELETE);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_INFO_DELETE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_INFO_DELETE);
     
 
     /* Validate parameters, especially handles needing to be converted */
@@ -68,7 +68,7 @@ int MPI_Info_delete( MPI_Info info, const char *key )
 #   endif /* HAVE_ERROR_CHECKING */
     
     /* Convert MPI object handles to object pointers */
-    MPID_Info_get_ptr( info, info_ptr );
+    MPIR_Info_get_ptr( info, info_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -78,7 +78,7 @@ int MPI_Info_delete( MPI_Info info, const char *key )
 	    int keylen;
 	    
             /* Validate info_ptr */
-            MPID_Info_valid_ptr( info_ptr, mpi_errno );
+            MPIR_Info_valid_ptr( info_ptr, mpi_errno );
             if (mpi_errno) goto fn_fail;
 	    
 	    /* Check key */
@@ -98,10 +98,10 @@ int MPI_Info_delete( MPI_Info info, const char *key )
 
     while (curr_ptr) {
 	if (!strncmp(curr_ptr->key, key, MPI_MAX_INFO_KEY)) {
-	    MPIU_Free(curr_ptr->key);   
-	    MPIU_Free(curr_ptr->value);
+	    MPL_free(curr_ptr->key);
+	    MPL_free(curr_ptr->value);
 	    prev_ptr->next = curr_ptr->next;
-	    MPIU_Handle_obj_free( &MPID_Info_mem, curr_ptr );
+	    MPIR_Handle_obj_free( &MPIR_Info_mem, curr_ptr );
 	    break;
 	}
 	prev_ptr = curr_ptr;
@@ -114,7 +114,7 @@ int MPI_Info_delete( MPI_Info info, const char *key )
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_INFO_DELETE);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_INFO_DELETE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
     

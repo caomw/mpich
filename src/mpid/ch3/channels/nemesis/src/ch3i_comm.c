@@ -7,12 +7,12 @@
 #include "mpid_nem_impl.h"
 #undef utarray_oom
 #define utarray_oom() do { goto fn_oom; } while (0)
-#include "mpiu_utarray.h"
+#include "mpir_utarray.h"
 
 #define NULL_CONTEXT_ID -1
 
-static int barrier (MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag);
-static int alloc_barrier_vars (MPID_Comm *comm, MPID_nem_barrier_vars_t **vars);
+static int barrier (MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
+static int alloc_barrier_vars (MPIR_Comm *comm, MPID_nem_barrier_vars_t **vars);
 
 UT_array *coll_fns_array = NULL;
 
@@ -20,21 +20,21 @@ UT_array *coll_fns_array = NULL;
 #define FUNCNAME MPIDI_CH3I_comm_create
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3I_comm_create(MPID_Comm *comm, void *param)
+int MPIDI_CH3I_comm_create(MPIR_Comm *comm, void *param)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIU_CHKPMEM_DECL(1);
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
+    MPIR_CHKPMEM_DECL(1);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
 
 #ifndef ENABLED_SHM_COLLECTIVES
     goto fn_exit;
 #endif
     
     /* set up intranode barrier iff this is an intranode communicator */
-    if (comm->hierarchy_kind == MPID_HIERARCHY_NODE) {
-        MPID_Collops *cf, **cf_p;
+    if (comm->hierarchy_kind == MPIR_COMM_HIERARCHY_KIND__NODE) {
+        MPIR_Collops *cf, **cf_p;
         comm->dev.ch.barrier_vars = NULL;
 
         /* We can't use a static coll_fns override table for our collectives
@@ -49,7 +49,7 @@ int MPIDI_CH3I_comm_create(MPID_Comm *comm, void *param)
            currently have a use case for it.
         */
         cf_p = NULL;
-        while ( (cf_p = (MPID_Collops **)utarray_next(coll_fns_array, cf_p)) ) {
+        while ( (cf_p = (MPIR_Collops **)utarray_next(coll_fns_array, cf_p)) ) {
             /* we can reuse a coll_fns table if the prev_coll_fns pointer is
                the same as the coll_fns of this communicator */
             if ((*cf_p)->prev_coll_fns == comm->coll_fns) {
@@ -60,7 +60,7 @@ int MPIDI_CH3I_comm_create(MPID_Comm *comm, void *param)
         }
 
         /* allocate and init new coll_fns table */
-        MPIU_CHKPMEM_MALLOC(cf, MPID_Collops *, sizeof(*cf), mpi_errno, "cf");
+        MPIR_CHKPMEM_MALLOC(cf, MPIR_Collops *, sizeof(*cf), mpi_errno, "cf");
         *cf = *comm->coll_fns;
         cf->ref_count = 1;
         cf->Barrier = barrier;
@@ -72,13 +72,13 @@ int MPIDI_CH3I_comm_create(MPID_Comm *comm, void *param)
     }
     
  fn_exit:
-    MPIU_CHKPMEM_COMMIT();
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
+    MPIR_CHKPMEM_COMMIT();
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
     return mpi_errno;
  fn_oom: /* out-of-memory handler for utarray operations */
     MPIR_ERR_SET1(mpi_errno, MPI_ERR_OTHER, "**nomem", "**nomem %s", "utarray");
  fn_fail:
-    MPIU_CHKPMEM_REAP();
+    MPIR_CHKPMEM_REAP();
     goto fn_exit;
 }
 
@@ -86,18 +86,18 @@ int MPIDI_CH3I_comm_create(MPID_Comm *comm, void *param)
 #define FUNCNAME MPIDI_CH3I_comm_destroy
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3I_comm_destroy(MPID_Comm *comm, void *param)
+int MPIDI_CH3I_comm_destroy(MPIR_Comm *comm, void *param)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_COMM_DESTROY);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_COMM_DESTROY);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_COMM_DESTROY);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_COMM_DESTROY);
 #ifndef ENABLED_SHM_COLLECTIVES
     goto fn_exit;
 #endif
     
-    if (comm->hierarchy_kind == MPID_HIERARCHY_NODE) {
-        MPID_Collops *cf = comm->coll_fns;
+    if (comm->hierarchy_kind == MPIR_COMM_HIERARCHY_KIND__NODE) {
+        MPIR_Collops *cf = comm->coll_fns;
 
         /* replace previous coll_fns table */
         comm->coll_fns = cf->prev_coll_fns;
@@ -106,7 +106,7 @@ int MPIDI_CH3I_comm_destroy(MPID_Comm *comm, void *param)
         --cf->ref_count;
         if (cf->ref_count == 0) {
             utarray_erase(coll_fns_array, utarray_eltidx(coll_fns_array, cf), 1);
-            MPIU_Free(cf);
+            MPL_free(cf);
         }
             
         if (comm->dev.ch.barrier_vars && OPA_fetch_and_decr_int(&comm->dev.ch.barrier_vars->usage_cnt) == 1) {
@@ -116,7 +116,7 @@ int MPIDI_CH3I_comm_destroy(MPID_Comm *comm, void *param)
     }
     
  fn_exit: ATTRIBUTE((unused))
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_COMM_DESTROY);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_COMM_DESTROY);
     return mpi_errno;
 }
 
@@ -124,7 +124,7 @@ int MPIDI_CH3I_comm_destroy(MPID_Comm *comm, void *param)
 #define FUNCNAME alloc_barrier_vars
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static int alloc_barrier_vars (MPID_Comm *comm, MPID_nem_barrier_vars_t **vars)
+static int alloc_barrier_vars (MPIR_Comm *comm, MPID_nem_barrier_vars_t **vars)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
@@ -136,7 +136,7 @@ static int alloc_barrier_vars (MPID_Comm *comm, MPID_nem_barrier_vars_t **vars)
        This may result in two different communicators using the same
        barier_vars.  This code is being left in for now as an example of how to
        override collective operations. */
-    MPIU_Assert(0);
+    MPIR_Assert(0);
 
     for (i = 0; i < MPID_NEM_NUM_BARRIER_VARS; ++i)
     {
@@ -161,22 +161,18 @@ static int alloc_barrier_vars (MPID_Comm *comm, MPID_nem_barrier_vars_t **vars)
 #define FUNCNAME barrier
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static int barrier(MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+static int barrier(MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
     MPID_nem_barrier_vars_t *barrier_vars;
     int prev;
     int sense;
     
-    MPIU_Assert(comm_ptr->hierarchy_kind == MPID_HIERARCHY_NODE);
+    MPIR_Assert(comm_ptr->hierarchy_kind == MPIR_COMM_HIERARCHY_KIND__NODE);
     
     /* Trivial barriers return immediately */
     if (comm_ptr->local_size == 1)
         return MPI_SUCCESS;
-
-    /* Only one collective operation per communicator can be active at any
-       time */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER (comm_ptr);
 
     if (comm_ptr->dev.ch.barrier_vars == NULL) {
         mpi_errno = alloc_barrier_vars (comm_ptr, &comm_ptr->dev.ch.barrier_vars);
@@ -216,11 +212,10 @@ static int barrier(MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
     else
     {
         while (OPA_load_int(&barrier_vars->sig) == sense)
-            MPIU_PW_Sched_yield();
+            MPL_sched_yield();
     }
 
  fn_exit:
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT( comm_ptr );
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -235,9 +230,9 @@ int MPID_nem_barrier_vars_init (MPID_nem_barrier_vars_t *barrier_region)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_NEM_BARRIER_VARS_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_BARRIER_VARS_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_NEM_BARRIER_VARS_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_BARRIER_VARS_INIT);
     if (MPID_nem_mem_region.local_rank == 0)
         for (i = 0; i < MPID_NEM_NUM_BARRIER_VARS; ++i)
         {
@@ -248,7 +243,7 @@ int MPID_nem_barrier_vars_init (MPID_nem_barrier_vars_t *barrier_region)
             OPA_store_int(&barrier_region[i].sig, 0);
         }
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_NEM_BARRIER_VARS_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_BARRIER_VARS_INIT);
     return mpi_errno;
 }
 
@@ -259,14 +254,14 @@ int MPID_nem_barrier_vars_init (MPID_nem_barrier_vars_t *barrier_region)
 static int nem_coll_finalize(void *param ATTRIBUTE((unused)))
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_NEM_COLL_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_NEM_COLL_FINALIZE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_NEM_COLL_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_NEM_COLL_FINALIZE);
 
     utarray_free(coll_fns_array);
 
  fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_NEM_COLL_FINALIZE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_NEM_COLL_FINALIZE);
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -280,15 +275,15 @@ static int nem_coll_finalize(void *param ATTRIBUTE((unused)))
 int MPID_nem_coll_init(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_NEM_COLL_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_COLL_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_NEM_COLL_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_COLL_INIT);
 
     utarray_new(coll_fns_array, &ut_ptr_icd);
     MPIR_Add_finalize(nem_coll_finalize, NULL, MPIR_FINALIZE_CALLBACK_PRIO-1);
     
  fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_NEM_COLL_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_COLL_INIT);
     return mpi_errno;
  fn_oom: /* out-of-memory handler for utarray operations */
     MPIR_ERR_SET1(mpi_errno, MPI_ERR_OTHER, "**nomem", "**nomem %s", "utarray");

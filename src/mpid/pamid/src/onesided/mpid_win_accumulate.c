@@ -158,11 +158,11 @@ MPID_Accumulate(const void   *origin_addr,
                 int           target_count,
                 MPI_Datatype  target_datatype,
                 MPI_Op        op,
-                MPID_Win     *win)
+                MPIR_Win     *win)
 {
   int mpi_errno = MPI_SUCCESS;
   int shm_locked = 0;
-  MPIDI_Win_request *req = MPIU_Calloc0(1, MPIDI_Win_request);
+  MPIDI_Win_request *req = MPL_calloc0(1, MPIDI_Win_request);
   req->win          = win;
   if(win->mpid.request_based != 1)
     req->type         = MPIDI_WIN_REQUEST_ACCUMULATE;
@@ -245,9 +245,9 @@ MPID_Accumulate(const void   *origin_addr,
        (target_rank == MPI_PROC_NULL))
     {
       if(req->req_handle)
-        MPID_cc_set(req->req_handle->cc_ptr, 0);
+        MPIR_cc_set(req->req_handle->cc_ptr, 0);
       else
-        MPIU_Free(req);
+        MPL_free(req);
       return MPI_SUCCESS;
     }
 
@@ -262,7 +262,7 @@ MPID_Accumulate(const void   *origin_addr,
   else
     {
       req->buffer_free = 1;
-      req->buffer      = MPIU_Malloc(req->origin.dt.size);
+      req->buffer      = MPL_malloc(req->origin.dt.size);
       MPID_assert(req->buffer != NULL);
       int mpi_errno = 0;
       mpi_errno = MPIR_Localcopy(origin_addr,
@@ -302,7 +302,7 @@ MPID_Accumulate(const void   *origin_addr,
        disp_unit = win->mpid.info[target_rank].disp_unit;
        dest_addr = (char *) base + disp_unit * target_disp;
 
-       MPID_Datatype_get_size_macro(origin_datatype, len);
+       MPIDU_Datatype_get_size_macro(origin_datatype, len);
 
        uop = MPIR_OP_HDL_TO_FN(op);
        one = 1;
@@ -310,15 +310,15 @@ MPID_Accumulate(const void   *origin_addr,
        (*uop)((void *) origin_addr, dest_addr, &one, &origin_datatype);
 
 
-        MPIU_Free(req);
+        MPL_free(req);
         ++win->mpid.sync.complete;
 
    } else { /* non-shared    */
   {
     win->mpid.sync.total += req->target.dt.num_contig;
     MPI_Datatype basic_type = MPI_DATATYPE_NULL;
-    MPID_Datatype_get_basic_type(origin_datatype, basic_type);
-    /* MPID_Datatype_get_basic_type() doesn't handle the struct types */
+    MPIDU_Datatype_get_basic_type(origin_datatype, basic_type);
+    /* MPIDU_Datatype_get_basic_type() doesn't handle the struct types */
     if ((origin_datatype == MPI_FLOAT_INT)  ||
         (origin_datatype == MPI_DOUBLE_INT) ||
         (origin_datatype == MPI_LONG_INT)   ||
@@ -331,7 +331,7 @@ MPID_Accumulate(const void   *origin_addr,
     MPID_assert(basic_type != MPI_DATATYPE_NULL);
 
     unsigned index;
-    MPIDI_Win_MsgInfo * headers = MPIU_Calloc0(req->target.dt.num_contig, MPIDI_Win_MsgInfo);
+    MPIDI_Win_MsgInfo * headers = MPL_calloc0(req->target.dt.num_contig, MPIDI_Win_MsgInfo);
     req->accum_headers = headers;
     for (index=0; index < req->target.dt.num_contig; ++index) {
      headers[index].addr = win->mpid.info[target_rank].base_addr + req->offset +

@@ -39,7 +39,7 @@ int MPIDO_Alltoall(const void *sendbuf,
                    void *recvbuf,
                    int recvcount,
                    MPI_Datatype recvtype,
-                   MPID_Comm *comm_ptr,
+                   MPIR_Comm *comm_ptr,
                    int *mpierrno)
 {
 #ifndef HAVE_PAMI_IN_PLACE
@@ -51,7 +51,7 @@ int MPIDO_Alltoall(const void *sendbuf,
 #endif
    TRACE_ERR("Entering MPIDO_Alltoall\n");
    volatile unsigned active = 1;
-   MPID_Datatype *sdt, *rdt;
+   MPIDU_Datatype*sdt, *rdt;
    pami_type_t stype, rtype;
    MPI_Aint sdt_true_lb=0, rdt_true_lb;
    MPIDI_Post_coll_t alltoall_post;
@@ -95,15 +95,15 @@ int MPIDO_Alltoall(const void *sendbuf,
     if(MPIDI_Process.cuda_aware_support_on)
     {
        MPI_Aint sdt_extent,rdt_extent;
-       MPID_Datatype_get_extent_macro(sendtype, sdt_extent);
-       MPID_Datatype_get_extent_macro(recvtype, rdt_extent);
+       MPIDU_Datatype_get_extent_macro(sendtype, sdt_extent);
+       MPIDU_Datatype_get_extent_macro(recvtype, rdt_extent);
        char *scbuf = NULL;
        char *rcbuf = NULL;
        int is_send_dev_buf = MPIDI_cuda_is_device_buf(sendbuf);
        int is_recv_dev_buf = MPIDI_cuda_is_device_buf(recvbuf);
        if(is_send_dev_buf)
        {
-         scbuf = MPIU_Malloc(sdt_extent * sendcount);
+         scbuf = MPL_malloc(sdt_extent * sendcount);
          cudaError_t cudaerr = CudaMemcpy(scbuf, sendbuf, sdt_extent * sendcount, cudaMemcpyDeviceToHost);
          if (cudaSuccess != cudaerr)
            fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
@@ -112,7 +112,7 @@ int MPIDO_Alltoall(const void *sendbuf,
          scbuf = sendbuf;
        if(is_recv_dev_buf)
        {
-         rcbuf = MPIU_Malloc(recvcount * rdt_extent);
+         rcbuf = MPL_malloc(recvcount * rdt_extent);
          if(sendbuf == MPI_IN_PLACE)
          {
            cudaError_t cudaerr = CudaMemcpy(rcbuf, recvbuf, recvcount * rdt_extent, cudaMemcpyDeviceToHost);
@@ -125,13 +125,13 @@ int MPIDO_Alltoall(const void *sendbuf,
        else
          rcbuf = recvbuf;
        int cuda_res =  MPIR_Alltoall_intra(scbuf, sendcount, sendtype, rcbuf, recvcount, recvtype, comm_ptr, mpierrno);
-       if(is_send_dev_buf)MPIU_Free(scbuf);
+       if(is_send_dev_buf)MPL_free(scbuf);
        if(is_recv_dev_buf)
          {
            cudaError_t cudaerr = CudaMemcpy(recvbuf, rcbuf, recvcount * rdt_extent, cudaMemcpyHostToDevice);
            if (cudaSuccess != cudaerr)
              fprintf(stderr, "cudaMemcpy failed: %s\n", CudaGetErrorString(cudaerr));
-           MPIU_Free(rcbuf);
+           MPL_free(rcbuf);
          }
        return cuda_res;
     }
@@ -200,7 +200,7 @@ int MPIDO_Alltoall(const void *sendbuf,
          if(my_md->check_correct.values.rangeminmax)
          {
             MPI_Aint data_true_lb ATTRIBUTE((unused));
-            MPID_Datatype *data_ptr;
+            MPIDU_Datatype*data_ptr;
             int data_size, data_contig ATTRIBUTE((unused));
             MPIDI_Datatype_get_info(sendcount, sendtype, data_contig, data_size, data_ptr, data_true_lb); 
             if((my_md->range_lo <= data_size) &&
@@ -246,8 +246,8 @@ int MPIDO_Alltoall(const void *sendbuf,
    if(unlikely(verbose))
    {
       unsigned long long int threadID;
-      MPIU_Thread_id_t tid;
-      MPIU_Thread_self(&tid);
+      MPL_thread_id_t tid;
+      MPL_thread_self(&tid);
       threadID = (unsigned long long int)tid;
       fprintf(stderr,"<%llx> Using protocol %s for alltoall on %u\n", 
               threadID,
@@ -272,7 +272,7 @@ int MPIDO_Alltoall_simple(const void *sendbuf,
                    void *recvbuf,
                    int recvcount,
                    MPI_Datatype recvtype,
-                   MPID_Comm *comm_ptr,
+                   MPIR_Comm *comm_ptr,
                    int *mpierrno)
 {
 #ifndef HAVE_PAMI_IN_PLACE
@@ -288,8 +288,8 @@ int MPIDO_Alltoall_simple(const void *sendbuf,
    void *sbuf = NULL, *rbuf = NULL;
    size_t send_size = 0;
    size_t recv_size = 0;
-   MPID_Segment segment;
-   MPID_Datatype *sdt, *rdt;
+   MPIDU_Segment segment;
+   MPIDU_Datatype*sdt, *rdt;
    MPI_Aint sdt_true_lb=0, rdt_true_lb;
    MPIDI_Post_coll_t alltoall_post;
    int sndlen, rcvlen, snd_contig = 1, rcv_contig = 1;
@@ -338,7 +338,7 @@ int MPIDO_Alltoall_simple(const void *sendbuf,
     send_size = sndlen * sendcount;
     if(!snd_contig)
     {
-      snd_noncontig_buff = MPIU_Malloc(send_size*size);
+      snd_noncontig_buff = MPL_malloc(send_size*size);
       sbuf = snd_noncontig_buff;
       if(snd_noncontig_buff == NULL)
       {
@@ -346,15 +346,15 @@ int MPIDO_Alltoall_simple(const void *sendbuf,
                    "Fatal:  Cannot allocate pack buffer");
       }
       DLOOP_Offset last = send_size*size;
-      MPID_Segment_init(sendbuf, sendcount*size, sendtype, &segment, 0);
-      MPID_Segment_pack(&segment, 0, &last, snd_noncontig_buff);
+      MPIDU_Segment_init(sendbuf, sendcount*size, sendtype, &segment, 0);
+      MPIDU_Segment_pack(&segment, 0, &last, snd_noncontig_buff);
 
     }
   }
 
   if(!rcv_contig)
   {
-    rcv_noncontig_buff = MPIU_Malloc(recv_size*size);
+    rcv_noncontig_buff = MPL_malloc(recv_size*size);
     rbuf = rcv_noncontig_buff;
     if(rcv_noncontig_buff == NULL)
     {
@@ -364,7 +364,7 @@ int MPIDO_Alltoall_simple(const void *sendbuf,
     if(sendbuf == MPI_IN_PLACE)
     {
       size_t extent;
-      MPID_Datatype_get_extent_macro(recvtype,extent);
+      MPIDU_Datatype_get_extent_macro(recvtype,extent);
       MPIR_Localcopy(recvbuf + (rank*recvcount*extent), recvcount, recvtype,
                      rcv_noncontig_buff + (rank*recv_size), recv_size,MPI_CHAR);
     }
@@ -406,9 +406,9 @@ int MPIDO_Alltoall_simple(const void *sendbuf,
    {
       MPIR_Localcopy(rcv_noncontig_buff, recv_size*size, MPI_CHAR,
                         recvbuf,         recvcount*size,     recvtype);
-      MPIU_Free(rcv_noncontig_buff);
+      MPL_free(rcv_noncontig_buff);
    }
-   if(!snd_contig)  MPIU_Free(snd_noncontig_buff);
+   if(!snd_contig)  MPL_free(snd_noncontig_buff);
 
    TRACE_ERR("Leaving MPIDO_Alltoall_optimized\n");
    return MPI_SUCCESS;
@@ -420,7 +420,7 @@ MPIDO_CSWrapper_alltoall(pami_xfer_t *alltoall,
                          void        *comm)
 {
    int mpierrno = 0;
-   MPID_Comm   *comm_ptr = (MPID_Comm*)comm;
+   MPIR_Comm   *comm_ptr = (MPIR_Comm*)comm;
    MPI_Datatype sendtype, recvtype;
    void *sbuf;
    MPIDI_coll_check_in_place(alltoall->cmd.xfer_alltoall.sndbuf, &sbuf);

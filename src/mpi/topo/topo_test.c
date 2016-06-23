@@ -6,7 +6,6 @@
  */
 
 #include "mpiimpl.h"
-#include "topo.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_Topo_test */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -60,13 +59,13 @@ int MPI_Topo_test(MPI_Comm comm, int *status)
     static const char FCNAME[] = "MPI_Topo_test";
 #endif
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Topology *topo_ptr;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_TOPO_TEST);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_TOPO_TEST);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TOPO_TEST);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_TOPO_TEST);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -80,7 +79,7 @@ int MPI_Topo_test(MPI_Comm comm, int *status)
 #   endif
     
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -88,7 +87,7 @@ int MPI_Topo_test(MPI_Comm comm, int *status)
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, TRUE );
             if (mpi_errno) goto fn_fail;
 	    /* If comm_ptr is not valid, it will be reset to null */
 	    MPIR_ERRTEST_ARGNULL(status, "status", mpi_errno);
@@ -114,7 +113,7 @@ int MPI_Topo_test(MPI_Comm comm, int *status)
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TOPO_TEST);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_TOPO_TEST);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */

@@ -90,7 +90,7 @@ static void init_kv_strdup_int(PMI2_Keyvalpair *kv, const char key[], int val)
     char tmpbuf[32] = {0};
     int rc = PMI2_SUCCESS;
 
-    rc = PMI2U_Snprintf(tmpbuf, sizeof(tmpbuf), "%d", val);
+    rc = MPL_snprintf(tmpbuf, sizeof(tmpbuf), "%d", val);
     PMI2U_Assert(rc >= 0);
     init_kv_strdup(kv, key, tmpbuf);
 }
@@ -102,7 +102,7 @@ static void init_kv_strdup_intsuffix(PMI2_Keyvalpair *kv, const char key_prefix[
     char tmpbuf[256/*XXX HACK*/] = {0};
     int rc = PMI2_SUCCESS;
 
-    rc = PMI2U_Snprintf(tmpbuf, sizeof(tmpbuf), "%s%d", key_prefix, suffix);
+    rc = MPL_snprintf(tmpbuf, sizeof(tmpbuf), "%s%d", key_prefix, suffix);
     PMI2U_Assert(rc >= 0);
     init_kv_strdup(kv, tmpbuf, val);
 }
@@ -230,7 +230,7 @@ int PMI2_Init(int *spawned, int *size, int *rank, int *appnum)
     }
 
     /* do initial PMI1 init */
-    ret = PMI2U_Snprintf( buf, PMI2U_MAXLINE, "cmd=init pmi_version=%d pmi_subversion=%d\n", PMI_VERSION, PMI_SUBVERSION );
+    ret = MPL_snprintf( buf, PMI2U_MAXLINE, "cmd=init pmi_version=%d pmi_subversion=%d\n", PMI_VERSION, PMI_SUBVERSION );
     PMI2U_ERR_CHKANDJUMP1(ret < 0, pmi2_errno, PMI2_ERR_OTHER, "**intern", "**intern %s", "failed to generate init line");
 
     ret = PMI2U_writeline(PMI2_fd, buf);
@@ -288,11 +288,11 @@ int PMI2_Init(int *spawned, int *size, int *rank, int *appnum)
         }
 
 #ifdef MPICH_IS_THREADED
-        MPIU_THREAD_CHECK_BEGIN;
+        MPIR_THREAD_CHECK_BEGIN;
         {
             isThreaded = 1;
         }
-        MPIU_THREAD_CHECK_END;
+        MPIR_THREAD_CHECK_END;
 #endif
         init_kv_str(&pairs[npairs], THREADED_KEY, isThreaded ? "TRUE" : "FALSE");
         ++npairs;
@@ -404,9 +404,9 @@ int PMI2_Job_Spawn(int count, const char * cmds[],
                    int argcs[], const char ** argvs[],
                    const int maxprocs[],
                    const int info_keyval_sizes[],
-                   const struct MPID_Info *info_keyval_vectors[],
+                   const struct MPIR_Info *info_keyval_vectors[],
                    int preput_keyval_size,
-                   const struct MPID_Info *preput_keyval_vector[],
+                   const struct MPIR_Info *preput_keyval_vector[],
                    char jobId[], int jobIdSize,
                    int errors[])
 {
@@ -682,7 +682,7 @@ int PMI2_KVS_Get(const char *jobid, int src_pmi_id, const char key[], char value
     char src_pmi_id_str[256];
     const char *errmsg;
 
-    PMI2U_Snprintf(src_pmi_id_str, sizeof(src_pmi_id_str), "%d", src_pmi_id);
+    MPL_snprintf(src_pmi_id_str, sizeof(src_pmi_id_str), "%d", src_pmi_id);
 
     pmi2_errno = PMIi_InitIfSingleton();
     if (pmi2_errno) PMI2U_ERR_POP(pmi2_errno);
@@ -1232,7 +1232,7 @@ int PMIi_ReadCommand( int fd, PMI2_Command *cmd )
     memset(cmd_len_str, 0, sizeof(cmd_len_str));
 
 #ifdef MPICH_IS_THREADED
-    MPIU_THREAD_CHECK_BEGIN;
+    MPIR_THREAD_CHECK_BEGIN;
     {
         MPID_Thread_mutex_lock(&mutex, &err);
 
@@ -1247,7 +1247,7 @@ int PMIi_ReadCommand( int fd, PMI2_Command *cmd )
         blocked = TRUE;
         MPID_Thread_mutex_unlock(&mutex, &err);
     }
-    MPIU_THREAD_CHECK_END;
+    MPIR_THREAD_CHECK_END;
 #endif
 
     do {
@@ -1364,14 +1364,14 @@ int PMIi_ReadCommand( int fd, PMI2_Command *cmd )
     } while (!cmd->complete);
 
 #ifdef MPICH_IS_THREADED
-    MPIU_THREAD_CHECK_BEGIN;
+    MPIR_THREAD_CHECK_BEGIN;
     {
         MPID_Thread_mutex_lock(&mutex, &err);
         blocked = FALSE;
         MPID_Thread_cond_broadcast(&cond,&err);
         MPID_Thread_mutex_unlock(&mutex, &err);
     }
-    MPIU_THREAD_CHECK_END;
+    MPIR_THREAD_CHECK_END;
 #endif
 
 
@@ -1436,26 +1436,26 @@ int PMIi_WriteSimpleCommand( int fd, PMI2_Command *resp, const char cmd[], PMI2_
 
     PMI2U_ERR_CHKANDJUMP(strlen(cmd) > PMI2_MAX_VALLEN, pmi2_errno, PMI2_ERR_OTHER, "**cmd_too_long");
 
-    ret = PMI2U_Snprintf(c, remaining_len, "cmd=%s;", cmd);
+    ret = MPL_snprintf(c, remaining_len, "cmd=%s;", cmd);
     PMI2U_ERR_CHKANDJUMP1(ret >= remaining_len, pmi2_errno, PMI2_ERR_OTHER, "**intern", "**intern %s", "Ran out of room for command");
     c += ret;
     remaining_len -= ret;
 
 #ifdef MPICH_IS_THREADED
-    MPIU_THREAD_CHECK_BEGIN;
+    MPIR_THREAD_CHECK_BEGIN;
     if (resp) {
-        ret = PMI2U_Snprintf(c, remaining_len, "thrid=%p;", resp);
+        ret = MPL_snprintf(c, remaining_len, "thrid=%p;", resp);
         PMI2U_ERR_CHKANDJUMP1(ret >= remaining_len, pmi2_errno, PMI2_ERR_OTHER, "**intern", "**intern %s", "Ran out of room for command");
         c += ret;
         remaining_len -= ret;
     }
-    MPIU_THREAD_CHECK_END;
+    MPIR_THREAD_CHECK_END;
 #endif
 
     for (pair_index = 0; pair_index < npairs; ++pair_index) {
         /* write key= */
         PMI2U_ERR_CHKANDJUMP(strlen(pairs[pair_index]->key) > PMI2_MAX_KEYLEN, pmi2_errno, PMI2_ERR_OTHER, "**key_too_long");
-        ret = PMI2U_Snprintf(c, remaining_len, "%s=", pairs[pair_index]->key);
+        ret = MPL_snprintf(c, remaining_len, "%s=", pairs[pair_index]->key);
         PMI2U_ERR_CHKANDJUMP1(ret >= remaining_len, pmi2_errno, PMI2_ERR_OTHER, "**intern", "**intern %s", "Ran out of room for command");
         c += ret;
         remaining_len -= ret;
@@ -1481,7 +1481,7 @@ int PMIi_WriteSimpleCommand( int fd, PMI2_Command *resp, const char cmd[], PMI2_
 
     /* prepend the buffer length stripping off the trailing '\0' */
     cmdlen = PMII_MAX_COMMAND_LEN - remaining_len;
-    ret = PMI2U_Snprintf(cmdlenbuf, sizeof(cmdlenbuf), "%d", cmdlen);
+    ret = MPL_snprintf(cmdlenbuf, sizeof(cmdlenbuf), "%d", cmdlen);
     PMI2U_ERR_CHKANDJUMP1(ret >= PMII_COMMANDLEN_SIZE, pmi2_errno, PMI2_ERR_OTHER, "**intern", "**intern %s", "Command length won't fit in length buffer");
 
     PMI2U_Memcpy(cmdbuf, cmdlenbuf, ret);
@@ -1491,7 +1491,7 @@ int PMIi_WriteSimpleCommand( int fd, PMI2_Command *resp, const char cmd[], PMI2_
 
 
  #ifdef MPICH_IS_THREADED
-    MPIU_THREAD_CHECK_BEGIN;
+    MPIR_THREAD_CHECK_BEGIN;
     {
         MPID_Thread_mutex_lock(&mutex, &err);
 
@@ -1501,7 +1501,7 @@ int PMIi_WriteSimpleCommand( int fd, PMI2_Command *resp, const char cmd[], PMI2_
         blocked = TRUE;
         MPID_Thread_mutex_unlock(&mutex, &err);
     }
-    MPIU_THREAD_CHECK_END;
+    MPIR_THREAD_CHECK_END;
 #endif
 
     if (PMI2_debug)
@@ -1518,14 +1518,14 @@ int PMIi_WriteSimpleCommand( int fd, PMI2_Command *resp, const char cmd[], PMI2_
         offset += nbytes;
     } while (offset < cmdlen + PMII_COMMANDLEN_SIZE);
 #ifdef MPICH_IS_THREADED
-    MPIU_THREAD_CHECK_BEGIN;
+    MPIR_THREAD_CHECK_BEGIN;
     {
         MPID_Thread_mutex_lock(&mutex, &err);
         blocked = FALSE;
         MPID_Thread_cond_broadcast(&cond,&err);
         MPID_Thread_mutex_unlock(&mutex, &err);
     }
-    MPIU_THREAD_CHECK_END;
+    MPIR_THREAD_CHECK_END;
 #endif
 
 fn_exit:

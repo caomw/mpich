@@ -90,7 +90,7 @@ int IOLabelSetupFinishInServer( IOLabelSetup *iofds, ProcessState *pState )
     close( iofds->readErr[1] );
 
     /* We need dedicated storage for the private data */
-    leader = (IOLabel *)MPIU_Malloc( sizeof(IOLabel) );
+    leader = (IOLabel *)MPL_malloc( sizeof(IOLabel) );
     if (useLabels) {
 	IOLabelSetLabelText( outLabelPattern, 
 			     leader->label, sizeof(leader->label),
@@ -101,7 +101,7 @@ int IOLabelSetupFinishInServer( IOLabelSetup *iofds, ProcessState *pState )
     }
     leader->lastNL = 1;
     leader->dest   = stdout;
-    leadererr = (IOLabel *)MPIU_Malloc( sizeof(IOLabel) );
+    leadererr = (IOLabel *)MPL_malloc( sizeof(IOLabel) );
     if (useLabels) {
 	IOLabelSetLabelText( errLabelPattern, 
 			     leadererr->label, sizeof(leadererr->label),
@@ -211,7 +211,7 @@ static int IOLabelSetLabelText( const char pattern[], char label[],
 	    case 'd': 
 		dlen = (int)strlen( rankAsChar );
 		if (dlen < lenleft) {
-		    MPIU_Strncpy( pout, rankAsChar, lenleft );
+		    MPL_strncpy( pout, rankAsChar, lenleft );
 		    pout += dlen;
 		    lenleft -= dlen;
 		}
@@ -223,7 +223,7 @@ static int IOLabelSetLabelText( const char pattern[], char label[],
 	    case 'w':
 		dlen = (int)strlen(worldnumAsChar);
 		if (dlen < lenleft) {
-		    MPIU_Strncpy( pout, worldnumAsChar, lenleft );
+		    MPL_strncpy( pout, worldnumAsChar, lenleft );
 		    pout += dlen;
 		    lenleft -= dlen;
 		}
@@ -250,7 +250,7 @@ static int IOLabelSetLabelText( const char pattern[], char label[],
 					     rank, worldnum );
 			dlen = (int)strlen(wLabel);
 			if (dlen < lenleft) {
-			    MPIU_Strncpy( pout, wLabel, lenleft );
+			    MPL_strncpy( pout, wLabel, lenleft );
 			    pout    += dlen;
 			    lenleft -= dlen;
 			}
@@ -287,7 +287,7 @@ int IOLabelCheckEnv( void )
     envval = getenv( "MPIEXEC_PREFIX_STDOUT" );
     if (envval) {
 	if (strlen(envval) < MAX_LABEL) {
-	    MPIU_Strncpy( outLabelPattern, envval, MAX_LABEL );
+	    MPL_strncpy( outLabelPattern, envval, MAX_LABEL );
 	    useLabels = 1;
 	}
 	else {
@@ -297,7 +297,7 @@ int IOLabelCheckEnv( void )
     envval = getenv( "MPIEXEC_PREFIX_STDERR" );
     if (envval) {
 	if (strlen(envval) < MAX_LABEL) {
-	    MPIU_Strncpy( errLabelPattern, envval, MAX_LABEL );
+	    MPL_strncpy( errLabelPattern, envval, MAX_LABEL );
 	    useLabels = 1;
 	}
 	else {

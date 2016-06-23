@@ -137,20 +137,22 @@ int MPI_Comm_join(int fd, MPI_Comm *intercomm)
 {
     static const char FCNAME[] = "MPI_Comm_join";
     int mpi_errno = MPI_SUCCESS, err;
-    MPID_Comm *intercomm_ptr;
+    MPIR_Comm *intercomm_ptr;
     char *local_port, *remote_port;
-    MPIU_CHKLMEM_DECL(2);
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_JOIN);
+    MPIR_CHKLMEM_DECL(2);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_JOIN);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_JOIN);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_JOIN);
 
     /* ... body of routine ...  */
     
-    MPIU_CHKLMEM_MALLOC(local_port, char *, MPI_MAX_PORT_NAME, mpi_errno, "local port name");
-    MPIU_CHKLMEM_MALLOC(remote_port, char *, MPI_MAX_PORT_NAME, mpi_errno, "remote port name");
+    MPIR_CHKLMEM_MALLOC(local_port, char *, MPI_MAX_PORT_NAME, mpi_errno, "local port name");
+    MPIR_CHKLMEM_MALLOC(remote_port, char *, MPI_MAX_PORT_NAME, mpi_errno, "remote port name");
+
+    MPL_VG_MEM_INIT(local_port, MPI_MAX_PORT_NAME * sizeof(char));
     
     mpi_errno = MPIR_Open_port_impl(NULL, local_port);
     MPIR_ERR_CHKANDJUMP((mpi_errno != MPI_SUCCESS), mpi_errno, MPI_ERR_OTHER, "**openportfailed");
@@ -165,13 +167,13 @@ int MPI_Comm_join(int fd, MPI_Comm *intercomm)
 			 "**join_portname %s %s", local_port, remote_port);
 
     if (strcmp(local_port, remote_port) < 0) {
-        MPID_Comm *comm_self_ptr;
-        MPID_Comm_get_ptr( MPI_COMM_SELF, comm_self_ptr );
+        MPIR_Comm *comm_self_ptr;
+        MPIR_Comm_get_ptr( MPI_COMM_SELF, comm_self_ptr );
         mpi_errno = MPIR_Comm_accept_impl(local_port, NULL, 0, comm_self_ptr, &intercomm_ptr);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     } else {
-        MPID_Comm *comm_self_ptr;
-        MPID_Comm_get_ptr( MPI_COMM_SELF, comm_self_ptr );
+        MPIR_Comm *comm_self_ptr;
+        MPIR_Comm_get_ptr( MPI_COMM_SELF, comm_self_ptr );
         mpi_errno = MPIR_Comm_connect_impl(remote_port, NULL, 0, comm_self_ptr, &intercomm_ptr);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
@@ -179,13 +181,13 @@ int MPI_Comm_join(int fd, MPI_Comm *intercomm)
     mpi_errno = MPIR_Close_port_impl(local_port);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-    MPID_OBJ_PUBLISH_HANDLE(*intercomm, intercomm_ptr->handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*intercomm, intercomm_ptr->handle);
 
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPIU_CHKLMEM_FREEALL();
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_JOIN);
+    MPIR_CHKLMEM_FREEALL();
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_JOIN);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

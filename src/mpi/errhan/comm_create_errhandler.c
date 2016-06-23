@@ -34,17 +34,17 @@ int MPIR_Comm_create_errhandler_impl(MPI_Comm_errhandler_function *comm_errhandl
                                      MPI_Errhandler *errhandler)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Errhandler *errhan_ptr;
+    MPIR_Errhandler *errhan_ptr;
         
-    errhan_ptr = (MPID_Errhandler *)MPIU_Handle_obj_alloc( &MPID_Errhandler_mem );
+    errhan_ptr = (MPIR_Errhandler *)MPIR_Handle_obj_alloc( &MPIR_Errhandler_mem );
     MPIR_ERR_CHKANDJUMP(!errhan_ptr, mpi_errno, MPI_ERR_OTHER, "**nomem");
 
-    errhan_ptr->language = MPID_LANG_C;
-    errhan_ptr->kind	 = MPID_COMM;
-    MPIU_Object_set_ref(errhan_ptr,1);
+    errhan_ptr->language = MPIR_LANG__C;
+    errhan_ptr->kind	 = MPIR_COMM;
+    MPIR_Object_set_ref(errhan_ptr,1);
     errhan_ptr->errfn.C_Comm_Handler_function = comm_errhandler_fn;
 
-    MPID_OBJ_PUBLISH_HANDLE(*errhandler, errhan_ptr->handle);
+    MPIR_OBJ_PUBLISH_HANDLE(*errhandler, errhan_ptr->handle);
  fn_exit:
     return mpi_errno;
  fn_fail:
@@ -85,12 +85,12 @@ int MPI_Comm_create_errhandler(MPI_Comm_errhandler_function *comm_errhandler_fn,
                                MPI_Errhandler *errhandler)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_CREATE_ERRHANDLER);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_CREATE_ERRHANDLER);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_CREATE_ERRHANDLER);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_CREATE_ERRHANDLER);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -112,7 +112,7 @@ int MPI_Comm_create_errhandler(MPI_Comm_errhandler_function *comm_errhandler_fn,
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_CREATE_ERRHANDLER);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_CREATE_ERRHANDLER);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

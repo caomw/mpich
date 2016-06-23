@@ -26,11 +26,11 @@ struct MPID_NS_Handle { int dummy; };    /* unused for now */
 #define FUNCNAME MPID_NS_Create
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
+int MPID_NS_Create( const MPIR_Info *info_ptr, MPID_NS_Handle *handle_ptr )
 {
     static struct MPID_NS_Handle nsHandleWithNoData;
 
-    MPIU_UNREFERENCED_ARG(info_ptr);
+    MPL_UNREFERENCED_ARG(info_ptr);
     /* MPID_NS_Create() should always create a valid handle */
     *handle_ptr = &nsHandleWithNoData;	/* The name service needs no local data */
     return 0;
@@ -40,13 +40,13 @@ int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
 #define FUNCNAME MPID_NS_Publish
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_NS_Publish( MPID_NS_Handle handle, const MPID_Info *info_ptr, 
+int MPID_NS_Publish( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                      const char service_name[], const char port[] )
 {
     int mpi_errno = MPI_SUCCESS;
     int rc;
-    MPIU_UNREFERENCED_ARG(info_ptr);
-    MPIU_UNREFERENCED_ARG(handle);
+    MPL_UNREFERENCED_ARG(info_ptr);
+    MPL_UNREFERENCED_ARG(handle);
 
 #ifdef USE_PMI2_API
     /* release the global CS for PMI calls */
@@ -66,13 +66,13 @@ fn_fail:
 #define FUNCNAME MPID_NS_Lookup
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_NS_Lookup( MPID_NS_Handle handle, const MPID_Info *info_ptr,
+int MPID_NS_Lookup( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                     const char service_name[], char port[] )
 {
     int mpi_errno = MPI_SUCCESS;
     int rc;
-    MPIU_UNREFERENCED_ARG(info_ptr);
-    MPIU_UNREFERENCED_ARG(handle);
+    MPL_UNREFERENCED_ARG(info_ptr);
+    MPL_UNREFERENCED_ARG(handle);
 
 #ifdef USE_PMI2_API
     /* release the global CS for PMI calls */
@@ -92,13 +92,13 @@ fn_fail:
 #define FUNCNAME MPID_NS_Unpublish
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPID_Info *info_ptr, 
+int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                        const char service_name[] )
 {
     int mpi_errno = MPI_SUCCESS;
     int rc;
-    MPIU_UNREFERENCED_ARG(info_ptr);
-    MPIU_UNREFERENCED_ARG(handle);
+    MPL_UNREFERENCED_ARG(info_ptr);
+    MPL_UNREFERENCED_ARG(handle);
 
 #ifdef USE_PMI2_API
     /* release the global CS for PMI calls */
@@ -119,7 +119,7 @@ fn_fail:
 int MPID_NS_Free( MPID_NS_Handle *handle_ptr )
 {
     /* MPID_NS_Handle is Null */
-    MPIU_UNREFERENCED_ARG(handle_ptr);
+    MPL_UNREFERENCED_ARG(handle_ptr);
     return 0;
 }
 
@@ -148,14 +148,14 @@ struct MPID_NS_Handle
 
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Create
-int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
+int MPID_NS_Create( const MPIR_Info *info_ptr, MPID_NS_Handle *handle_ptr )
 {
     static const char FCNAME[] = "MPID_NS_Create";
     int err;
     int length;
     char *pmi_namepub_kvs;
 
-    *handle_ptr = (MPID_NS_Handle)MPIU_Malloc( sizeof(struct MPID_NS_Handle) );
+    *handle_ptr = (MPID_NS_Handle)MPL_malloc( sizeof(struct MPID_NS_Handle) );
     /* --BEGIN ERROR HANDLING-- */
     if (!*handle_ptr)
     {
@@ -172,7 +172,7 @@ int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
     }
     /* --END ERROR HANDLING-- */
 
-    (*handle_ptr)->kvsname = (char*)MPIU_Malloc(length);
+    (*handle_ptr)->kvsname = (char*)MPL_malloc(length);
     /* --BEGIN ERROR HANDLING-- */
     if (!(*handle_ptr)->kvsname)
     {
@@ -184,7 +184,7 @@ int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
     pmi_namepub_kvs = getenv("PMI_NAMEPUB_KVS");
     if (pmi_namepub_kvs)
     {
-	MPIU_Strncpy((*handle_ptr)->kvsname, pmi_namepub_kvs, length);
+	MPL_strncpy((*handle_ptr)->kvsname, pmi_namepub_kvs, length);
     }
     else
     {
@@ -203,7 +203,7 @@ int MPID_NS_Create( const MPID_Info *info_ptr, MPID_NS_Handle *handle_ptr )
 
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Publish
-int MPID_NS_Publish( MPID_NS_Handle handle, const MPID_Info *info_ptr, 
+int MPID_NS_Publish( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                      const char service_name[], const char port[] )
 {
     static const char FCNAME[] = "MPID_NS_Publish";
@@ -232,7 +232,7 @@ int MPID_NS_Publish( MPID_NS_Handle handle, const MPID_Info *info_ptr,
 
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Lookup
-int MPID_NS_Lookup( MPID_NS_Handle handle, const MPID_Info *info_ptr,
+int MPID_NS_Lookup( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                     const char service_name[], char port[] )
 {
     static const char FCNAME[] = "MPID_NS_Lookup";
@@ -257,7 +257,7 @@ int MPID_NS_Lookup( MPID_NS_Handle handle, const MPID_Info *info_ptr,
 
 #undef FUNCNAME
 #define FUNCNAME MPID_NS_Unpublish
-int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPID_Info *info_ptr, 
+int MPID_NS_Unpublish( MPID_NS_Handle handle, const MPIR_Info *info_ptr,
                        const char service_name[] )
 {
     static const char FCNAME[] = "MPID_NS_Unpublish";
@@ -292,8 +292,8 @@ int MPID_NS_Free( MPID_NS_Handle *handle_ptr )
     static const char FCNAME[] = "MPID_NS_Free";
     int err;
 
-    MPIU_Free( (*handle_ptr)->kvsname );
-    MPIU_Free( *handle_ptr );
+    MPL_free( (*handle_ptr)->kvsname );
+    MPL_free( *handle_ptr );
     *handle_ptr = 0;
 
     return 0;

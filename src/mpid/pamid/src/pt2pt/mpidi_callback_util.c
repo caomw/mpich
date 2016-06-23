@@ -24,7 +24,7 @@
 
 /* MSGQUEUE lock must be held by caller */
 void
-MPIDI_Callback_process_unexp(MPID_Request *newreq,
+MPIDI_Callback_process_unexp(MPIR_Request *newreq,
 			     pami_context_t        context,
                              const MPIDI_MsgInfo * msginfo,
                              size_t                sndlen,
@@ -33,7 +33,7 @@ MPIDI_Callback_process_unexp(MPID_Request *newreq,
                              pami_recv_t         * recv,
                              unsigned              isSync)
 {
-  MPID_Request *rreq = NULL;
+  MPIR_Request *rreq = NULL;
 
   /* ---------------------------------------------------- */
   /*  Fallback position:                                  */
@@ -106,7 +106,7 @@ MPIDI_Callback_process_unexp(MPID_Request *newreq,
 /* MSGQUEUE lock is not held */
 void
 MPIDI_Callback_process_trunc(pami_context_t  context,
-                             MPID_Request   *rreq,
+                             MPIR_Request   *rreq,
                              pami_recv_t    *recv,
                              const void     *sndbuf)
 {
@@ -119,7 +119,7 @@ MPIDI_Callback_process_trunc(pami_context_t  context,
     {
       MPIDI_Request_setCA(rreq, MPIDI_CA_UNPACK_UEBUF_AND_COMPLETE);
       rreq->mpid.uebuflen = MPIR_STATUS_GET_COUNT(rreq->status);
-      rreq->mpid.uebuf    = MPIU_Malloc(MPIR_STATUS_GET_COUNT(rreq->status));
+      rreq->mpid.uebuf    = MPL_malloc(MPIR_STATUS_GET_COUNT(rreq->status));
       MPID_assert(rreq->mpid.uebuf != NULL);
       rreq->mpid.uebuf_malloc = mpiuMalloc;
 
@@ -131,7 +131,7 @@ MPIDI_Callback_process_trunc(pami_context_t  context,
       rreq->mpid.uebuflen = MPIR_STATUS_GET_COUNT(rreq->status);
       rreq->mpid.uebuf    = (void*)sndbuf;
       MPIDI_RecvDoneCB(context, rreq, PAMI_SUCCESS);
-      MPID_Request_release(rreq);
+      MPIR_Request_free(rreq);
     }
 }
 
@@ -141,10 +141,10 @@ void
 MPIDI_Callback_process_userdefined_dt(pami_context_t      context,
                                       const void        * sndbuf,
                                       size_t              sndlen,
-                                      MPID_Request      * rreq)
+                                      MPIR_Request      * rreq)
 {
   unsigned dt_contig, dt_size;
-  MPID_Datatype *dt_ptr;
+  MPIDU_Datatype*dt_ptr;
   MPI_Aint dt_true_lb;
   MPIDI_Datatype_get_info(rreq->mpid.userbufcount,
                           rreq->mpid.datatype,
@@ -191,5 +191,5 @@ MPIDI_Callback_process_userdefined_dt(pami_context_t      context,
   rreq->mpid.uebuflen = sndlen;
   rreq->mpid.uebuf    = (void*)sndbuf;
   MPIDI_RecvDoneCB(context, rreq, PAMI_SUCCESS);
-  MPID_Request_release(rreq);
+  MPIR_Request_free(rreq);
 }

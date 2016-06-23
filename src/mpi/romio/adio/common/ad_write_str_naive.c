@@ -83,7 +83,7 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 		req_len = flat_buf->blocklens[b_index];
 
     ADIOI_Assert(req_len == (int) req_len);
-    ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)buf) + userbuf_off) == (ADIO_Offset)(MPIU_Upint)((MPIU_Upint)buf + userbuf_off));
+    ADIOI_Assert((((ADIO_Offset)(uintptr_t)buf) + userbuf_off) == (ADIO_Offset)(uintptr_t)((uintptr_t)buf + userbuf_off));
 		ADIO_WriteContig(fd, 
 				(char *) buf + userbuf_off,
 				(int)req_len, 
@@ -127,9 +127,7 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 	 *
 	 */
 
-	/* filetype already flattened in ADIO_Open */
-	flat_file = ADIOI_Flatlist;
-	while (flat_file->type != fd->filetype) flat_file = flat_file->next;
+	flat_file = ADIOI_Flatten_and_find(fd->filetype);
 	disp = fd->disp;
 
 	if (file_ptr_type == ADIO_INDIVIDUAL) {
@@ -192,7 +190,7 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 	userbuf_off = 0;
 	f_index = st_index;
 	off = start_off;
-	fwr_size = ADIOI_MIN(st_fwr_size, bufsize);
+	fwr_size = MPL_MIN(st_fwr_size, bufsize);
 	while (userbuf_off < bufsize) {
 	    userbuf_off += fwr_size;
 	    end_offset = off + fwr_size - 1;
@@ -205,7 +203,7 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 
 	    off = disp + flat_file->indices[f_index] + 
 	          n_filetypes*(ADIO_Offset)filetype_extent;
-	    fwr_size = ADIOI_MIN(flat_file->blocklens[f_index], 
+	    fwr_size = MPL_MIN(flat_file->blocklens[f_index], 
 	                         bufsize-(unsigned)userbuf_off);
 	}
 
@@ -233,7 +231,7 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 	    f_index = st_index;
 	    off = start_off;
 	    n_filetypes = st_n_filetypes;
-	    fwr_size = ADIOI_MIN(st_fwr_size, bufsize);
+	    fwr_size = MPL_MIN(st_fwr_size, bufsize);
 
 	    /* while there is still space in the buffer, write more data */
 	    while (userbuf_off < bufsize) {
@@ -244,7 +242,7 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 		    req_len = fwr_size;
 
         ADIOI_Assert(req_len == (int) req_len);
-        ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)buf) + userbuf_off) == (ADIO_Offset)(MPIU_Upint)((MPIU_Upint)buf + userbuf_off));
+        ADIOI_Assert((((ADIO_Offset)(uintptr_t)buf) + userbuf_off) == (ADIO_Offset)(uintptr_t)((uintptr_t)buf + userbuf_off));
 		    ADIO_WriteContig(fd, 
 				    (char *) buf + userbuf_off,
 				    (int)req_len, 
@@ -278,7 +276,7 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 		    }
 		    off = disp + flat_file->indices[f_index] + 
                           n_filetypes*(ADIO_Offset)filetype_extent;
-		    fwr_size = ADIOI_MIN(flat_file->blocklens[f_index], 
+		    fwr_size = MPL_MIN(flat_file->blocklens[f_index], 
 		                         bufsize-(unsigned)userbuf_off);
 		}
 	    }
@@ -301,14 +299,14 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
 	    while (tmp_bufsize < bufsize) {
     		ADIO_Offset new_bwr_size = bwr_size, new_fwr_size = fwr_size;
 
-		size = ADIOI_MIN(fwr_size, bwr_size);
+		size = MPL_MIN(fwr_size, bwr_size);
 		if (size) {
 		    req_off = off;
 		    req_len = size;
 		    userbuf_off = i_offset;
 
         ADIOI_Assert(req_len == (int) req_len);
-        ADIOI_Assert((((ADIO_Offset)(MPIU_Upint)buf) + userbuf_off) == (ADIO_Offset)(MPIU_Upint)((MPIU_Upint)buf + userbuf_off));
+        ADIOI_Assert((((ADIO_Offset)(uintptr_t)buf) + userbuf_off) == (ADIO_Offset)(uintptr_t)((uintptr_t)buf + userbuf_off));
 		    ADIO_WriteContig(fd, 
 				    (char *) buf + userbuf_off,
 				    (int)req_len, 
@@ -375,5 +373,4 @@ void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, const void *buf, int count,
      */
 #endif
 
-    if (!buftype_is_contig) ADIOI_Delete_flattened(buftype);
 }

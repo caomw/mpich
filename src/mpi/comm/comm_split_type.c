@@ -30,15 +30,54 @@ int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, M
 #define FUNCNAME MPIR_Comm_split_type_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Comm_split_type_impl(MPID_Comm * comm_ptr, int split_type, int key,
-                              MPID_Info * info_ptr, MPID_Comm ** newcomm_ptr)
+int MPIR_Comm_split_type_impl(MPIR_Comm * comm_ptr, int split_type, int key,
+                              MPIR_Info * info_ptr, MPIR_Comm ** newcomm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    /* Only MPI_COMM_TYPE_SHARED and MPI_UNDEFINED are supported */
-    MPIU_Assert(split_type == MPI_COMM_TYPE_SHARED || split_type == MPI_UNDEFINED);
+    /* Only MPI_COMM_TYPE_SHARED, MPI_UNDEFINED, and
+     * NEIGHBORHOOD are supported */
+    MPIR_Assert(split_type == MPI_COMM_TYPE_SHARED ||
+                split_type == MPI_UNDEFINED ||
+                split_type == MPIX_COMM_TYPE_NEIGHBORHOOD);
 
-    if (MPID_Comm_fns == NULL || MPID_Comm_fns->split_type == NULL) {
+    if (split_type == MPIX_COMM_TYPE_NEIGHBORHOOD) {
+	int flag;
+	char hintval[MPI_MAX_INFO_VAL+1];
+
+	/* We plan on dispatching different NEIGHBORHOOD support to
+	 * different parts of MPICH, based on the key provided in the
+	 * info object.  Right now, the one NEIGHBORHOOD we support is
+	 * "nbhd_common_dirname", implementation of which lives in ROMIO */
+
+	MPIR_Info_get_impl(info_ptr, "nbhd_common_dirname", MPI_MAX_INFO_VAL, hintval,
+                           &flag);
+	if (flag) {
+#ifdef HAVE_ROMIO
+	    MPI_Comm dummycomm;
+	    MPIR_Comm * dummycomm_ptr;
+
+	    mpi_errno = MPIR_Comm_split_filesystem(comm_ptr->handle, key,
+                                                   hintval, &dummycomm);
+	    MPIR_Comm_get_ptr(dummycomm, dummycomm_ptr);
+	    *newcomm_ptr = dummycomm_ptr;
+
+	    goto fn_exit;
+#endif
+	    /* fall through to the "not supported" case if ROMIO was not
+	     * enabled for some reason */
+	}
+	/* we don't work with other hints yet, but if we did (e.g.
+	 * nbhd_network, nbhd_partition), we'd do so here */
+
+	/* In the mean time, the user passed in COMM_TYPE_NEIGHBORHOOD
+	 * but did not give us an info we know how to work with.
+	 * Throw up our hands and treat it like UNDEFINED.  This will
+	 * result in MPI_COMM_NULL being returned to the user. */
+	split_type = MPI_UNDEFINED;
+    }
+
+    if (MPIR_Comm_fns == NULL || MPIR_Comm_fns->split_type == NULL) {
         int color = (split_type == MPI_COMM_TYPE_SHARED) ? comm_ptr->rank : MPI_UNDEFINED;
 
         /* The default implementation is to either pass MPI_UNDEFINED
@@ -48,7 +87,7 @@ int MPIR_Comm_split_type_impl(MPID_Comm * comm_ptr, int split_type, int key,
     }
     else {
         mpi_errno =
-            MPID_Comm_fns->split_type(comm_ptr, split_type, key, info_ptr, newcomm_ptr);
+            MPIR_Comm_fns->split_type(comm_ptr, split_type, key, info_ptr, newcomm_ptr);
     }
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
@@ -96,14 +135,14 @@ int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info,
                         MPI_Comm * newcomm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL, *newcomm_ptr;
-    MPID_Info *info_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_COMM_SPLIT_TYPE);
+    MPIR_Comm *comm_ptr = NULL, *newcomm_ptr;
+    MPIR_Info *info_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_COMM_SPLIT_TYPE);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_COMM_SPLIT_TYPE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_COMM_SPLIT_TYPE);
 
     /* Validate parameters, especially handles needing to be converted */
 #ifdef HAVE_ERROR_CHECKING
@@ -118,8 +157,8 @@ int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info,
 #endif /* HAVE_ERROR_CHECKING */
 
     /* Get handles to MPI objects. */
-    MPID_Comm_get_ptr(comm, comm_ptr);
-    MPID_Info_get_ptr(info, info_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Info_get_ptr(info, info_ptr);
 
     /* Validate parameters and objects (post conversion) */
 #ifdef HAVE_ERROR_CHECKING
@@ -127,7 +166,7 @@ int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info,
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate comm_ptr */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             /* If comm_ptr is not valid, it will be reset to null */
             if (mpi_errno)
                 goto fn_fail;
@@ -142,14 +181,14 @@ int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info,
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
     if (newcomm_ptr)
-        MPID_OBJ_PUBLISH_HANDLE(*newcomm, newcomm_ptr->handle);
+        MPIR_OBJ_PUBLISH_HANDLE(*newcomm, newcomm_ptr->handle);
     else
         *newcomm = MPI_COMM_NULL;
 
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_COMM_SPLIT_TYPE);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_COMM_SPLIT_TYPE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

@@ -74,7 +74,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void 
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                        void *recvbuf, int recvcount, MPI_Datatype recvtype, int root,
-                       MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+                       MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     MPI_Status status;
     MPI_Aint   extent=0;
@@ -85,7 +85,7 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
     void *tmp_buf=NULL;
     int        mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    MPIU_CHKLMEM_DECL(4);
+    MPIR_CHKLMEM_DECL(4);
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -93,9 +93,6 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
     if ( ((rank == root) && (sendcount == 0)) ||
          ((rank != root) && (recvcount == 0)) )
         return MPI_SUCCESS;
-
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER( comm_ptr );
 
     is_homogeneous = 1;
 #ifdef MPID_HAS_HETERO
@@ -118,14 +115,14 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
                in the event of recvbuf=MPI_IN_PLACE on the root,
                recvcount and recvtype are not valid */
             MPID_Datatype_get_size_macro(sendtype, sendtype_size);
-            MPIU_Ensure_Aint_fits_in_pointer(MPIU_VOID_PTR_CAST_TO_MPI_AINT sendbuf +
+            MPIR_Ensure_Aint_fits_in_pointer(MPIR_VOID_PTR_CAST_TO_MPI_AINT sendbuf +
 					     extent*sendcount*comm_size);
 
             nbytes = sendtype_size * sendcount;
         }
         else {
             MPID_Datatype_get_size_macro(recvtype, recvtype_size);
-            MPIU_Ensure_Aint_fits_in_pointer(extent*recvcount*comm_size);
+            MPIR_Ensure_Aint_fits_in_pointer(extent*recvcount*comm_size);
             nbytes = recvtype_size * recvcount;
         }
         
@@ -135,7 +132,7 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
            receive data of max size (nbytes*comm_size)/2 */
         if (relative_rank && !(relative_rank % 2)) {
 	    tmp_buf_size = (nbytes*comm_size)/2;
-            MPIU_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
+            MPIR_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
         }
         
         /* if the root is not rank 0, we reorder the sendbuf in order of
@@ -145,7 +142,7 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
         if (rank == root) {
             if (root != 0) {
 		tmp_buf_size = nbytes*comm_size;
-                MPIU_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
+                MPIR_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
 
                 if (recvbuf != MPI_IN_PLACE)
                     mpi_errno = MPIR_Localcopy(((char *) sendbuf + extent*sendcount*rank),
@@ -274,7 +271,7 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
         if (rank == root) {
             MPIR_Pack_size_impl(sendcount*comm_size, sendtype, &tmp_buf_size);
 
-            MPIU_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
+            MPIR_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
 
           /* calculate the value of nbytes, the number of bytes in packed
              representation that each process receives. We can't
@@ -329,7 +326,7 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
         }
         else {
             MPIR_Pack_size_impl(recvcount*(comm_size/2), recvtype, &tmp_buf_size);
-            MPIU_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
+            MPIR_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf");
 
             /* calculate nbytes */
             position = 0;
@@ -401,9 +398,7 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
 #endif /* MPID_HAS_HETERO */
     
  fn_exit:
-    MPIU_CHKLMEM_FREEALL();
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT( comm_ptr );
+    MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     else if (*errflag != MPIR_ERR_NONE)
@@ -421,7 +416,7 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Scatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
-                       int recvcount, MPI_Datatype recvtype, int root, MPID_Comm *comm_ptr,
+                       int recvcount, MPI_Datatype recvtype, int root, MPIR_Comm *comm_ptr,
                        MPIR_Errflag_t *errflag)
 {
 /*  Intercommunicator scatter.
@@ -439,14 +434,13 @@ int MPIR_Scatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtype
     MPI_Status status;
     MPI_Aint extent, true_extent, true_lb = 0;
     void *tmp_buf=NULL;
-    MPID_Comm *newcomm_ptr = NULL;
-    MPIU_CHKLMEM_DECL(1);
+    MPIR_Comm *newcomm_ptr = NULL;
+    MPIR_CHKLMEM_DECL(1);
 
     if (root == MPI_PROC_NULL) {
         /* local processes other than root do nothing */
         return MPI_SUCCESS;
     }
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_ENTER( comm_ptr );
 
     remote_size = comm_ptr->remote_size; 
     local_size  = comm_ptr->local_size; 
@@ -484,11 +478,11 @@ int MPIR_Scatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtype
                 MPIR_Type_get_true_extent_impl(recvtype, &true_lb, &true_extent);
 
                 MPID_Datatype_get_extent_macro(recvtype, extent);
-		MPIU_Ensure_Aint_fits_in_pointer(extent*recvcount*local_size);
-		MPIU_Ensure_Aint_fits_in_pointer(MPIU_VOID_PTR_CAST_TO_MPI_AINT sendbuf +
+		MPIR_Ensure_Aint_fits_in_pointer(extent*recvcount*local_size);
+		MPIR_Ensure_Aint_fits_in_pointer(MPIR_VOID_PTR_CAST_TO_MPI_AINT sendbuf +
 						 sendcount*remote_size*extent);
 
-                MPIU_CHKLMEM_MALLOC(tmp_buf, void *, recvcount*local_size*(MPIR_MAX(extent,true_extent)), mpi_errno, "tmp_buf");
+                MPIR_CHKLMEM_MALLOC(tmp_buf, void *, recvcount*local_size*(MPL_MAX(extent,true_extent)), mpi_errno, "tmp_buf");
                 
                 /* adjust for potential negative lower bound in datatype */
                 tmp_buf = (void *)((char*)tmp_buf - true_lb);
@@ -506,12 +500,12 @@ int MPIR_Scatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtype
             
             /* Get the local intracommunicator */
             if (!comm_ptr->local_comm)
-                MPIR_Setup_intercomm_localcomm( comm_ptr );
+                MPII_Setup_intercomm_localcomm( comm_ptr );
             
             newcomm_ptr = comm_ptr->local_comm;
             
             /* now do the usual scatter on this intracommunicator */
-            mpi_errno = MPIR_Scatter_impl(tmp_buf, recvcount, recvtype,
+            mpi_errno = MPID_Scatter(tmp_buf, recvcount, recvtype,
                                           recvbuf, recvcount, recvtype, 0,
                                           newcomm_ptr, errflag);
             if (mpi_errno) {
@@ -551,9 +545,7 @@ int MPIR_Scatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtype
     }
 
  fn_exit:
-    MPIU_CHKLMEM_FREEALL();
-    /* check if multiple threads are calling this collective function */
-    MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT( comm_ptr );
+    MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     else if (*errflag != MPIR_ERR_NONE)
@@ -573,11 +565,11 @@ int MPIR_Scatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtype
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                  void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                 int root, MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+                 int root, MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
         
-    if (comm_ptr->comm_kind == MPID_INTRACOMM) {
+    if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
         /* intracommunicator */
         mpi_errno = MPIR_Scatter_intra(sendbuf, sendcount, sendtype,
                                        recvbuf, recvcount, recvtype, root,
@@ -608,7 +600,7 @@ int MPIR_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Scatter_impl(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                       void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                      int root, MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+                      int root, MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -672,14 +664,14 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 		MPI_Comm comm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_SCATTER);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_SCATTER);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_COLL_FUNC_ENTER(MPID_STATE_MPI_SCATTER);
+    MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_SCATTER);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -693,20 +685,20 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 #   endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr( comm, comm_ptr );
+    MPIR_Comm_get_ptr( comm, comm_ptr );
 
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPID_Datatype *sendtype_ptr=NULL, *recvtype_ptr=NULL;
+	    MPIR_Datatype *sendtype_ptr=NULL, *recvtype_ptr=NULL;
 	    int rank;
 
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
+            MPIR_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
             if (mpi_errno != MPI_SUCCESS) goto fn_fail;
 
-	    if (comm_ptr->comm_kind == MPID_INTRACOMM) {
+	    if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
 		MPIR_ERRTEST_INTRA_ROOT(comm_ptr, root, mpi_errno);
 
                 rank = comm_ptr->rank;
@@ -715,7 +707,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                     MPIR_ERRTEST_DATATYPE(sendtype, "sendtype", mpi_errno);
                     if (HANDLE_GET_KIND(sendtype) != HANDLE_KIND_BUILTIN) {
                         MPID_Datatype_get_ptr(sendtype, sendtype_ptr);
-                        MPID_Datatype_valid_ptr( sendtype_ptr, mpi_errno );
+                        MPIR_Datatype_valid_ptr( sendtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                         MPID_Datatype_committed_ptr( sendtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -738,7 +730,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                     MPIR_ERRTEST_DATATYPE(recvtype, "recvtype", mpi_errno);
                     if (HANDLE_GET_KIND(recvtype) != HANDLE_KIND_BUILTIN) {
                         MPID_Datatype_get_ptr(recvtype, recvtype_ptr);
-                        MPID_Datatype_valid_ptr( recvtype_ptr, mpi_errno );
+                        MPIR_Datatype_valid_ptr( recvtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                         MPID_Datatype_committed_ptr( recvtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -747,7 +739,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                 }
             }
 
-            if (comm_ptr->comm_kind == MPID_INTERCOMM) {
+            if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) {
 		MPIR_ERRTEST_INTER_ROOT(comm_ptr, root, mpi_errno);
 
                 if (root == MPI_ROOT) {
@@ -755,7 +747,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                     MPIR_ERRTEST_DATATYPE(sendtype, "sendtype", mpi_errno);
                     if (HANDLE_GET_KIND(sendtype) != HANDLE_KIND_BUILTIN) {
                         MPID_Datatype_get_ptr(sendtype, sendtype_ptr);
-                        MPID_Datatype_valid_ptr( sendtype_ptr, mpi_errno );
+                        MPIR_Datatype_valid_ptr( sendtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                         MPID_Datatype_committed_ptr( sendtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -768,7 +760,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                     MPIR_ERRTEST_DATATYPE(recvtype, "recvtype", mpi_errno);
                     if (HANDLE_GET_KIND(recvtype) != HANDLE_KIND_BUILTIN) {
                         MPID_Datatype_get_ptr(recvtype, recvtype_ptr);
-                        MPID_Datatype_valid_ptr( recvtype_ptr, mpi_errno );
+                        MPIR_Datatype_valid_ptr( recvtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
                         MPID_Datatype_committed_ptr( recvtype_ptr, mpi_errno );
                         if (mpi_errno != MPI_SUCCESS) goto fn_fail;
@@ -784,7 +776,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 
     /* ... body of routine ...  */
 
-    mpi_errno = MPIR_Scatter_impl(sendbuf, sendcount, sendtype,
+    mpi_errno = MPID_Scatter(sendbuf, sendcount, sendtype,
                                   recvbuf, recvcount, recvtype, root,
                                   comm_ptr, &errflag);
     if (mpi_errno) goto fn_fail;
@@ -792,7 +784,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
     /* ... end of body of routine ... */
     
   fn_exit:
-    MPID_MPI_COLL_FUNC_EXIT(MPID_STATE_MPI_SCATTER);
+    MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_SCATTER);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 

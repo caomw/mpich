@@ -5,7 +5,7 @@
  */
 
 #include "mpiimpl.h"
-#include "mpiinfo.h"
+#include "mpir_info.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_Info_get_nthkey */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -29,10 +29,10 @@ int MPI_Info_get_nthkey(MPI_Info info, int n, char *key) __attribute__((weak,ali
 #define FUNCNAME MPIR_Info_get_nthkey_impl
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Info_get_nthkey_impl(MPID_Info *info_ptr, int n, char *key)
+int MPIR_Info_get_nthkey_impl(MPIR_Info *info_ptr, int n, char *key)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Info *curr_ptr;
+    MPIR_Info *curr_ptr;
     int nkeys;
 
     curr_ptr = info_ptr->next;
@@ -45,7 +45,9 @@ int MPIR_Info_get_nthkey_impl(MPID_Info *info_ptr, int n, char *key)
     /* verify that n is valid */
     MPIR_ERR_CHKANDJUMP2((!curr_ptr), mpi_errno, MPI_ERR_ARG, "**infonkey", "**infonkey %d %d", n, nkeys);
 
-    MPIU_Strncpy( key, curr_ptr->key, MPI_MAX_INFO_KEY+1 );
+    /* if key is MPI_MAX_INFO_KEY long, MPL_strncpy will null-terminate it for
+     * us */
+    MPL_strncpy( key, curr_ptr->key, MPI_MAX_INFO_KEY);
     /* Eventually, we could remember the location of this key in
        the head using the key/value locations (and a union datatype?) */
  
@@ -83,13 +85,13 @@ Output Parameters:
 int MPI_Info_get_nthkey( MPI_Info info, int n, char *key )
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Info *info_ptr=0;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_INFO_GET_NTHKEY);
+    MPIR_Info *info_ptr=0;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_INFO_GET_NTHKEY);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_INFO_GET_NTHKEY);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_INFO_GET_NTHKEY);
 
     /* Validate parameters, especially handles needing to be converted */
 #   ifdef HAVE_ERROR_CHECKING
@@ -103,7 +105,7 @@ int MPI_Info_get_nthkey( MPI_Info info, int n, char *key )
 #   endif /* HAVE_ERROR_CHECKING */
     
     /* Convert MPI object handles to object pointers */
-    MPID_Info_get_ptr( info, info_ptr );
+    MPIR_Info_get_ptr( info, info_ptr );
     
     /* Validate parameters and objects (post conversion) */
 #   ifdef HAVE_ERROR_CHECKING
@@ -111,7 +113,7 @@ int MPI_Info_get_nthkey( MPI_Info info, int n, char *key )
         MPID_BEGIN_ERROR_CHECKS;
         {
             /* Validate info_ptr */
-            MPID_Info_valid_ptr( info_ptr, mpi_errno );
+            MPIR_Info_valid_ptr( info_ptr, mpi_errno );
             if (mpi_errno) goto fn_fail;
 
 	    MPIR_ERR_CHKANDJUMP((!key), mpi_errno, MPI_ERR_INFO_KEY, "**infokeynull");
@@ -126,7 +128,7 @@ int MPI_Info_get_nthkey( MPI_Info info, int n, char *key )
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_INFO_GET_NTHKEY);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_INFO_GET_NTHKEY);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
     

@@ -16,7 +16,7 @@
 #include "mpio.h"
 
 #ifdef ROMIO_INSIDE_MPICH
-#include "glue_romio.h"
+#include "mpir_ext.h"
 
 #define ROMIO_THREAD_CS_ENTER() MPIR_Ext_cs_enter()
 #define ROMIO_THREAD_CS_EXIT() MPIR_Ext_cs_exit()
@@ -37,11 +37,6 @@
 #define ROMIO_THREAD_CS_EXIT()
 #define ROMIO_THREAD_CS_YIELD()
 #define MPIO_DATATYPE_ISCOMMITTED(dtype_, err_) do {} while (0)
-#ifdef HAVE_WINDOWS_H
-#define MPIU_UNREFERENCED_ARG(a) a
-#else
-#define MPIU_UNREFERENCED_ARG(a)
-#endif
 #endif /* ROMIO_INSIDE_MPICH */
 
 /* info is a linked list of these structures */

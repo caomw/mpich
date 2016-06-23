@@ -94,24 +94,24 @@ int MPIDI_VCRT_Create(int size, struct MPIDI_VCRT **vcrt_ptr)
 {
     MPIDI_VCRT_t * vcrt;
     int mpi_errno = MPI_SUCCESS;
-    MPIU_CHKPMEM_DECL(1);
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_VCRT_CREATE);
+    MPIR_CHKPMEM_DECL(1);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_VCRT_CREATE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_VCRT_CREATE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_VCRT_CREATE);
 
-    MPIU_CHKPMEM_MALLOC(vcrt, MPIDI_VCRT_t *, sizeof(MPIDI_VCRT_t) + (size - 1) * sizeof(MPIDI_VC_t *),	mpi_errno, "**nomem");
+    MPIR_CHKPMEM_MALLOC(vcrt, MPIDI_VCRT_t *, sizeof(MPIDI_VCRT_t) + (size - 1) * sizeof(MPIDI_VC_t *),	mpi_errno, "**nomem");
     vcrt->handle = HANDLE_SET_KIND(0, HANDLE_KIND_INVALID);
-    MPIU_Object_set_ref(vcrt, 1);
+    MPIR_Object_set_ref(vcrt, 1);
     vcrt->size = size;
     *vcrt_ptr = vcrt;
 
  fn_exit:
-    MPIU_CHKPMEM_COMMIT();
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_VCRT_CREATE);
+    MPIR_CHKPMEM_COMMIT();
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_VCRT_CREATE);
     return mpi_errno;
  fn_fail:
     /* --BEGIN ERROR HANDLING-- */
-    MPIU_CHKPMEM_REAP();
+    MPIR_CHKPMEM_REAP();
     goto fn_exit;
     /* --END ERROR HANDLING-- */
 }
@@ -131,12 +131,12 @@ int MPIDI_VCRT_Create(int size, struct MPIDI_VCRT **vcrt_ptr)
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_VCRT_Add_ref(struct MPIDI_VCRT *vcrt)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_VCRT_ADD_REF);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_VCRT_ADD_REF);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_VCRT_ADD_REF);
-    MPIU_Object_add_ref(vcrt);
-    MPIU_DBG_MSG_FMT(REFCOUNT,TYPICAL,(MPIU_DBG_FDEST, "Incr VCRT %p ref count",vcrt));
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_VCRT_ADD_REF);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_VCRT_ADD_REF);
+    MPIR_Object_add_ref(vcrt);
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_REFCOUNT,TYPICAL,(MPL_DBG_FDEST, "Incr VCRT %p ref count",vcrt));
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_VCRT_ADD_REF);
     return MPI_SUCCESS;
 }
 
@@ -156,12 +156,12 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
 {
     int in_use;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_VCRT_RELEASE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_VCRT_RELEASE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_VCRT_RELEASE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_VCRT_RELEASE);
 
-    MPIU_Object_release_ref(vcrt, &in_use);
-    MPIU_DBG_MSG_FMT(REFCOUNT,TYPICAL,(MPIU_DBG_FDEST, "Decr VCRT %p ref count",vcrt));
+    MPIR_Object_release_ref(vcrt, &in_use);
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_REFCOUNT,TYPICAL,(MPL_DBG_FDEST, "Decr VCRT %p ref count",vcrt));
     
     /* If this VC reference table is no longer in use, we can
        decrement the reference count of each of the VCs.  If the
@@ -184,17 +184,17 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
             /* probably not, need to do something like the following instead: */
 #if 0
             if (isDisconnect) {
-                MPIU_Assert(in_use);
+                MPIR_Assert(in_use);
                 /* FIXME this is still bogus, the VCRT may contain a mix of
                  * dynamic and non-dynamic VCs, so the ref_count isn't
                  * guaranteed to have started at 2.  The best thing to do might
                  * be to avoid overloading the reference counting this way and
                  * use a separate check for dynamic VCs (another flag? compare
                  * PGs?) */
-                MPIU_Object_release_ref(vc, &in_use);
+                MPIR_Object_release_ref(vc, &in_use);
             }
 #endif
-	    if (isDisconnect && MPIU_Object_get_ref(vc) == 1) {
+	    if (isDisconnect && MPIR_Object_get_ref(vc) == 1) {
 		MPIDI_VC_release_ref(vc, &in_use);
 	    }
 
@@ -227,7 +227,7 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
                         MPIDI_PG_Destroy(vc->pg);
                     }
 
-		    MPIU_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPIU_DBG_FDEST,
+		    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
                             "vc=%p: not sending a close to %d, vc in state %s",
 			     vc, i, MPIDI_VC_GetStateString(vc->state)));
 		}
@@ -240,11 +240,11 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
 	    }
 	}
 
-	MPIU_Free(vcrt);
+	MPL_free(vcrt);
     }
 
  fn_exit:    
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_VCRT_RELEASE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_VCRT_RELEASE);
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -270,16 +270,16 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_VCR_Dup(MPIDI_VCR orig_vcr, MPIDI_VCR * new_vcr)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPID_VCR_DUP);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_VCR_DUP);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_VCR_DUP);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_VCR_DUP);
 
     /* We are allowed to create a vc that belongs to no process group 
      as part of the initial connect/accept action, so in that case,
      ignore the pg ref count update */
     /* XXX DJG FIXME-MT should we be checking this? */
     /* we probably need a test-and-incr operation or equivalent to avoid races */
-    if (MPIU_Object_get_ref(orig_vcr) == 0 && orig_vcr->pg) {
+    if (MPIR_Object_get_ref(orig_vcr) == 0 && orig_vcr->pg) {
 	MPIDI_VC_add_ref( orig_vcr );
 	MPIDI_VC_add_ref( orig_vcr );
 	MPIDI_PG_add_ref( orig_vcr->pg );
@@ -287,9 +287,9 @@ int MPIDI_VCR_Dup(MPIDI_VCR orig_vcr, MPIDI_VCR * new_vcr)
     else {
 	MPIDI_VC_add_ref(orig_vcr);
     }
-    MPIU_DBG_MSG_FMT(REFCOUNT,TYPICAL,(MPIU_DBG_FDEST,"Incr VCR %p ref count",orig_vcr));
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_REFCOUNT,TYPICAL,(MPL_DBG_FDEST,"Incr VCR %p ref count",orig_vcr));
     *new_vcr = orig_vcr;
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_VCR_DUP);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_VCR_DUP);
     return MPI_SUCCESS;
 }
 
@@ -300,20 +300,20 @@ int MPIDI_VCR_Dup(MPIDI_VCR orig_vcr, MPIDI_VCR * new_vcr)
 #define FUNCNAME MPID_Comm_get_lpid
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Comm_get_lpid(MPID_Comm *comm_ptr, int idx, int * lpid_ptr, MPIU_BOOL is_remote)
+int MPID_Comm_get_lpid(MPIR_Comm *comm_ptr, int idx, int * lpid_ptr, MPL_bool is_remote)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPID_VCR_GET_LPID);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_VCR_GET_LPID);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_VCR_GET_LPID);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_VCR_GET_LPID);
 
-    if (comm_ptr->comm_kind == MPID_INTRACOMM)
+    if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM)
         *lpid_ptr = comm_ptr->dev.vcrt->vcr_table[idx]->lpid;
     else if (is_remote)
         *lpid_ptr = comm_ptr->dev.vcrt->vcr_table[idx]->lpid;
     else
         *lpid_ptr = comm_ptr->dev.local_vcrt->vcr_table[idx]->lpid;
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_VCR_GET_LPID);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_VCR_GET_LPID);
     return MPI_SUCCESS;
 }
 
@@ -327,19 +327,19 @@ int MPID_Comm_get_lpid(MPID_Comm *comm_ptr, int idx, int * lpid_ptr, MPIU_BOOL i
 #define FUNCNAME MPID_GPID_GetAllInComm
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_GPID_GetAllInComm( MPID_Comm *comm_ptr, int local_size, 
-			    MPID_Gpid local_gpids[], int *singlePG )
+int MPID_GPID_GetAllInComm( MPIR_Comm *comm_ptr, int local_size,
+			    MPIR_Gpid local_gpids[], int *singlePG )
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
     int *gpid = (int*)&local_gpids[0];
     int lastPGID = -1, pgid;
     MPIDI_VCR vc;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_GPID_GETALLINCOMM);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_GPID_GETALLINCOMM);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_GPID_GETALLINCOMM);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_GPID_GETALLINCOMM);
 
-    MPIU_Assert(comm_ptr->local_size == local_size);
+    MPIR_Assert(comm_ptr->local_size == local_size);
     
     *singlePG = 1;
     for (i=0; i<comm_ptr->local_size; i++) {
@@ -356,12 +356,12 @@ int MPID_GPID_GetAllInComm( MPID_Comm *comm_ptr, int local_size,
 	}
 	*gpid++ = vc->pg_rank;
 
-        MPIU_DBG_MSG_FMT(COMM,VERBOSE, (MPIU_DBG_FDEST,
+        MPL_DBG_MSG_FMT(MPIR_DBG_COMM,VERBOSE, (MPL_DBG_FDEST,
                          "pgid=%d vc->pg_rank=%d",
                          pgid, vc->pg_rank));
     }
     
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_GPID_GETALLINCOMM);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_GPID_GETALLINCOMM);
     return mpi_errno;
 }
 
@@ -369,7 +369,7 @@ int MPID_GPID_GetAllInComm( MPID_Comm *comm_ptr, int local_size,
 #define FUNCNAME MPID_GPID_Get
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_GPID_Get( MPID_Comm *comm_ptr, int rank, MPID_Gpid *in_gpid )
+int MPID_GPID_Get( MPIR_Comm *comm_ptr, int rank, MPIR_Gpid *in_gpid )
 {
     int      pgid;
     MPIDI_VCR vc;
@@ -394,7 +394,7 @@ int MPID_GPID_Get( MPID_Comm *comm_ptr, int rank, MPID_Gpid *in_gpid )
 #define FUNCNAME MPID_GPID_ToLpidArray
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_GPID_ToLpidArray( int size, MPID_Gpid in_gpid[], int lpid[] )
+int MPID_GPID_ToLpidArray( int size, MPIR_Gpid in_gpid[], int lpid[] )
 {
     int i, mpi_errno = MPI_SUCCESS;
     int pgid;
@@ -462,11 +462,11 @@ int MPID_GPID_ToLpidArray( int size, MPID_Gpid in_gpid[], int lpid[] )
 #define FUNCNAME MPID_Create_intercomm_from_lpids
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Create_intercomm_from_lpids( MPID_Comm *newcomm_ptr,
+int MPID_Create_intercomm_from_lpids( MPIR_Comm *newcomm_ptr,
 			    int size, const int lpids[] )
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *commworld_ptr;
+    MPIR_Comm *commworld_ptr;
     int i;
     MPIDI_PG_iterator iter;
 
@@ -545,8 +545,8 @@ fn_fail:
 #define FUNCNAME MPID_PG_ForwardPGInfo
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_PG_ForwardPGInfo( MPID_Comm *peer_ptr, MPID_Comm *comm_ptr, 
-			   int nPGids, const MPID_Gpid in_gpids[],
+int MPID_PG_ForwardPGInfo( MPIR_Comm *peer_ptr, MPIR_Comm *comm_ptr,
+			   int nPGids, const MPIR_Gpid in_gpids[],
 			   int root )
 {
     int mpi_errno = MPI_SUCCESS;
@@ -620,8 +620,8 @@ static int lpid_counter = 0;
 int MPIDI_VC_Init( MPIDI_VC_t *vc, MPIDI_PG_t *pg, int rank )
 {
     vc->state = MPIDI_VC_STATE_INACTIVE;
-    vc->handle  = HANDLE_SET_MPI_KIND(0, MPID_VCONN);
-    MPIU_Object_set_ref(vc, 0);
+    vc->handle  = HANDLE_SET_MPI_KIND(0, MPIR_VCONN);
+    MPIR_Object_set_ref(vc, 0);
     vc->pg      = pg;
     vc->pg_rank = rank;
     vc->lpid    = lpid_counter++;
@@ -639,11 +639,11 @@ int MPIDI_VC_Init( MPIDI_VC_t *vc, MPIDI_PG_t *pg, int rank )
 #endif
     /* FIXME: We need a better abstraction for initializing the thread state 
        for an object */
-#if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY_PER_OBJECT
+#if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ
     {
         int err;
         MPID_Thread_mutex_create(&vc->pobj_mutex,&err);
-        MPIU_Assert(err == 0);
+        MPIR_Assert(err == 0);
     }
 #endif /* MPICH_THREAD_GRANULARITY */
     MPIDI_CH3_VC_Init(vc);
@@ -663,7 +663,7 @@ char MPIU_hostname[MAX_HOSTNAME_LEN] = "_UNKNOWN_"; /* '_' is an illegal char fo
 #define FUNCNAME MPID_Get_node_id
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Get_node_id(MPID_Comm *comm, int rank, MPID_Node_id_t *id_p)
+int MPID_Get_node_id(MPIR_Comm *comm, int rank, MPID_Node_id_t *id_p)
 {
     *id_p = comm->dev.vcrt->vcr_table[rank]->node_id;
     return MPI_SUCCESS;
@@ -675,11 +675,11 @@ int MPID_Get_node_id(MPID_Comm *comm, int rank, MPID_Node_id_t *id_p)
 #define FCNAME MPL_QUOTE(FUNCNAME)
 /* Providing a comm argument permits optimization, but this function is always
    allowed to return the max for the universe. */
-int MPID_Get_max_node_id(MPID_Comm *comm, MPID_Node_id_t *max_id_p)
+int MPID_Get_max_node_id(MPIR_Comm *comm, MPID_Node_id_t *max_id_p)
 {
     /* easiest way to implement this is to track it at PG create/destroy time */
     *max_id_p = g_max_node_id;
-    MPIU_Assert(*max_id_p >= 0);
+    MPIR_Assert(*max_id_p >= 0);
     return MPI_SUCCESS;
 }
 
@@ -693,18 +693,18 @@ static int publish_node_id(MPIDI_PG_t *pg, int our_pg_rank)
     char *key;
     int key_max_sz;
     char *kvs_name;
-    MPIU_CHKLMEM_DECL(1);
+    MPIR_CHKLMEM_DECL(1);
 
     /* set MPIU_hostname */
     ret = gethostname(MPIU_hostname, MAX_HOSTNAME_LEN);
-    MPIR_ERR_CHKANDJUMP2(ret == -1, mpi_errno, MPI_ERR_OTHER, "**sock_gethost", "**sock_gethost %s %d", MPIU_Strerror(errno), errno);
+    MPIR_ERR_CHKANDJUMP2(ret == -1, mpi_errno, MPI_ERR_OTHER, "**sock_gethost", "**sock_gethost %s %d", MPIR_Strerror(errno), errno);
     MPIU_hostname[MAX_HOSTNAME_LEN-1] = '\0';
 
     /* Allocate space for pmi key */
     pmi_errno = PMI_KVS_Get_key_length_max(&key_max_sz);
     MPIR_ERR_CHKANDJUMP1(pmi_errno, mpi_errno, MPI_ERR_OTHER, "**fail", "**fail %d", pmi_errno);
 
-    MPIU_CHKLMEM_MALLOC(key, char *, key_max_sz, mpi_errno, "key");
+    MPIR_CHKLMEM_MALLOC(key, char *, key_max_sz, mpi_errno, "key");
 
     mpi_errno = MPIDI_PG_GetConnKVSname(&kvs_name);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -726,7 +726,7 @@ static int publish_node_id(MPIDI_PG_t *pg, int our_pg_rank)
     }
     
 fn_exit:
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     return mpi_errno;
 fn_fail:
     goto fn_exit;
@@ -771,10 +771,10 @@ static int parse_mapping(char *map_str, mapping_type_t *type, map_block_t **map,
     char *c = map_str, *d;
     int num_blocks = 0;
     int i;
-    MPIU_CHKPMEM_DECL(1);
-    MPIDI_STATE_DECL(MPID_STATE_PARSE_MAPPING);
+    MPIR_CHKPMEM_DECL(1);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_PARSE_MAPPING);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_PARSE_MAPPING);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_PARSE_MAPPING);
 
     /* parse string of the form:
        '(' <format> ',' '(' <num> ',' <num> ',' <num> ')' {',' '(' <num> ',' <num> ',' <num> ')'} ')'
@@ -784,7 +784,7 @@ static int parse_mapping(char *map_str, mapping_type_t *type, map_block_t **map,
          Y - number of nodes with size Z
          Z - number of processes assigned to each node
      */
-    MPIU_DBG_MSG_S(CH3_OTHER,VERBOSE,"parsing mapping string '%s'", map_str);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_OTHER,VERBOSE,"parsing mapping string '%s'", map_str);
 
     if (!strlen(map_str)) {
         /* An empty-string indicates an inability to determine or express the
@@ -816,7 +816,7 @@ static int parse_mapping(char *map_str, mapping_type_t *type, map_block_t **map,
         ++d;
     }
 
-    MPIU_CHKPMEM_MALLOC(*map, map_block_t *, sizeof(map_block_t) * num_blocks, mpi_errno, "map");
+    MPIR_CHKPMEM_MALLOC(*map, map_block_t *, sizeof(map_block_t) * num_blocks, mpi_errno, "map");
 
     /* parse block descriptors */
     for (i = 0; i < num_blocks; ++i) {
@@ -853,13 +853,13 @@ static int parse_mapping(char *map_str, mapping_type_t *type, map_block_t **map,
     expect_and_skip_c(c, ')');
 
     *nblocks = num_blocks;
-    MPIU_CHKPMEM_COMMIT();
+    MPIR_CHKPMEM_COMMIT();
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_PARSE_MAPPING);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_PARSE_MAPPING);
     return mpi_errno;
 fn_fail:
     /* --BEGIN ERROR HANDLING-- */
-    MPIU_CHKPMEM_REAP();
+    MPIR_CHKPMEM_REAP();
     goto fn_exit;
     /* --END ERROR HANDLING-- */
 }
@@ -935,7 +935,7 @@ static int populate_ids_from_mapping(char *mapping, MPID_Node_id_t *max_node_id,
     int nblocks = 0;
     int rank;
     int block, block_node, node_proc;
-    int *tmp_rank_list, i;
+    int i;
     int found_wrap;
 
     *did_map = 1; /* reset upon failure */
@@ -984,7 +984,7 @@ static int populate_ids_from_mapping(char *mapping, MPID_Node_id_t *max_node_id,
             *max_node_id = pg->vct[i].node_id;
 
 fn_exit:
-    MPIU_Free(mb);
+    MPL_free(mb);
     return mpi_errno;
 fn_fail:
     /* --BEGIN ERROR HANDLING-- */
@@ -1030,7 +1030,7 @@ int MPIDI_Populate_vc_node_ids(MPIDI_PG_t *pg, int our_pg_rank)
     int odd_even_cliques = 0;
     int pmi_version = MPIDI_CH3I_DEFAULT_PMI_VERSION;
     int pmi_subversion = MPIDI_CH3I_DEFAULT_PMI_SUBVERSION;
-    MPIU_CHKLMEM_DECL(4);
+    MPIR_CHKLMEM_DECL(4);
 
     /* See if the user wants to override our default values */
     MPL_env2int("PMI_VERSION", &pmi_version);
@@ -1089,17 +1089,17 @@ int MPIDI_Populate_vc_node_ids(MPIDI_PG_t *pg, int our_pg_rank)
     if (our_pg_rank == -1) {
         /* FIXME this routine can't handle the dynamic process case at this
            time.  This will require more support from the process manager. */
-        MPIU_Assert(0);
+        MPIR_Assert(0);
     }
 
     /* Allocate space for pmi key and value */
     pmi_errno = PMI_KVS_Get_key_length_max(&key_max_sz);
     MPIR_ERR_CHKANDJUMP1(pmi_errno, mpi_errno, MPI_ERR_OTHER, "**fail", "**fail %d", pmi_errno);
-    MPIU_CHKLMEM_MALLOC(key, char *, key_max_sz, mpi_errno, "key");
+    MPIR_CHKLMEM_MALLOC(key, char *, key_max_sz, mpi_errno, "key");
 
     pmi_errno = PMI_KVS_Get_value_length_max(&val_max_sz);
     MPIR_ERR_CHKANDJUMP1(pmi_errno, mpi_errno, MPI_ERR_OTHER, "**fail", "**fail %d", pmi_errno);
-    MPIU_CHKLMEM_MALLOC(value, char *, val_max_sz, mpi_errno, "value");
+    MPIR_CHKLMEM_MALLOC(value, char *, val_max_sz, mpi_errno, "value");
 
     mpi_errno = MPIDI_PG_GetConnKVSname(&kvs_name);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
@@ -1117,12 +1117,12 @@ int MPIDI_Populate_vc_node_ids(MPIDI_PG_t *pg, int our_pg_rank)
                 goto odd_even_cliques;
             }
             else {
-                MPIU_DBG_MSG_S(CH3_OTHER,TERSE,"did_map==0, unable to populate node ids from mapping=%s",value);
+                MPL_DBG_MSG_S(MPIDI_CH3_DBG_OTHER,TERSE,"did_map==0, unable to populate node ids from mapping=%s",value);
             }
             /* else fall through to O(N^2) PMI_KVS_Gets version */
         }
         else {
-            MPIU_DBG_MSG(CH3_OTHER,TERSE,"unable to obtain the 'PMI_process_mapping' PMI key");
+            MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,TERSE,"unable to obtain the 'PMI_process_mapping' PMI key");
         }
     }
 
@@ -1131,8 +1131,8 @@ int MPIDI_Populate_vc_node_ids(MPIDI_PG_t *pg, int our_pg_rank)
 
     /* Allocate temporary structures.  These would need to be persistent if
        we somehow were able to support dynamic processes via this method. */
-    MPIU_CHKLMEM_MALLOC(node_names, char **, pg->size * sizeof(char*), mpi_errno, "node_names");
-    MPIU_CHKLMEM_MALLOC(node_name_buf, char *, pg->size * key_max_sz * sizeof(char), mpi_errno, "node_name_buf");
+    MPIR_CHKLMEM_MALLOC(node_names, char **, pg->size * sizeof(char*), mpi_errno, "node_names");
+    MPIR_CHKLMEM_MALLOC(node_name_buf, char *, pg->size * key_max_sz * sizeof(char), mpi_errno, "node_name_buf");
 
     /* Gather hostnames */
     for (i = 0; i < pg->size; ++i)
@@ -1145,7 +1145,7 @@ int MPIDI_Populate_vc_node_ids(MPIDI_PG_t *pg, int our_pg_rank)
 
     for (i = 0; i < pg->size; ++i)
     {
-        MPIU_Assert(g_max_node_id < pg->size);
+        MPIR_Assert(g_max_node_id < pg->size);
         if (i == our_pg_rank)
         {
             /* This is us, no need to perform a get */
@@ -1188,7 +1188,7 @@ odd_even_cliques:
 #endif
 
 fn_exit:
-    MPIU_CHKLMEM_FREEALL();
+    MPIR_CHKLMEM_FREEALL();
     return mpi_errno;
 fn_fail:
     goto fn_exit;

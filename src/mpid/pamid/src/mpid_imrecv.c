@@ -7,11 +7,11 @@
 #include "mpidimpl.h"
 
 int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
-                MPID_Request *message, MPID_Request **rreqp)
+                MPIR_Request *message, MPIR_Request **rreqp)
 {
   int mpi_errno = MPI_SUCCESS;
 
-  MPID_Request * rreq;
+  MPIR_Request * rreq;
 
   /* ---------------------------------------- */
   /* NULL rank means empty request            */
@@ -20,18 +20,18 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     {
       rreq = MPIDI_Request_create2();
       MPIR_Status_set_procnull(&rreq->status);
-      rreq->kind = MPID_REQUEST_RECV;
+      rreq->kind = MPIR_REQUEST_KIND__RECV;
       MPIDI_Request_complete(rreq);
       *rreqp = rreq;
       return MPI_SUCCESS;
 
     }
 
-  MPIU_Assert(message != NULL);
-  MPIU_Assert(message->kind == MPID_REQUEST_MPROBE);
+  MPIR_Assert(message != NULL);
+  MPIR_Assert(message->kind == MPIR_REQUEST_KIND__MPROBE);
 
   /* promote the request object to be a "real" recv request */
-  message->kind = MPID_REQUEST_RECV;
+  message->kind = MPIR_REQUEST_KIND__RECV;
 
   *rreqp = rreq = message;
 
@@ -47,7 +47,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
 #ifdef MPIDI_TRACE
 {
   size_t ll;
-  ll = count * MPID_Datatype_get_basic_size(datatype);
+  ll = count * MPIDU_Datatype_get_basic_size(datatype);
   /*MPIDI_SET_PR_REC(rreq,buf,count,ll,datatype,pami_source,rank,tag,comm,is_blocking); */
 }
 #endif
@@ -80,7 +80,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
 #endif
 
 #ifdef MPIDI_STATISTICS
-  if (!(MPID_cc_is_complete(&rreq->cc)))
+  if (!(MPIR_cc_is_complete(&rreq->cc)))
     {
         MPID_NSTAT(mpid_statp->recvWaitsComplete);
     }
