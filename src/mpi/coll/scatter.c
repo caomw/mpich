@@ -78,10 +78,14 @@ int MPIR_Scatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype
 {
     MPI_Status status;
     MPI_Aint   extent=0;
-    int        rank, comm_size, is_homogeneous, sendtype_size;
-    int curr_cnt, relative_rank, nbytes, send_subtree_cnt;
-    int mask, recvtype_size=0, src, dst;
-    int tmp_buf_size = 0;
+    int        rank, comm_size, is_homogeneous;
+    MPI_Aint sendtype_size;
+    MPI_Aint curr_cnt, send_subtree_cnt;
+    int relative_rank;
+    MPI_Aint nbytes;
+    int mask, src, dst;
+    MPI_Aint recvtype_size=0;
+    MPI_Aint tmp_buf_size = 0;
     void *tmp_buf=NULL;
     int        mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
@@ -430,7 +434,8 @@ int MPIR_Scatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtype
 
     int rank, local_size, remote_size, mpi_errno=MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    int i, nbytes, sendtype_size, recvtype_size;
+    int i;
+    MPI_Aint nbytes, sendtype_size, recvtype_size;
     MPI_Status status;
     MPI_Aint extent, true_extent, true_lb = 0;
     void *tmp_buf=NULL;
@@ -717,7 +722,7 @@ int MPI_Scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 
                     /* catch common aliasing cases */
                     if (recvbuf != MPI_IN_PLACE && sendtype == recvtype && sendcount == recvcount && recvcount != 0) {
-                        int sendtype_size;
+                        MPI_Aint sendtype_size;
                         MPID_Datatype_get_size_macro(sendtype, sendtype_size);
                         MPIR_ERRTEST_ALIAS_COLL(recvbuf, (char*)sendbuf + comm_ptr->rank*sendcount*sendtype_size, mpi_errno);
                     }

@@ -140,10 +140,12 @@ int MPIR_Alltoall_intra(
     int          comm_size, i, j, pof2;
     MPI_Aint     sendtype_extent, recvtype_extent;
     MPI_Aint recvtype_true_extent, recvbuf_extent, recvtype_true_lb;
-    int mpi_errno=MPI_SUCCESS, src, dst, rank, nbytes;
+    int mpi_errno=MPI_SUCCESS, src, dst, rank;
+    MPI_Aint nbytes;
     int mpi_errno_ret = MPI_SUCCESS;
     MPI_Status status;
-    int sendtype_size, block, *displs, count;
+    MPI_Aint sendtype_size;
+    int block, *displs, count;
     MPI_Aint pack_size, position;
     MPI_Datatype newtype = MPI_DATATYPE_NULL;
     void *tmp_buf;

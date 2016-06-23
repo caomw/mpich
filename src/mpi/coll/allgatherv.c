@@ -106,12 +106,13 @@ int MPIR_Allgatherv_intra (
     MPI_Status status;
     MPI_Aint recvbuf_extent, recvtype_extent, recvtype_true_extent, 
 	recvtype_true_lb;
-    int curr_cnt, send_cnt, dst, total_count, recvtype_size, pof2, src, rem; 
-    int recv_cnt;
+    int curr_cnt, send_cnt, dst, total_count, pof2, src, rem; 
+    MPI_Aint recvtype_size;
+    MPI_Aint recv_cnt;
     void *tmp_buf;
     int mask, dst_tree_root, my_tree_root, is_homogeneous, position,  
-        send_offset, recv_offset, last_recv_cnt, nprocs_completed, k,
-        offset, tmp_mask, tree_root;
+        nprocs_completed, k, tmp_mask, tree_root;
+    MPI_Aint send_offset, recv_offset, last_recv_cnt, offset;
 #ifdef MPID_HAS_HETERO
     int tmp_buf_size, nbytes;
 #endif
@@ -1060,7 +1061,7 @@ int MPI_Allgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                         sendtype == recvtype &&
                         recvcounts[comm_ptr->rank] != 0 &&
                         sendcount != 0) {
-                    int recvtype_size;
+                    MPI_Aint recvtype_size;
                     MPID_Datatype_get_size_macro(recvtype, recvtype_size);
                     MPIR_ERRTEST_ALIAS_COLL(sendbuf, (char*)recvbuf + displs[comm_ptr->rank]*recvtype_size, mpi_errno);
                 }

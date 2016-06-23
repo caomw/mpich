@@ -559,7 +559,8 @@ int MPIR_Iallgatherv_intra(const void *sendbuf, int sendcount, MPI_Datatype send
                            MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
-    int i, comm_size, total_count, recvtype_size;
+    int i, comm_size;
+    MPI_Aint total_count, recvtype_size;
 
     comm_size = comm_ptr->local_size;
     MPID_Datatype_get_size_macro(recvtype, recvtype_size);
@@ -806,7 +807,7 @@ int MPI_Iallgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype, v
                         sendtype == recvtype &&
                         recvcounts[comm_ptr->rank] != 0 &&
                         sendcount != 0) {
-                    int recvtype_size;
+                    MPI_Aint recvtype_size;
                     MPID_Datatype_get_size_macro(recvtype, recvtype_size);
                     MPIR_ERRTEST_ALIAS_COLL(sendbuf, (char*)recvbuf + displs[comm_ptr->rank]*recvtype_size, mpi_errno);
                 }

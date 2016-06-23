@@ -74,7 +74,7 @@ int MPIR_Alltoallv_intra(const void *sendbuf, const int *sendcounts, const int *
     MPIR_Request **reqarray;
     int dst, rank, req_cnt;
     int ii, ss, bblock;
-    int type_size;
+    MPI_Aint type_size;
 
     MPIR_CHKLMEM_DECL(2);
 

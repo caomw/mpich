@@ -41,9 +41,10 @@ int MPIR_Ireduce_scatter_block_rec_hlv(const void *sendbuf, void *recvbuf, int r
     int mpi_errno = MPI_SUCCESS;
     int rank, comm_size, i;
     MPI_Aint extent, true_extent, true_lb;
-    int  *disps;
+    MPI_Aint  *disps;
     void *tmp_recvbuf, *tmp_results;
-    int type_size ATTRIBUTE((unused)), total_count, dst;
+    MPI_Aint type_size ATTRIBUTE((unused)), total_count;
+    int dst;
     int mask;
     int *newcnts, *newdisps, rem, newdst, send_idx, recv_idx,
         last_idx, send_cnt, recv_cnt;
@@ -58,7 +59,7 @@ int MPIR_Ireduce_scatter_block_rec_hlv(const void *sendbuf, void *recvbuf, int r
 
     MPIR_Assert(MPIR_Op_is_commutative(op));
 
-    MPIR_SCHED_CHKPMEM_MALLOC(disps, int *, comm_size * sizeof(int), mpi_errno, "disps");
+    MPIR_SCHED_CHKPMEM_MALLOC(disps, MPI_Aint *, comm_size * sizeof(MPI_Aint), mpi_errno, "disps");
 
     total_count = 0;
     for (i=0; i<comm_size; i++) {
@@ -400,7 +401,8 @@ int MPIR_Ireduce_scatter_block_rec_dbl(const void *sendbuf, void *recvbuf, int r
     MPI_Aint extent, true_extent, true_lb;
     int  *disps;
     void *tmp_recvbuf, *tmp_results;
-    int type_size ATTRIBUTE((unused)), dis[2], blklens[2], total_count, dst;
+    MPI_Aint type_size ATTRIBUTE((unused));
+    int dis[2], blklens[2], total_count, dst;
     int mask, dst_tree_root, my_tree_root, j, k;
     int received;
     MPI_Datatype sendtype, recvtype;
@@ -652,8 +654,8 @@ int MPIR_Ireduce_scatter_block_noncomm(const void *sendbuf, void *recvbuf, int r
     int pof2;
     int log2_comm_size;
     int i, k;
-    int recv_offset, send_offset;
-    int block_size, total_count, size;
+    MPI_Aint recv_offset, send_offset;
+    MPI_Aint block_size, total_count, size;
     MPI_Aint true_extent, true_lb;
     int buf0_was_inout;
     void *tmp_buf0;
@@ -771,7 +773,7 @@ int MPIR_Ireduce_scatter_block_intra(const void *sendbuf, void *recvbuf, int rec
 {
     int mpi_errno = MPI_SUCCESS;
     int is_commutative;
-    int total_count, type_size, nbytes;
+    MPI_Aint total_count, type_size, nbytes;
     int comm_size;
 
     is_commutative = MPIR_Op_is_commutative(op);

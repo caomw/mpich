@@ -64,7 +64,7 @@ int MPIR_Ialltoallw_intra(const void *sendbuf, const int sendcounts[], const int
     int comm_size, i, j;
     int dst, rank;
     int ii, ss, bblock;
-    int type_size, recv_extent;
+    MPI_Aint type_size, recv_extent;
     MPI_Aint true_extent, true_lb;
     MPIR_SCHED_CHKPMEM_DECL(1);
 
@@ -72,7 +72,7 @@ int MPIR_Ialltoallw_intra(const void *sendbuf, const int sendcounts[], const int
     rank = comm_ptr->rank;
 
     if (sendbuf == MPI_IN_PLACE) {
-        int max_size;
+        MPI_Aint max_size;
         void *tmp_buf = NULL, *adj_tmp_buf = NULL;
 
         /* The regular MPI_Alltoallw handles MPI_IN_PLACE using pairwise

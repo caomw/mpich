@@ -794,13 +794,13 @@ static int MPIR_Bcast_scatter_ring_allgather(
     int rank, comm_size;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    MPI_Aint scatter_size;
     int j, i, is_contig, is_homogeneous;
-    MPI_Aint nbytes, type_size, position;
     int left, right, jnext;
-    MPI_Aint curr_size = 0;
+    MPI_Count scatter_size;
+    MPI_Count nbytes, type_size, position;
+    MPI_Count curr_size = 0;
+    MPI_Count recvd_size;
     void *tmp_buf;
-    MPI_Aint recvd_size;
     MPI_Status status;
     MPIR_Datatype *dtp;
     MPI_Aint true_extent, true_lb;
@@ -1000,9 +1000,8 @@ static int MPIR_SMP_Bcast(
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     int is_homogeneous;
-    MPI_Aint type_size, nbytes=0;
+    MPI_Count type_size, nbytes=0, recvd_size;
     MPI_Status status;
-    MPI_Aint recvd_size;
 
     if (!MPIR_CVAR_ENABLE_SMP_COLLECTIVES || !MPIR_CVAR_ENABLE_SMP_BCAST) {
         MPIR_Assert(0);

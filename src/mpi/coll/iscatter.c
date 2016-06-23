@@ -29,10 +29,10 @@ int MPI_Iscatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void
 
 /* helper callbacks and associated state structures */
 struct shared_state {
-    int sendcount;
-    int curr_count;
+    MPI_Aint sendcount;
+    MPI_Aint curr_count;
     MPI_Aint send_subtree_count;
-    int nbytes;
+    MPI_Aint nbytes;
     MPI_Status status;
 };
 static int get_count(MPIR_Comm *comm, int tag, void *state)
@@ -94,10 +94,10 @@ int MPIR_Iscatter_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtyp
 {
     int mpi_errno = MPI_SUCCESS;
     MPI_Aint extent = 0;
-    int rank, comm_size, is_homogeneous, sendtype_size;
+    int rank, comm_size, is_homogeneous;
+    MPI_Aint sendtype_size, recvtype_size=0, tmp_buf_size=0;
     int relative_rank;
-    int mask, recvtype_size=0, src, dst;
-    int tmp_buf_size = 0;
+    int mask, src, dst;
     void *tmp_buf = NULL;
     struct shared_state *ss = NULL;
     MPIR_SCHED_CHKPMEM_DECL(4);
@@ -444,7 +444,8 @@ int MPIR_Iscatter_inter(const void *sendbuf, int sendcount, MPI_Datatype sendtyp
 */
     int mpi_errno = MPI_SUCCESS;
     int rank, local_size, remote_size;
-    int i, nbytes, sendtype_size, recvtype_size;
+    int i;
+    MPI_Aint nbytes, sendtype_size, recvtype_size;
     MPI_Aint extent, true_extent, true_lb = 0;
     void *tmp_buf = NULL;
     MPIR_Comm *newcomm_ptr = NULL;
@@ -657,7 +658,7 @@ int MPI_Iscatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 
                     /* catch common aliasing cases */
                     if (recvbuf != MPI_IN_PLACE && sendtype == recvtype && sendcount == recvcount && recvcount != 0) {
-                        int sendtype_size;
+                        MPI_Aint sendtype_size;
                         MPID_Datatype_get_size_macro(sendtype, sendtype_size);
                         MPIR_ERRTEST_ALIAS_COLL(recvbuf, (char*)sendbuf + comm_ptr->rank*sendcount*sendtype_size, mpi_errno);
                     }

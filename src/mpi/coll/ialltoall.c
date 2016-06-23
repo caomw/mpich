@@ -50,7 +50,7 @@ int MPIR_Ialltoall_inplace(const void *sendbuf, int sendcount, MPI_Datatype send
     void *tmp_buf = NULL;
     int i, j;
     int rank, comm_size;
-    int nbytes, recvtype_size;
+    MPI_Aint nbytes, recvtype_size;
     MPI_Aint recvtype_extent;
     int peer;
     MPIR_SCHED_CHKPMEM_DECL(1);
@@ -114,7 +114,7 @@ int MPIR_Ialltoall_bruck(const void *sendbuf, int sendcount, MPI_Datatype sendty
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
-    int nbytes, recvtype_size, recvbuf_extent, newtype_size;
+    MPI_Aint nbytes, recvtype_size, recvbuf_extent, newtype_size;
     int rank, comm_size;
     void *tmp_buf = NULL;
     MPI_Aint sendtype_extent, recvtype_extent, recvtype_true_lb, recvtype_true_extent;
@@ -410,7 +410,8 @@ fn_fail:
 int MPIR_Ialltoall_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
-    int nbytes, comm_size, sendtype_size;
+    int comm_size;
+    MPI_Aint nbytes, sendtype_size;
 
     comm_size = comm_ptr->local_size;
 

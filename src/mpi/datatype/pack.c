@@ -212,7 +212,7 @@ int MPI_Pack(const void *inbuf,
 
 #ifdef HAVE_ERROR_CHECKING /* IMPLEMENTATION-SPECIFIC ERROR CHECKS */
     {
-	int tmp_sz;
+	MPI_Count tmp_sz;
 
 	MPID_BEGIN_ERROR_CHECKS;
 	/* Verify that there is space in the buffer to pack the type */

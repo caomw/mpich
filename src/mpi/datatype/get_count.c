@@ -91,6 +91,7 @@ size of 'datatype' (so that 'count' would not be integral), a 'count' of
 int MPI_Get_count( const MPI_Status *status, MPI_Datatype datatype, int *count )
 {
     int mpi_errno = MPI_SUCCESS;
+    MPI_Count large_count;
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_GET_COUNT);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
@@ -121,7 +122,10 @@ int MPI_Get_count( const MPI_Status *status, MPI_Datatype datatype, int *count )
 
     /* ... body of routine ...  */
     
-    MPIR_Get_count_impl(status, datatype, count);
+    MPIR_Get_count_impl(status, datatype, &large_count);
+
+    /* Jeff: there should be a safe down-cast macro... */
+    *count = (int)large_count;
     
     /* ... end of body of routine ... */
 

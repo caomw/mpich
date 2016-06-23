@@ -38,7 +38,7 @@ struct shared_state {
 static int get_count(MPIR_Comm *comm, int tag, void *state)
 {
     struct shared_state *ss = state;
-    int recv_count;
+    MPI_Aint recv_count;
     MPIR_Get_count_impl(&ss->status, ss->recvtype, &recv_count);
     ss->last_recv_count = recv_count;
     ss->curr_count += ss->last_recv_count;
@@ -65,7 +65,7 @@ int MPIR_Iallgather_rec_dbl(const void *sendbuf, int sendcount, MPI_Datatype sen
     int i, j, k;
     int mask, tmp_mask, dst;
     int dst_tree_root, my_tree_root, tree_root;
-    int offset, send_offset, recv_offset;
+    MPI_Aint offset, send_offset, recv_offset;
     MPI_Aint recvtype_extent;
     MPIR_Datatype *recv_dtp;
     MPIR_SCHED_CHKPMEM_DECL(1);
@@ -448,8 +448,8 @@ fn_fail:
 int MPIR_Iallgather_intra(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
-    int comm_size, recvtype_size;
-    int tot_bytes;
+    int comm_size;
+    MPI_Aint recvtype_size,tot_bytes;
 
     if (((sendcount == 0) && (sendbuf != MPI_IN_PLACE)) || (recvcount == 0))
         return MPI_SUCCESS;
@@ -709,7 +709,7 @@ int MPI_Iallgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 
             /* catch common aliasing cases */
             if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM && recvbuf != MPI_IN_PLACE && sendtype == recvtype && sendcount == recvcount && sendcount != 0) {
-                int recvtype_size;
+                MPI_Aint recvtype_size;
                 MPID_Datatype_get_size_macro(recvtype, recvtype_size);
                 MPIR_ERRTEST_ALIAS_COLL(sendbuf, (char*)recvbuf + comm_ptr->rank*recvcount*recvtype_size, mpi_errno);
             }

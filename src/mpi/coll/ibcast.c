@@ -21,8 +21,8 @@ int MPI_Ibcast(void *buffer, int count, MPI_Datatype datatype, int root, MPI_Com
 /* -- End Profiling Symbol Block */
 
 struct MPIR_Ibcast_status{
-    int curr_bytes;
-    int n_bytes;
+    MPI_Aint curr_bytes;
+    MPI_Aint n_bytes;
     MPI_Status status;
 };
 /* Add some functions for asynchronous error detection */
@@ -41,7 +41,7 @@ struct MPIR_Ibcast_status{
 static int sched_test_length(MPIR_Comm * comm, int tag, void *state)
 {
     int mpi_errno = MPI_SUCCESS;
-    int recv_size;
+    MPI_Aint recv_size;
     struct  MPIR_Ibcast_status *status = (struct MPIR_Ibcast_status*) state;
     MPIR_Get_count_impl(&status->status, MPI_BYTE, &recv_size);
     if(status->n_bytes != recv_size || status->status.MPI_ERROR != MPI_SUCCESS) {
@@ -79,7 +79,7 @@ static int sched_test_curr_length(MPIR_Comm * comm, int tag, void *state)
 static int sched_add_length(MPIR_Comm * comm, int tag, void *state)
 {
     int mpi_errno = MPI_SUCCESS;
-    int recv_size;
+    MPI_Aint recv_size;
     struct  MPIR_Ibcast_status *status = (struct MPIR_Ibcast_status*) state;
     MPIR_Get_count_impl(&status->status, MPI_BYTE, &recv_size);
     status->curr_bytes+= recv_size;
@@ -264,12 +264,12 @@ fn_fail:
 #define FUNCNAME MPIR_Iscatter_for_bcast
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Iscatter_for_bcast(void *tmp_buf, int root, MPIR_Comm *comm_ptr, int nbytes, MPIR_Sched_t s)
+int MPIR_Iscatter_for_bcast(void *tmp_buf, int root, MPIR_Comm *comm_ptr, MPI_Aint nbytes, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int rank, comm_size, src, dst;
     int relative_rank, mask;
-    int scatter_size, curr_size, recv_size, send_size;
+    MPI_Aint scatter_size, curr_size, recv_size, send_size;
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -391,10 +391,11 @@ int MPIR_Ibcast_scatter_rec_dbl_allgather(void *buffer, int count, MPI_Datatype 
     int mpi_errno = MPI_SUCCESS;
     int rank, comm_size, dst;
     int relative_rank, mask;
-    int scatter_size, nbytes, curr_size, incoming_count;
-    int type_size, j, k, i, tmp_mask, is_contig, is_homogeneous ATTRIBUTE((unused));
-    int relative_dst, dst_tree_root, my_tree_root, send_offset;
-    int recv_offset, tree_root, nprocs_completed, offset;
+    MPI_Aint scatter_size, nbytes, curr_size, incoming_count;
+    MPI_Aint type_size;
+    int j, k, i, tmp_mask, is_contig, is_homogeneous ATTRIBUTE((unused));
+    int relative_dst, dst_tree_root, my_tree_root, tree_root, nprocs_completed;
+    MPI_Aint send_offset, recv_offset, offset;
     MPIR_Datatype *dtp;
     MPI_Aint true_extent, true_lb;
     void *tmp_buf;
@@ -645,8 +646,9 @@ int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype dat
 {
     int mpi_errno = MPI_SUCCESS;
     int comm_size, rank;
-    int is_contig, is_homogeneous ATTRIBUTE((unused)), type_size, nbytes;
-    int scatter_size;
+    int is_contig, is_homogeneous ATTRIBUTE((unused));
+    MPI_Aint type_size, nbytes;
+    MPI_Aint scatter_size;
     int i, j, jnext, left, right;
     MPI_Aint true_extent, true_lb;
     void *tmp_buf = NULL;
@@ -712,7 +714,7 @@ int MPIR_Ibcast_scatter_ring_allgather(void *buffer, int count, MPI_Datatype dat
     j     = rank;
     jnext = left;
     for (i = 1; i < comm_size; i++) {
-        int left_count, right_count, left_disp, right_disp, rel_j, rel_jnext;
+        MPI_Aint left_count, right_count, left_disp, right_disp, rel_j, rel_jnext;
 
         rel_j     = (j     - root + comm_size) % comm_size;
         rel_jnext = (jnext - root + comm_size) % comm_size;

@@ -248,7 +248,8 @@ int MPIR_Reduce_scatter_block_intra (
     void *tmp_recvbuf, *tmp_results;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    int type_size, dis[2], blklens[2], total_count, nbytes, src, dst;
+    MPI_Aint type_size, nbytes;
+    int dis[2], blklens[2], total_count, src, dst;
     int mask, dst_tree_root, my_tree_root, j, k;
     int *newcnts, *newdisps, rem, newdst, send_idx, recv_idx,
         last_idx, send_cnt, recv_cnt;
